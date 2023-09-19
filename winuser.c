@@ -5,8 +5,8 @@
 
 static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 {
-    HWND hDesktopWindow = GetDesktopWindow();
-    return jw32_wrap_handle(hDesktopWindow);
+    janet_fixarity(argc, 0);
+    return jw32_wrap_handle(GetDesktopWindow());
 }
 
 
