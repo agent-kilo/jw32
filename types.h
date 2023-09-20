@@ -7,9 +7,10 @@
 #define jw32_wrap_handle(val) janet_wrap_pointer((void *)val)
 #define jw32_unwrap_handle(val) ((HANDLE)janet_unwrap_pointer(val))
 
-/* XXX: below are 32 bit data types, but janet converts all numbers
-   into double float, and doesn't have 32 bit integer types.
-   use 64 bit types here to preserve precision */
+/* XXX: below are some number types, but janet only has
+   int32_t <-> double float conversions.
+   use 64 bit types here to avoid undefined sign-ness conversions
+   and preserve precision */
 
 /* DWORD: 32 bit unsigned */
 #define jw32_wrap_dword(x)    janet_wrap_u64((uint64_t)(x))
@@ -26,5 +27,8 @@
 /* LONG: 32 bit signed */
 #define jw32_wrap_long(x)   janet_wrap_s64((int64_t)(x))
 #define jw32_unwrap_long(x) ((LONG)janet_unwrap_s64(x))
+/* BOOL: 32 bit signed */
+#define jw32_wrap_bool(x)   janet_wrap_integer((int32_t)(x))
+#define jw32_unwrap_bool(x) ((BOOL)janet_unwrap_integer(x))
 
 #endif
