@@ -31,20 +31,20 @@ static JanetTable *msg_to_table(MSG *msg)
     Janet msg_point[2];
     JanetTable *msg_table = janet_table(7); /* the field cound in MSG struct */
 
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("hwnd")), jw32_wrap_handle(msg->hwnd));
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("message")), jw32_wrap_uint(msg->message));
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("wParam")), jw32_wrap_wparam(msg->wParam));
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("lParam")), jw32_wrap_lparam(msg->lParam));
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("time")), jw32_wrap_dword(msg->time));
+    janet_table_put(msg_table, jw32_cstr_to_keyword("hwnd"), jw32_wrap_handle(msg->hwnd));
+    janet_table_put(msg_table, jw32_cstr_to_keyword("message"), jw32_wrap_uint(msg->message));
+    janet_table_put(msg_table, jw32_cstr_to_keyword("wParam"), jw32_wrap_wparam(msg->wParam));
+    janet_table_put(msg_table, jw32_cstr_to_keyword("lParam"), jw32_wrap_lparam(msg->lParam));
+    janet_table_put(msg_table, jw32_cstr_to_keyword("time"), jw32_wrap_dword(msg->time));
 
     msg_point[0] = jw32_wrap_long(msg->pt.x);
     msg_point[1] = jw32_wrap_long(msg->pt.y);
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("pt")),
+    janet_table_put(msg_table, jw32_cstr_to_keyword("pt"),
                     janet_wrap_tuple(janet_tuple_n(msg_point, 2)));
 
     /* TIL, WTF? */
 #ifdef _MAC
-    janet_table_put(msg_table, janet_wrap_keyword(janet_ckeyword("lPrivate")),
+    janet_table_put(msg_table, jw32_cstr_to_keyword("lPrivate"),
                     jw32_wrap_dword(msg->lPrivate));
 #endif
 

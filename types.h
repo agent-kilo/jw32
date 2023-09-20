@@ -4,8 +4,10 @@
 #include <windows.h>
 #include <janet.h>
 
-#define jw32_wrap_handle(val) janet_wrap_pointer((void *)val)
-#define jw32_unwrap_handle(val) ((HANDLE)janet_unwrap_pointer(val))
+#define jw32_cstr_to_keyword(x) janet_wrap_keyword(janet_ckeyword(x))
+
+#define jw32_wrap_handle(x) janet_wrap_pointer((void *)(x))
+#define jw32_unwrap_handle(x) ((HANDLE)janet_unwrap_pointer(x))
 
 /* XXX: below are some number types, but janet only has
    int32_t <-> double float conversions.
