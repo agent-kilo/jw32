@@ -23,5 +23,8 @@
 /* LPARAM: 32 bit signed */
 #define jw32_wrap_lparam(x)   janet_wrap_s64((int64_t)(x))
 #define jw32_unwrap_lparam(x) ((LPARAM)janet_unwrap_s64(x))
+/* LONG: 32 bit signed */
+#define jw32_wrap_long(x)   janet_wrap_s64((int64_t)(x))
+#define jw32_unwrap_long(x) ((LONG)janet_unwrap_s64(x))
 
 #endif

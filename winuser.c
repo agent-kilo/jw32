@@ -12,12 +12,30 @@ static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 static Janet cfun_GetMessage(int32_t argc, Janet *argv)
 {
     MSG msg;
-    BOOL ret = GetMessage(&msg);
+    HWND hwnd;
+    UINT msg_filter_min, msg_filter_max;
+    BOOL ret;
+
+    janet_fixarity(argc, 3);
+
+    if (janet_checktype(argv[0], JANET_POINTER)) {
+        hwnd = jw32_unwrap_handle(argv[0]);
+    } else if (janet_checktype(argv[0], JANET_NIL)) {
+        hwnd = NULL;
+    } else {
+        janet_panicf("expected pointer for hwnd");
+    }
+
+    msg_filter_min = jw32_unwrap_uint(argv[1]);
+    msg_filter_max = jw32_unwrap_uint(argv[2]);
+
+    ret = GetMessage(&msg, hwnd, msg_filter_min, msg_filter_max);
 
     if (ret != 0) {
         JanetTable *msg_table;
-        JanetTuple *msg_point;
+        Janet msg_point[2];
 
+        /* yeah that's right, a BOOL can be -1 */
         if (ret == -1) {
             /* error */
             janet_panicf("GetMessage failed: %" PRIu32 "\n", GetLastError());
@@ -29,7 +47,14 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
         janet_table_put(msg_table, janet_wrap_keyword("wParam"), jw32_wrap_wparam(msg.wParam));
         janet_table_put(msg_table, janet_wrap_keyword("lParam"), jw32_wrap_lparam(msg.lParam));
         janet_table_put(msg_table, janet_wrap_keyword("time"), jw32_wrap_dword(msg.time));
+
+        msg_point[0] = jw32_wrap_long(msg.pt.x);
+        msg_point[1] = jw32_wrap_long(msg.pt.y);
+        janet_table_put(msg_table, janet_wrap_keyword("pt"), janet_wrap_tuple(janet_tuple_n(msg_point, 2)));
+        
         janet_table_put(msg_table, janet_wrap_keyword("lPrivate"), jw32_wrap_dword(msg.lPrivate));
+
+        return janet_wrap_table(msg_table);
     } else {
         /* WM_QUIT received */
         return janet_wrap_nil();
