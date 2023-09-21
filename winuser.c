@@ -27,6 +27,54 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(PostThreadMessage(idThread, Msg, wParam, lParam));
 }
 
+static void table_to_msg(JanetTable *msg_table, MSG *msg)
+{
+    Janet hwnd = janet_table_get(msg_table, jw32_cstr_to_keyword("hwnd")),
+        message = janet_table_get(msg_table, jw32_cstr_to_keyword("message")),
+        wParam = janet_table_get(msg_table, jw32_cstr_to_keyword("wParam")),
+        lParam = janet_table_get(msg_table, jw32_cstr_to_keyword("lParam")),
+        time = janet_table_get(msg_table, jw32_cstr_to_keyword("time")),
+        pt = janet_table_get(msg_table, jw32_cstr_to_keyword("pt"));
+#ifdef _MAC
+    Janet lPrivate = janet_table_get(msg_table, jw32_cstr_to_keyword("lPrivate"));
+#endif
+
+    memset(msg, 0, sizeof(*msg));
+
+    msg->hwnd = jw32_unwrap_handle(hwnd);
+    if (!janet_checktype(message, JANET_NIL)) {
+        msg->message = jw32_unwrap_uint(message);
+    }
+    if (!janet_checktype(wParam, JANET_NIL)) {
+        msg->wParam = jw32_unwrap_wparam(wParam);
+    }
+    if (!janet_checktype(lParam, JANET_NIL)) {
+        msg->lParam = jw32_unwrap_lparam(lParam);
+    }
+    if (!janet_checktype(time, JANET_NIL)) {
+        msg->time = jw32_unwrap_dword(time);
+    }
+
+    if (!janet_checktype(pt, JANET_NIL)) {
+        if (janet_checktype(pt, JANET_TUPLE)) {
+            const Janet *pt_tuple = janet_unwrap_tuple(pt);
+            if (janet_tuple_length(pt_tuple) != 2) {
+                janet_panicf("expected tuple of length 2 for pt field, got %d",
+                             janet_tuple_length(pt_tuple));
+            }
+            msg->pt.x = jw32_unwrap_long(pt_tuple[0]);
+            msg->pt.y = jw32_unwrap_long(pt_tuple[1]);
+        } else {
+            janet_panicf("expected tuple of length 2 for pt field");
+        }
+    }
+
+#ifdef _MAC
+    if (!janet_checktype(lPrivate, JANET_NIL)) {
+    msg->lPrivate = jw32_unwrap_dword(lPrivate);
+#endif
+}
+
 static JanetTable *msg_to_table(MSG *msg)
 {
     Janet msg_point[2];
@@ -83,6 +131,18 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
+{
+    MSG msg;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 1);
+
+    table_to_msg(janet_unwrap_table(argv[0]), &msg);
+    return jw32_wrap_lresult(DispatchMessage(&msg));
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -102,6 +162,12 @@ static const JanetReg cfuns[] = {
         cfun_GetMessage,
         "(" MOD_NAME "/GetMessage hWnd wMsgFilterMin wMsgFilterMax)\n\n"
         "Returns a tuple (bRet, msg).",
+    },
+    {
+        "DispatchMessage",
+        cfun_DispatchMessage,
+        "(" MOD_NAME "/DispatchMessage msg)\n\n"
+        "Returns the value returned by the window procedure.",
     },
     {NULL, NULL, NULL},
 };

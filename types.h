@@ -69,5 +69,8 @@ static inline LPCSTR jw32_unwrap_lpcstr(Janet x)
 /* BOOL: 32 bit signed */
 #define jw32_wrap_bool(x)   janet_wrap_integer((int32_t)(x))
 #define jw32_unwrap_bool(x) ((BOOL)janet_unwrap_integer(x))
+/* LRESULT: 64 bit (on x64 machines) or 32 bit (on x86 machines) signed */
+#define jw32_wrap_lresult(x)   janet_wrap_s64((int64_t)(x))
+#define jw32_unwrap_lresult(x) ((LRESULT)janet_unwrap_s64(x))
 
 #endif
