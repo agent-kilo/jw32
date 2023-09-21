@@ -155,6 +155,30 @@ static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
     return jw32_wrap_lresult(DispatchMessage(&msg));
 }
 
+static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
+{
+    LPCSTR lpClassName, lpWindowName;
+    DWORD dwStyle;
+    int x, y, nWidth, nHeight;
+    HWND hWndParent;
+    HMENU hMenu;
+    HINSTANCE hInstance;
+    LPVOID lpParam;
+
+    HWND hWnd;
+
+    janet_fixarity(argc, 11);
+
+    lpClassName = jw32_unwrap_lpcstr(argv[0]);
+    lpWindowName = jw32_unwrap_lpcstr(argv[1]);
+    dwStyle = jw32_unwrap_dword(argv[2]);
+
+    hWnd = CreateWindow(lpClassName, lpWindowName,dwStyle,
+                        x, y, nWidth, nHeight,
+                        hWndParent, hMenu, hInstance,
+                        lpParam);
+}
+
 
 static const JanetReg cfuns[] = {
     {
