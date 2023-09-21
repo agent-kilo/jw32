@@ -172,11 +172,86 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
     lpClassName = jw32_unwrap_lpcstr(argv[0]);
     lpWindowName = jw32_unwrap_lpcstr(argv[1]);
     dwStyle = jw32_unwrap_dword(argv[2]);
+    x = jw32_unwrap_int(argv[3]);
+    y = jw32_unwrap_int(argv[4]);
+    nWidth = jw32_unwrap_int(argv[5]);
+    nHeight = jw32_unwrap_int(argv[6]);
+    hWndParent = jw32_unwrap_handle(argv[7]);
+    hMenu = jw32_unwrap_handle(argv[8]);
+    hInstance = jw32_unwrap_handle(argv[9]);
+    lpParam = jw32_unwrap_lpvoid(argv[10]);
 
-    hWnd = CreateWindow(lpClassName, lpWindowName,dwStyle,
+    hWnd = CreateWindow(lpClassName, lpWindowName, dwStyle,
                         x, y, nWidth, nHeight,
                         hWndParent, hMenu, hInstance,
                         lpParam);
+
+    return jw32_wrap_handle(hWnd);
+}
+
+static Janet cfun_ShowWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    int nCmdShow;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_unwrap_handle(argv[0]);
+    nCmdShow = jw32_unwrap_int(argv[1]);
+
+    bRet = ShowWindow(hWnd, nCmdShow);
+
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_unwrap_handle(argv[0]);
+
+    bRet = UpdateWindow(hWnd);
+
+    return jw32_wrap_bool(bRet);
+}
+
+
+/* TODO: provide a WndProc which calls our janet function in turn */
+
+static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
+{
+    Janet style = janet_table_get(wc_table, jw32_cstr_to_keyword("style")),
+        lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc")),
+        cbClsExtra = janet_table_get(wc_table, jw32_cstr_to_keyword("cbClsExtra")),
+        cbWndExtra = janet_table_get(wc_table, jw32_cstr_to_keyword("cbWndExtra")),
+        hInstance = janet_table_get(wc_table, jw32_cstr_to_keyword("hInstance")),
+        hIcon = janet_table_get(wc_table, jw32_cstr_to_keyword("hIcon")),
+        hCursor = janet_table_get(wc_table, jw32_cstr_to_keyword("hCursor")),
+        hBrush = janet_table_get(wc_table, jw32_cstr_to_keyword("hBrush")),
+        lpszMenuName = janet_table_get(wc_table, jw32_cstr_to_keyword("lpszMenuName")),
+        lpszClassName = janet_table_get(wc_table, jw32_cstr_to_keyword("lpszClassName"));
+
+    memset(wc, 0, sizeof(*wc));
+}
+
+static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
+{
+    WNDCLASS wndClass;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    table_to_wndclass(janet_unwrap_table(argv[0]), &wndClass);
+    aRet = RegisterClass(&wndClass);
+
+    return jw32_wrap_atom(aRet);
 }
 
 
@@ -210,6 +285,24 @@ static const JanetReg cfuns[] = {
         cfun_DispatchMessage,
         "(" MOD_NAME "/DispatchMessage msg)\n\n"
         "Returns the value returned by the window procedure.",
+    },
+    {
+        "CreateWindow",
+        cfun_CreateWindow,
+        "(" MOD_NAME "/CreateWindow lpClassName lpWindowName dwStyle x y nWidth nHeight hWndParent hMenu hInstance lpParam)\n\n"
+        "Creates a window.",
+    },
+    {
+        "ShowWindow",
+        cfun_ShowWindow,
+        "(" MOD_NAME "/ShowWindow hWnd nCmdShow)\n\n"
+        "Shows a window.",
+    },
+    {
+        "UpdateWindow",
+        cfun_UpdateWindow,
+        "(" MOD_NAME "/UpdateWindow hWnd)\n\n"
+        "Updates a window.",
     },
     {NULL, NULL, NULL},
 };

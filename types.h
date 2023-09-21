@@ -20,7 +20,7 @@ static inline HANDLE jw32_unwrap_handle(Janet x)
     } else if (janet_checktype(x, JANET_NIL)) {
         return NULL;
     } else {
-        janet_panicf("expected pointer or nil for HANDLE types");
+        janet_panicf("expected pointer or nil for HANDLE or pointer types");
     }
 }
 
@@ -44,6 +44,17 @@ static inline LPCSTR jw32_unwrap_lpcstr(Janet x)
         janet_panicf("expected string or nil for LPCSTR types");
     }
 }
+
+
+/* LPVOID: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned pointer */
+#define jw32_wrap_lpvoid(x) jw32_wrap_handle(x)
+#define jw32_unwrap_lpvoid(x) ((LPVOID)jw32_unwrap_handle(x))
+/* WORD: 16 bit unsigned */
+#define jw32_wrap_word(x) janet_wrap_integer(x)
+#define jw32_unwrap_word(x) ((WORD)janet_unwrap_integer(x))
+/* ATOM: 16 bit unsigned */
+#define jw32_wrap_atom(x) janet_wrap_integer(x)
+#define jw32_unwrap_atom(x) ((ATOM)janet_unwrap_integer(x))
 
 
 /* XXX: below are some number types, but janet only has
