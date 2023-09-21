@@ -4,10 +4,47 @@
 #include <windows.h>
 #include <janet.h>
 
+
 #define jw32_cstr_to_keyword(x) janet_wrap_keyword(janet_ckeyword(x))
 
-#define jw32_wrap_handle(x) janet_wrap_pointer((void *)(x))
-#define jw32_unwrap_handle(x) ((HANDLE)janet_unwrap_pointer(x))
+
+static inline Janet jw32_wrap_handle(void *x)
+{
+    return janet_wrap_pointer(x);
+}
+
+static inline HANDLE jw32_unwrap_handle(Janet x)
+{
+    if (janet_checktype(x, JANET_POINTER) || janet_checktype(x, JANET_NUMBER)) {
+        return ((HANDLE)janet_unwrap_pointer(x));
+    } else if (janet_checktype(x, JANET_NIL)) {
+        return NULL;
+    } else {
+        janet_panicf("expected pointer or nil for HANDLE types");
+    }
+}
+
+
+static inline Janet jw32_wrap_lpcstr(LPCSTR x)
+{
+    const uint8_t *s = janet_string(x, strlen(x));
+    return janet_wrap_string(s);
+}
+
+/* XXX: doesn't increase ref count, don't use in async stuff */
+static inline LPCSTR jw32_unwrap_lpcstr(Janet x)
+{
+    if (janet_checktype(x, JANET_STRING)) {
+        return ((LPCSTR)janet_unwrap_string(x));
+    } else if (janet_checktype(x, JANET_NUMBER)) {
+        return ((LPCSTR)janet_unwrap_pointer(x));
+    } else if (janet_checktype(x, JANET_NIL)) {
+        return NULL;
+    } else {
+        janet_panicf("expected string or nil for LPCSTR types");
+    }
+}
+
 
 /* XXX: below are some number types, but janet only has
    int32_t <-> double float conversions.

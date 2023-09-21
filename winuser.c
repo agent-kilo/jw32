@@ -6,6 +6,7 @@
 static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 {
     janet_fixarity(argc, 0);
+
     return jw32_wrap_handle(GetDesktopWindow());
 }
 
@@ -62,14 +63,7 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 3);
 
-    if (janet_checktype(argv[0], JANET_POINTER)) {
-        hWnd = jw32_unwrap_handle(argv[0]);
-    } else if (janet_checktype(argv[0], JANET_NIL)) {
-        hWnd = NULL;
-    } else {
-        janet_panicf("expected pointer or nil for hWnd");
-    }
-
+    hWnd = jw32_unwrap_handle(argv[0]);
     wMsgFilterMin = jw32_unwrap_uint(argv[1]);
     wMsgFilterMax = jw32_unwrap_uint(argv[2]);
 
