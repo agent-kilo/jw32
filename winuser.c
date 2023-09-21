@@ -131,6 +131,18 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_TranslateMessage(int32_t argc, Janet *argv)
+{
+    MSG msg;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    table_to_msg(janet_unwrap_table(argv[0]), &msg);
+    return jw32_wrap_bool(TranslateMessage(&msg));
+}
+
 static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
 {
     MSG msg;
@@ -162,6 +174,12 @@ static const JanetReg cfuns[] = {
         cfun_GetMessage,
         "(" MOD_NAME "/GetMessage hWnd wMsgFilterMin wMsgFilterMax)\n\n"
         "Returns a tuple (bRet, msg).",
+    },
+    {
+        "TranslateMessage",
+        cfun_TranslateMessage,
+        "(" MOD_NAME "/TranslateMessage msg)\n\n"
+        "Translate key messages.",
     },
     {
         "DispatchMessage",
