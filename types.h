@@ -36,7 +36,7 @@ static inline LPCSTR jw32_unwrap_lpcstr(Janet x)
 {
     if (janet_checktype(x, JANET_STRING)) {
         return ((LPCSTR)janet_unwrap_string(x));
-    } else if (janet_checktype(x, JANET_NUMBER)) {
+    } else if (janet_checktype(x, JANET_POINTER) || janet_checktype(x, JANET_NUMBER)) {
         return ((LPCSTR)janet_unwrap_pointer(x));
     } else if (janet_checktype(x, JANET_NIL)) {
         return NULL;
