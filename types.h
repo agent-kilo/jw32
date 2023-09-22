@@ -87,4 +87,13 @@ static inline LPCSTR jw32_unwrap_lpcstr(Janet x)
 #define jw32_wrap_lresult(x)   janet_wrap_s64((int64_t)(x))
 #define jw32_unwrap_lresult(x) ((LRESULT)janet_unwrap_s64(x))
 
+
+#define table_val_to_struct_member(tp, sp, member, type)                \
+    do {                                                                \
+        Janet j_##member = janet_table_get((tp), jw32_cstr_to_keyword(#member)); \
+        if (!janet_checktype(j_##member, JANET_NIL)) {                  \
+            (sp)->member = jw32_unwrap_##type(j_##member);              \
+        }                                                               \
+    } while (0)
+
 #endif

@@ -30,30 +30,17 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
 static void table_to_msg(JanetTable *msg_table, MSG *msg)
 {
     Janet hwnd = janet_table_get(msg_table, jw32_cstr_to_keyword("hwnd")),
-        message = janet_table_get(msg_table, jw32_cstr_to_keyword("message")),
-        wParam = janet_table_get(msg_table, jw32_cstr_to_keyword("wParam")),
-        lParam = janet_table_get(msg_table, jw32_cstr_to_keyword("lParam")),
-        time = janet_table_get(msg_table, jw32_cstr_to_keyword("time")),
         pt = janet_table_get(msg_table, jw32_cstr_to_keyword("pt"));
-#ifdef _MAC
-    Janet lPrivate = janet_table_get(msg_table, jw32_cstr_to_keyword("lPrivate"));
-#endif
 
     memset(msg, 0, sizeof(*msg));
 
+    /* jw32_unwrap_handle handles nil values */
     msg->hwnd = jw32_unwrap_handle(hwnd);
-    if (!janet_checktype(message, JANET_NIL)) {
-        msg->message = jw32_unwrap_uint(message);
-    }
-    if (!janet_checktype(wParam, JANET_NIL)) {
-        msg->wParam = jw32_unwrap_wparam(wParam);
-    }
-    if (!janet_checktype(lParam, JANET_NIL)) {
-        msg->lParam = jw32_unwrap_lparam(lParam);
-    }
-    if (!janet_checktype(time, JANET_NIL)) {
-        msg->time = jw32_unwrap_dword(time);
-    }
+
+    table_val_to_struct_member(msg_table, msg, message, uint);
+    table_val_to_struct_member(msg_table, msg, wParam, wparam);
+    table_val_to_struct_member(msg_table, msg, lParam, lparam);
+    table_val_to_struct_member(msg_table, msg, time, dword);
 
     if (!janet_checktype(pt, JANET_NIL)) {
         if (janet_checktype(pt, JANET_TUPLE)) {
@@ -70,8 +57,7 @@ static void table_to_msg(JanetTable *msg_table, MSG *msg)
     }
 
 #ifdef _MAC
-    if (!janet_checktype(lPrivate, JANET_NIL)) {
-    msg->lPrivate = jw32_unwrap_dword(lPrivate);
+    table_val_to_struct_member(msg_table, msg, lPrivate, dword);
 #endif
 }
 
@@ -222,22 +208,33 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
 }
 
 
-/* TODO: provide a WndProc which calls our janet function in turn */
+LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+/* TODO */
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
 
 static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
 {
-    Janet style = janet_table_get(wc_table, jw32_cstr_to_keyword("style")),
-        lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc")),
-        cbClsExtra = janet_table_get(wc_table, jw32_cstr_to_keyword("cbClsExtra")),
-        cbWndExtra = janet_table_get(wc_table, jw32_cstr_to_keyword("cbWndExtra")),
-        hInstance = janet_table_get(wc_table, jw32_cstr_to_keyword("hInstance")),
-        hIcon = janet_table_get(wc_table, jw32_cstr_to_keyword("hIcon")),
-        hCursor = janet_table_get(wc_table, jw32_cstr_to_keyword("hCursor")),
-        hBrush = janet_table_get(wc_table, jw32_cstr_to_keyword("hBrush")),
-        lpszMenuName = janet_table_get(wc_table, jw32_cstr_to_keyword("lpszMenuName")),
-        lpszClassName = janet_table_get(wc_table, jw32_cstr_to_keyword("lpszClassName"));
+    Janet lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc"));
 
     memset(wc, 0, sizeof(*wc));
+
+    table_val_to_struct_member(wc_table, wc, style, uint);
+
+    if (!janet_checktype(lpfnWndProc, JANET_NIL)) {
+        /* TODO */
+        wc->lpfnWndProc = jw32_wnd_proc;
+    }
+
+    table_val_to_struct_member(wc_table, wc, cbClsExtra, int);
+    table_val_to_struct_member(wc_table, wc, cbWndExtra, int);
+    table_val_to_struct_member(wc_table, wc, hInstance, handle);
+    table_val_to_struct_member(wc_table, wc, hIcon, handle);
+    table_val_to_struct_member(wc_table, wc, hCursor, handle);
+    table_val_to_struct_member(wc_table, wc, hbrBackground, handle);
+    table_val_to_struct_member(wc_table, wc, lpszMenuName, lpcstr);
+    table_val_to_struct_member(wc_table, wc, lpszClassName, lpcstr);
 }
 
 static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
@@ -265,7 +262,7 @@ static const JanetReg cfuns[] = {
     {
         "PostThreadMessage",
         cfun_PostThreadMessage,
-        "(" MOD_NAME "/PostThreadMessage idThread Msg wParam lParam)\n\n"
+        "(" MOD_NAME "/PostThreadMessage idThread uMsg wParam lParam)\n\n"
         "Returns non-zero if succeeded, zero otherwise.",
     },
     {
@@ -303,6 +300,12 @@ static const JanetReg cfuns[] = {
         cfun_UpdateWindow,
         "(" MOD_NAME "/UpdateWindow hWnd)\n\n"
         "Updates a window.",
+    },
+    {
+        "RegisterClass",
+        cfun_RegisterClass,
+        "(" MOD_NAME "/RegisterClass wndClass)\n\n"
+        "Registers a window class",
     },
     {NULL, NULL, NULL},
 };
