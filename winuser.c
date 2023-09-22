@@ -207,6 +207,37 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_DefWindowProc(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT uMsg;
+    WPARAM wParam;
+    LPARAM lParam;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_unwrap_handle(argv[0]);
+    uMsg = jw32_unwrap_uint(argv[1]);
+    wParam = jw32_unwrap_wparam(argv[2]);
+    lParam = jw32_unwrap_lparam(argv[3]);
+
+    lRet = DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+    return jw32_wrap_lresult(lRet);
+}
+
+static void register_class_wnd_proc(Janet cls_name, Janet wnd_proc)
+{
+    /* TODO */
+}
+
+static Janet get_class_wnd_proc(Janet cls_name)
+{
+    /* TODO */
+    return janet_wrap_nil();
+}
 
 LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -222,8 +253,7 @@ static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
 
     table_val_to_struct_member(wc_table, wc, style, uint);
 
-    if (!janet_checktype(lpfnWndProc, JANET_NIL)) {
-        /* TODO */
+    if (janet_checktype(lpfnWndProc, JANET_FUNCTION)) {
         wc->lpfnWndProc = jw32_wnd_proc;
     }
 
@@ -243,10 +273,22 @@ static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
 
     ATOM aRet;
 
+    JanetTable *wc_table;
+
     janet_fixarity(argc, 1);
 
-    table_to_wndclass(janet_unwrap_table(argv[0]), &wndClass);
+    wc_table = janet_unwrap_table(argv[0]);
+    table_to_wndclass(wc_table, &wndClass);
+    if (!(wndClass.lpfnWndProc)) {
+        janet_panicf("no suitable lpfnWndProc set");
+    }
     aRet = RegisterClass(&wndClass);
+    if (aRet) {
+        /* RegisterClass succeeded, save our real function for jw32_wnd_proc() */
+        Janet wnd_proc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc")),
+            cls_name = jw32_cstr_to_keyword(wndClass.lpszClassName);
+        register_class_wnd_proc(cls_name, wnd_proc);
+    }
 
     return jw32_wrap_atom(aRet);
 }
@@ -300,6 +342,12 @@ static const JanetReg cfuns[] = {
         cfun_UpdateWindow,
         "(" MOD_NAME "/UpdateWindow hWnd)\n\n"
         "Updates a window.",
+    },
+    {
+        "DefWindowProc",
+        cfun_DefWindowProc,
+        "(" MOD_NAME "/DefWindowProc hWnd uMsg wParam lParam)\n\n"
+        "Default window procedure.",
     },
     {
         "RegisterClass",
