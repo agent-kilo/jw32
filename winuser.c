@@ -1,149 +1,220 @@
+#include <stdio.h>
+#include <inttypes.h>
 #include "winuser.h"
 
 #define MOD_NAME "winuser"
 
 
-static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
-{
-    janet_fixarity(argc, 0);
+/*******************************************************************
+ *
+ * MESSAGING
+ *
+ *******************************************************************/
 
-    return jw32_wrap_handle(GetDesktopWindow());
+static int MSG_get(void *p, Janet key, Janet *out)
+{
+    MSG *msg = (MSG *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %d", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type)              \
+    if (!janet_cstrcmp(kw, #member)) {          \
+        *out = jw32_wrap_##type(msg->member);   \
+        return 1;                               \
+    }
+
+    __get_member(hwnd, handle)
+    __get_member(message, uint)
+    __get_member(wParam, wparam)
+    __get_member(lParam, lparam)
+    __get_member(time, dword)
+    if (!janet_cstrcmp(kw, "pt")) {
+        Janet msg_pt[2];
+        msg_pt[0] = jw32_wrap_long(msg->pt.x);
+        msg_pt[1] = jw32_wrap_long(msg->pt.y);
+        *out = janet_wrap_tuple(janet_tuple_n(msg_pt, 2));
+        return 1;
+    }
+#ifdef _MAC
+    __get_member(lPrivate, dword)
+#endif
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_MSG = {
+    .name = MOD_NAME "/MSG",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = MSG_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_MSG(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    MSG *msg = janet_abstract(&jw32_at_MSG, sizeof(MSG));
+    memset(msg, 0, sizeof(MSG));
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type)         \
+        if (!janet_cstrcmp(kw, #member)) {          \
+            msg->member = jw32_get_##type(argv, v); \
+        } else
+
+        __set_member(hwnd, handle)
+        __set_member(message, uint)
+        __set_member(wParam, wparam)
+        __set_member(lParam, lparam)
+        __set_member(time, dword)
+        if (!janet_cstrcmp(kw, "pt")) {
+            JanetView idx = janet_getindexed(argv, v);
+            if (idx.len != 2) {
+                janet_panicf("expected 2 values, got %v", argv[v]);
+            }
+            msg->pt.x = jw32_get_long(idx.items, 0);
+            msg->pt.y = jw32_get_long(idx.items, 1);
+        } else
+#ifdef _MAC
+        __set_member(lPrivate, dword)
+#endif
+        {
+            janet_panicf("unknown key %v", argv[k]);
+        }
+#undef __set_member
+    }
+
+    return janet_wrap_abstract(msg);
+}
+
+static Janet cfun_GetMessage(int32_t argc, Janet *argv)
+{
+    MSG *lpMsg;
+    HWND hWnd;
+    UINT wMsgFilterMin, wMsgFilterMax;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 4);
+
+    lpMsg = janet_getabstract(argv, 0, &jw32_at_MSG);
+    hWnd = jw32_get_handle(argv, 1);
+    wMsgFilterMin = jw32_get_uint(argv, 2);
+    wMsgFilterMax = jw32_get_uint(argv, 3);
+
+    bRet = GetMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_TranslateMessage(int32_t argc, Janet *argv)
+{
+    MSG *lpMsg;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    lpMsg = janet_getabstract(argv, 0, &jw32_at_MSG);
+    bRet = TranslateMessage(lpMsg);
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
+{
+    MSG *lpMsg;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 1);
+
+    lpMsg = janet_getabstract(argv, 0, &jw32_at_MSG);
+    lRet = DispatchMessage(lpMsg);
+    return jw32_wrap_lresult(lRet);
+}
+
+static Janet cfun_DefWindowProc(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT uMsg;
+    WPARAM wParam;
+    LPARAM lParam;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_get_handle(argv, 0);
+    uMsg = jw32_get_uint(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
+
+    lRet = DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+    return jw32_wrap_lresult(lRet);
 }
 
 static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
 {
     DWORD idThread;
-    UINT Msg;
+    UINT uMsg;
     WPARAM wParam;
     LPARAM lParam;
 
     janet_fixarity(argc, 4);
 
     idThread = jw32_get_dword(argv, 0);
-    Msg = jw32_get_uint(argv, 1);
+    uMsg = jw32_get_uint(argv, 1);
     wParam = jw32_get_wparam(argv, 2);
     lParam = jw32_get_lparam(argv, 3);
 
-    return jw32_wrap_bool(PostThreadMessage(idThread, Msg, wParam, lParam));
+    return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
 }
 
-static void table_to_msg(JanetTable *msg_table, MSG *msg)
+static void register_class_wnd_proc(Janet cls_name, Janet wnd_proc)
 {
-    Janet pt = janet_table_get(msg_table, jw32_cstr_to_keyword("pt"));
-
-    memset(msg, 0, sizeof(*msg));
-
-    table_val_to_struct_member(msg_table, msg, hwnd, handle);
-    table_val_to_struct_member(msg_table, msg, message, uint);
-    table_val_to_struct_member(msg_table, msg, wParam, wparam);
-    table_val_to_struct_member(msg_table, msg, lParam, lparam);
-    table_val_to_struct_member(msg_table, msg, time, dword);
-
-    if (!janet_checktype(pt, JANET_NIL)) {
-        if (janet_checktype(pt, JANET_TUPLE)) {
-            const Janet *pt_tuple = janet_unwrap_tuple(pt);
-            if (janet_tuple_length(pt_tuple) != 2) {
-                janet_panicf("expected tuple of length 2 for pt field, got %v", pt);
-            }
-            msg->pt.x = jw32_unwrap_long(pt_tuple[0]);
-            msg->pt.y = jw32_unwrap_long(pt_tuple[1]);
-        } else {
-            janet_panicf("expected tuple of length 2 for pt field, got %v", pt);
-        }
-    }
-
-#ifdef _MAC
-    table_val_to_struct_member(msg_table, msg, lPrivate, dword);
-#endif
+    /* TODO */
 }
 
-static JanetTable *msg_to_table(MSG *msg)
+static Janet get_class_wnd_proc(Janet cls_name)
 {
-    Janet msg_point[2];
-    JanetTable *msg_table = janet_table(7); /* the field cound in MSG struct */
-
-    janet_table_put(msg_table, jw32_cstr_to_keyword("hwnd"), jw32_wrap_handle(msg->hwnd));
-    janet_table_put(msg_table, jw32_cstr_to_keyword("message"), jw32_wrap_uint(msg->message));
-    janet_table_put(msg_table, jw32_cstr_to_keyword("wParam"), jw32_wrap_wparam(msg->wParam));
-    janet_table_put(msg_table, jw32_cstr_to_keyword("lParam"), jw32_wrap_lparam(msg->lParam));
-    janet_table_put(msg_table, jw32_cstr_to_keyword("time"), jw32_wrap_dword(msg->time));
-
-    msg_point[0] = jw32_wrap_long(msg->pt.x);
-    msg_point[1] = jw32_wrap_long(msg->pt.y);
-    janet_table_put(msg_table, jw32_cstr_to_keyword("pt"),
-                    janet_wrap_tuple(janet_tuple_n(msg_point, 2)));
-
-    /* TIL, WTF? */
-#ifdef _MAC
-    janet_table_put(msg_table, jw32_cstr_to_keyword("lPrivate"),
-                    jw32_wrap_dword(msg->lPrivate));
-#endif
-
-    return msg_table;
+    /* TODO */
+    return janet_wrap_nil();
 }
 
-static Janet cfun_GetMessage(int32_t argc, Janet *argv)
+LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    HWND hWnd;
-    UINT wMsgFilterMin, wMsgFilterMax;
-
-    BOOL bRet;
-    MSG msg;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 3);
-
-    hWnd = jw32_get_handle(argv, 0);
-    wMsgFilterMin = jw32_get_uint(argv, 1);
-    wMsgFilterMax = jw32_get_uint(argv, 2);
-
-    bRet = GetMessage(&msg, hWnd, wMsgFilterMin, wMsgFilterMax);
-
-    ret_tuple[0] = jw32_wrap_bool(bRet);
-
-    /* yeah that's right, a BOOL can be -1 */
-    if (bRet != -1) {
-        /* in case of WM_QUIT, we return msg too */
-        ret_tuple[1] = janet_wrap_table(msg_to_table(&msg));
-    } else {
-        /* error */
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+/* TODO */
+    printf("\n---- jw32_wnd_proc ----\n");
+    printf("hWnd = 0x%" PRIx64 "\n", (uint64_t)hWnd);
+    printf("uMsg = 0x%" PRIx32 "\n", uMsg);
+    printf("wParam = 0x%" PRIx64 "\n", wParam);
+    printf("lParam = %lld\n", lParam);
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-static Janet cfun_TranslateMessage(int32_t argc, Janet *argv)
+
+/*******************************************************************
+ *
+ * WINDOW-RELATED
+ *
+ *******************************************************************/
+
+static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 {
-    MSG msg;
+    janet_fixarity(argc, 0);
 
-    BOOL bRet;
-
-    JanetTable *msg_table;
-
-    janet_fixarity(argc, 1);
-
-    msg_table = janet_gettable(argv, 0);
-
-    table_to_msg(msg_table, &msg);
-    return jw32_wrap_bool(TranslateMessage(&msg));
-}
-
-static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
-{
-    MSG msg;
-
-    LRESULT lRet;
-
-    JanetTable *msg_table;
-
-    janet_fixarity(argc, 1);
-
-
-    msg_table = janet_gettable(argv, 0);
-    
-    table_to_msg(msg_table, &msg);
-    return jw32_wrap_lresult(DispatchMessage(&msg));
+    return jw32_wrap_handle(GetDesktopWindow());
 }
 
 static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
@@ -212,44 +283,6 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
-static Janet cfun_DefWindowProc(int32_t argc, Janet *argv)
-{
-    HWND hWnd;
-    UINT uMsg;
-    WPARAM wParam;
-    LPARAM lParam;
-
-    LRESULT lRet;
-
-    janet_fixarity(argc, 4);
-
-    hWnd = jw32_get_handle(argv, 0);
-    uMsg = jw32_get_uint(argv, 1);
-    wParam = jw32_get_wparam(argv, 2);
-    lParam = jw32_get_lparam(argv, 3);
-
-    lRet = DefWindowProc(hWnd, uMsg, wParam, lParam);
-
-    return jw32_wrap_lresult(lRet);
-}
-
-static void register_class_wnd_proc(Janet cls_name, Janet wnd_proc)
-{
-    /* TODO */
-}
-
-static Janet get_class_wnd_proc(Janet cls_name)
-{
-    /* TODO */
-    return janet_wrap_nil();
-}
-
-LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-/* TODO */
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
 static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
 {
     Janet lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc"));
@@ -300,11 +333,37 @@ static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
 
 
 static const JanetReg cfuns[] = {
+
+    /************************* MESSAGING ***************************/
     {
-        "GetDesktopWindow",
-        cfun_GetDesktopWindow,
-        "(" MOD_NAME "/GetDesktopWindow)\n\n"
-        "Win32 function wrapper.",
+        "MSG",
+        cfun_MSG,
+        "(" MOD_NAME "/MSG ...)\n\n"
+        "Builds a MSG struct.",
+    },
+    {
+        "GetMessage",
+        cfun_GetMessage,
+        "(" MOD_NAME "/GetMessage lpMsg hWnd wMsgFilterMin wMsgFilterMax)\n\n"
+        "Returns non-zero if the operation succeeds.",
+    },
+    {
+        "TranslateMessage",
+        cfun_TranslateMessage,
+        "(" MOD_NAME "/TranslateMessage lpMsg)\n\n"
+        "Translate key messages.",
+    },
+    {
+        "DispatchMessage",
+        cfun_DispatchMessage,
+        "(" MOD_NAME "/DispatchMessage lpMsg)\n\n"
+        "Returns the value returned by the window procedure.",
+    },
+    {
+        "DefWindowProc",
+        cfun_DefWindowProc,
+        "(" MOD_NAME "/DefWindowProc hWnd uMsg wParam lParam)\n\n"
+        "Default window procedure.",
     },
     {
         "PostThreadMessage",
@@ -312,23 +371,13 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/PostThreadMessage idThread uMsg wParam lParam)\n\n"
         "Returns non-zero if succeeded, zero otherwise.",
     },
+
+    /*********************** WINDOW-RELATED ************************/
     {
-        "GetMessage",
-        cfun_GetMessage,
-        "(" MOD_NAME "/GetMessage hWnd wMsgFilterMin wMsgFilterMax)\n\n"
-        "Returns a tuple (bRet, msg).",
-    },
-    {
-        "TranslateMessage",
-        cfun_TranslateMessage,
-        "(" MOD_NAME "/TranslateMessage msg)\n\n"
-        "Translate key messages.",
-    },
-    {
-        "DispatchMessage",
-        cfun_DispatchMessage,
-        "(" MOD_NAME "/DispatchMessage msg)\n\n"
-        "Returns the value returned by the window procedure.",
+        "GetDesktopWindow",
+        cfun_GetDesktopWindow,
+        "(" MOD_NAME "/GetDesktopWindow)\n\n"
+        "Win32 function wrapper.",
     },
     {
         "CreateWindow",
@@ -349,12 +398,6 @@ static const JanetReg cfuns[] = {
         "Updates a window.",
     },
     {
-        "DefWindowProc",
-        cfun_DefWindowProc,
-        "(" MOD_NAME "/DefWindowProc hWnd uMsg wParam lParam)\n\n"
-        "Default window procedure.",
-    },
-    {
         "RegisterClass",
         cfun_RegisterClass,
         "(" MOD_NAME "/RegisterClass wndClass)\n\n"
@@ -367,4 +410,5 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     janet_cfuns(env, MOD_NAME, cfuns);
+    janet_register_abstract_type(&jw32_at_MSG);
 }
