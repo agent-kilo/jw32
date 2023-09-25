@@ -29,8 +29,7 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
 
 static void table_to_msg(JanetTable *msg_table, MSG *msg)
 {
-    Janet hwnd = janet_table_get(msg_table, jw32_cstr_to_keyword("hwnd")),
-        pt = janet_table_get(msg_table, jw32_cstr_to_keyword("pt"));
+    Janet pt = janet_table_get(msg_table, jw32_cstr_to_keyword("pt"));
 
     memset(msg, 0, sizeof(*msg));
 
