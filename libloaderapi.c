@@ -9,7 +9,7 @@ static Janet cfun_GetModuleHandle(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 1);
 
-    lpModuleName = jw32_unwrap_lpcstr(argv[0]);
+    lpModuleName = jw32_get_lpcstr(argv, 0);
     return jw32_wrap_handle(GetModuleHandle(lpModuleName));
 }
 
@@ -24,8 +24,8 @@ static Janet cfun_GetModuleHandleEx(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 2);
 
-    dwFlags = jw32_unwrap_dword(argv[0]);
-    lpModuleName = jw32_unwrap_lpcstr(argv[1]);
+    dwFlags = jw32_get_dword(argv, 0);
+    lpModuleName = jw32_get_lpcstr(argv, 1);
 
     bRet = GetModuleHandleEx(dwFlags, lpModuleName, &hModule);
 
@@ -43,7 +43,7 @@ static Janet cfun_FreeLibrary(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 1);
 
-    hLibModule = jw32_unwrap_handle(argv[0]);
+    hLibModule = jw32_get_handle(argv, 0);
     bRet = FreeLibrary(hLibModule);
     return jw32_wrap_bool(bRet);
 }

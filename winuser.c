@@ -19,10 +19,10 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 4);
 
-    idThread = jw32_unwrap_dword(argv[0]);
-    Msg = jw32_unwrap_uint(argv[1]);
-    wParam = jw32_unwrap_wparam(argv[2]);
-    lParam = jw32_unwrap_lparam(argv[3]);
+    idThread = jw32_get_dword(argv, 0);
+    Msg = jw32_get_uint(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
 
     return jw32_wrap_bool(PostThreadMessage(idThread, Msg, wParam, lParam));
 }
@@ -34,9 +34,7 @@ static void table_to_msg(JanetTable *msg_table, MSG *msg)
 
     memset(msg, 0, sizeof(*msg));
 
-    /* jw32_unwrap_handle handles nil values */
-    msg->hwnd = jw32_unwrap_handle(hwnd);
-
+    table_val_to_struct_member(msg_table, msg, hwnd, handle);
     table_val_to_struct_member(msg_table, msg, message, uint);
     table_val_to_struct_member(msg_table, msg, wParam, wparam);
     table_val_to_struct_member(msg_table, msg, lParam, lparam);
@@ -46,13 +44,12 @@ static void table_to_msg(JanetTable *msg_table, MSG *msg)
         if (janet_checktype(pt, JANET_TUPLE)) {
             const Janet *pt_tuple = janet_unwrap_tuple(pt);
             if (janet_tuple_length(pt_tuple) != 2) {
-                janet_panicf("expected tuple of length 2 for pt field, got %d",
-                             janet_tuple_length(pt_tuple));
+                janet_panicf("expected tuple of length 2 for pt field, got %v", pt);
             }
             msg->pt.x = jw32_unwrap_long(pt_tuple[0]);
             msg->pt.y = jw32_unwrap_long(pt_tuple[1]);
         } else {
-            janet_panicf("expected tuple of length 2 for pt field");
+            janet_panicf("expected tuple of length 2 for pt field, got %v", pt);
         }
     }
 
@@ -97,9 +94,9 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 3);
 
-    hWnd = jw32_unwrap_handle(argv[0]);
-    wMsgFilterMin = jw32_unwrap_uint(argv[1]);
-    wMsgFilterMax = jw32_unwrap_uint(argv[2]);
+    hWnd = jw32_get_handle(argv, 0);
+    wMsgFilterMin = jw32_get_uint(argv, 1);
+    wMsgFilterMax = jw32_get_uint(argv, 2);
 
     bRet = GetMessage(&msg, hWnd, wMsgFilterMin, wMsgFilterMax);
 
@@ -123,9 +120,13 @@ static Janet cfun_TranslateMessage(int32_t argc, Janet *argv)
 
     BOOL bRet;
 
+    JanetTable *msg_table;
+
     janet_fixarity(argc, 1);
 
-    table_to_msg(janet_unwrap_table(argv[0]), &msg);
+    msg_table = janet_gettable(argv, 0);
+
+    table_to_msg(msg_table, &msg);
     return jw32_wrap_bool(TranslateMessage(&msg));
 }
 
@@ -135,9 +136,14 @@ static Janet cfun_DispatchMessage(int32_t argc, Janet *argv)
 
     LRESULT lRet;
 
+    JanetTable *msg_table;
+
     janet_fixarity(argc, 1);
 
-    table_to_msg(janet_unwrap_table(argv[0]), &msg);
+
+    msg_table = janet_gettable(argv, 0);
+    
+    table_to_msg(msg_table, &msg);
     return jw32_wrap_lresult(DispatchMessage(&msg));
 }
 
@@ -155,17 +161,17 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 11);
 
-    lpClassName = jw32_unwrap_lpcstr(argv[0]);
-    lpWindowName = jw32_unwrap_lpcstr(argv[1]);
-    dwStyle = jw32_unwrap_dword(argv[2]);
-    x = jw32_unwrap_int(argv[3]);
-    y = jw32_unwrap_int(argv[4]);
-    nWidth = jw32_unwrap_int(argv[5]);
-    nHeight = jw32_unwrap_int(argv[6]);
-    hWndParent = jw32_unwrap_handle(argv[7]);
-    hMenu = jw32_unwrap_handle(argv[8]);
-    hInstance = jw32_unwrap_handle(argv[9]);
-    lpParam = jw32_unwrap_lpvoid(argv[10]);
+    lpClassName = jw32_get_lpcstr(argv, 0);
+    lpWindowName = jw32_get_lpcstr(argv, 1);
+    dwStyle = jw32_get_dword(argv, 2);
+    x = jw32_get_int(argv, 3);
+    y = jw32_get_int(argv, 4);
+    nWidth = jw32_get_int(argv, 5);
+    nHeight = jw32_get_int(argv, 6);
+    hWndParent = jw32_get_handle(argv, 7);
+    hMenu = jw32_get_handle(argv, 8);
+    hInstance = jw32_get_handle(argv, 9);
+    lpParam = jw32_get_lpvoid(argv, 10);
 
     hWnd = CreateWindow(lpClassName, lpWindowName, dwStyle,
                         x, y, nWidth, nHeight,
@@ -184,8 +190,8 @@ static Janet cfun_ShowWindow(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 2);
 
-    hWnd = jw32_unwrap_handle(argv[0]);
-    nCmdShow = jw32_unwrap_int(argv[1]);
+    hWnd = jw32_get_handle(argv, 0);
+    nCmdShow = jw32_get_int(argv, 1);
 
     bRet = ShowWindow(hWnd, nCmdShow);
 
@@ -200,7 +206,7 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 1);
 
-    hWnd = jw32_unwrap_handle(argv[0]);
+    hWnd = jw32_get_handle(argv, 0);
 
     bRet = UpdateWindow(hWnd);
 
@@ -218,10 +224,10 @@ static Janet cfun_DefWindowProc(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 4);
 
-    hWnd = jw32_unwrap_handle(argv[0]);
-    uMsg = jw32_unwrap_uint(argv[1]);
-    wParam = jw32_unwrap_wparam(argv[2]);
-    lParam = jw32_unwrap_lparam(argv[3]);
+    hWnd = jw32_get_handle(argv, 0);
+    uMsg = jw32_get_uint(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
 
     lRet = DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -277,7 +283,7 @@ static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 1);
 
-    wc_table = janet_unwrap_table(argv[0]);
+    wc_table = janet_gettable(argv, 0);
     table_to_wndclass(wc_table, &wndClass);
     if (!(wndClass.lpfnWndProc)) {
         janet_panicf("no suitable lpfnWndProc set");
