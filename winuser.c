@@ -16,7 +16,7 @@ static int MSG_get(void *p, Janet key, Janet *out)
     MSG *msg = (MSG *)p;
 
     if (!janet_checktype(key, JANET_KEYWORD)) {
-        janet_panicf("expected keyword, got %d", key);
+        janet_panicf("expected keyword, got %v", key);
     }
 
     const uint8_t *kw = janet_unwrap_keyword(key);
@@ -81,8 +81,9 @@ static Janet cfun_MSG(int32_t argc, Janet *argv)
         if (!janet_cstrcmp(kw, "pt")) {
             JanetView idx = janet_getindexed(argv, v);
             if (idx.len != 2) {
-                janet_panicf("expected 2 values, got %v", argv[v]);
+                janet_panicf("expected 2 values for pt, got %d", idx.len);
             }
+            /* XXX: bogus error message */
             msg->pt.x = jw32_get_long(idx.items, 0);
             msg->pt.y = jw32_get_long(idx.items, 1);
         } else
