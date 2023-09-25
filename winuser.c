@@ -89,10 +89,10 @@ static Janet cfun_MSG(int32_t argc, Janet *argv)
 #ifdef _MAC
         __set_member(lPrivate, dword)
 #endif
+#undef __set_member
         {
             janet_panicf("unknown key %v", argv[k]);
         }
-#undef __set_member
     }
 
     return janet_wrap_abstract(msg);
