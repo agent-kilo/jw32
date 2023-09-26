@@ -5,6 +5,15 @@
 #define MOD_NAME "winuser"
 
 
+/* extra space for our janet objects, to deal with gc and stuff */
+typedef struct {
+    JanetFunction *wnd_proc;
+    JanetString menu_name;
+    JanetString class_name;
+    WNDCLASSEX wc;
+} jw32_wc_t;
+
+
 /*******************************************************************
  *
  * MESSAGING
@@ -182,9 +191,78 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
 }
 
-static void register_class_wnd_proc(Janet cls_name, Janet wnd_proc)
+static JanetTable *class_wnd_proc_registry;
+static JanetTable *atom_class_map;
+
+static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
 {
-    /* TODO */
+    Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
+    Janet atom = jw32_wrap_atom(atmClass);
+    Janet class_name = jw32_cstr_to_keyword(jwc->wc.lpszClassName);
+    Janet key;
+
+    /* an application can register local or global classes, and they
+       are looked up in different ways */
+    if (jwc->wc.style & CS_GLOBALCLASS) {
+        key = class_name;
+    } else {
+        Janet h_instance = jw32_wrap_handle(jwc->wc.hInstance);
+        Janet key_tuple[2] = { class_name, h_instance };
+        key = janet_wrap_tuple(janet_tuple_n(key_tuple, 2));
+    }
+
+    janet_table_put(class_wnd_proc_registry, key, wnd_proc);
+    janet_table_put(atom_class_map, atom, class_name);
+}
+
+static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
+{
+    uint64_t maybe_atom = (uint64_t)lpClassName;
+    Janet class_name;
+    Janet local_key, global_key;
+    Janet local_key_tuple[2];
+
+    if (maybe_atom & ~(uint64_t)0xffff) {
+        /* higher bits are not zero, we have a string pointer */
+        class_name = jw32_cstr_to_keyword(lpClassName);
+    } else {
+        /* looks like an ATOM */
+        ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
+#define __atom_name_buf_size 256 /* XXX: should be enough? */
+        char buffer[__atom_name_buf_size];
+        UINT uRet = GetAtomName(atmClass, buffer, __atom_name_buf_size);
+        if (uRet) {
+            class_name = jw32_cstr_to_keyword(buffer);
+        } else {
+            class_name = janet_wrap_nil();
+        }
+#undef __atom_name_buf_size
+    }
+
+    if (janet_checktype(class_name, JANET_NIL)) {
+        return;
+    }
+
+    /* the logic inside UnregisterClass():
+
+       hInstance == NULL means wildcard, search ALL local classes first; when there were
+       multiple local classes with the same name, the one registered last gets
+       unregistered first.
+
+       hInstance != NULL means to search the local classes registered by this module first.
+
+       if the class was not found among local classes, try to unregister global classes with
+       that name.
+
+       only unregister ONE class at a time. */
+
+    local_key_tuple[0] = class_name;
+    local_key_tuple[1] = jw32_wrap_handle(hInstance);
+    local_key = janet_wrap_tuple(janet_tuple_n(local_key_tuple, 2));
+    janet_table_put(class_wnd_proc_registry, local_key, janet_wrap_nil());
+
+    global_key = class_name;
+    janet_table_put(class_wnd_proc_registry, global_key, janet_wrap_nil());
 }
 
 LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -278,14 +356,6 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
-/* extra space for our janet objects, to deal with gc and stuff */
-typedef struct {
-    JanetFunction *wnd_proc;
-    JanetString menu_name;
-    JanetString class_name;
-    WNDCLASSEX wc;
-} jw32_wc_t;
-
 static int WNDCLASSEX_gcmark(void *p, size_t len)
 {
     jw32_wc_t *jwc = (jw32_wc_t *)p;
@@ -323,8 +393,12 @@ static int WNDCLASSEX_get(void *p, Janet key, Janet *out)
     __get_member(cbSize, uint)
     __get_member(style, uint)
     if (!janet_cstrcmp(kw, "lpfnWndProc")) {
-        *out = janet_wrap_function(jwc->wnd_proc);
-        return 1;
+        if (jwc->wnd_proc) {
+            *out = janet_wrap_function(jwc->wnd_proc);
+            return 1;
+        } else {
+            return 0;
+        }
     }
     __get_member(cbClsExtra, int)
     __get_member(cbWndExtra, int)
@@ -440,13 +514,57 @@ static Janet cfun_RegisterClassEx(int32_t argc, Janet *argv)
     aRet = RegisterClassEx(&(jwc->wc));
     if (aRet) {
         /* RegisterClass succeeded, save our real function for jw32_wnd_proc() */
-        /* XXX: call janet_gcunroot() somewhere */
-        janet_gcroot(janet_wrap_function(jwc->wnd_proc));
-        Janet cls_id = jw32_wrap_atom(aRet);
-        register_class_wnd_proc(cls_id, janet_wrap_function(jwc->wnd_proc));
+        register_class_wnd_proc(jwc, aRet);
     }
 
     return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_GetClassInfoEx(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInstance;
+    LPCSTR lpszClass;
+    jw32_wc_t *jwc;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 3);
+
+    hInstance = jw32_get_handle(argv, 0);
+    lpszClass = jw32_get_lpcstr(argv, 1);
+    jwc = janet_getabstract(argv, 2, &jw32_at_WNDCLASSEX);
+
+    bRet = GetClassInfoEx(hInstance, lpszClass, &(jwc->wc));
+    if (bRet) {
+        if (jwc->wc.lpszClassName) {
+            jwc->class_name = janet_cstring(jwc->wc.lpszClassName);
+        }
+        if (jwc->wc.lpszMenuName) {
+            jwc->menu_name = janet_cstring(jwc->wc.lpszMenuName);
+        }
+        /* TODO: jwc->wnd_proc */
+    }
+
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_UnregisterClass(int32_t argc, Janet *argv)
+{
+    LPCSTR lpClassName;
+    HINSTANCE hInstance;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    lpClassName = jw32_get_lpcstr(argv, 0);
+    hInstance = jw32_get_handle(argv, 1);
+
+    bRet = UnregisterClass(lpClassName, hInstance);
+    if(bRet) {
+        unregister_class_wnd_proc(lpClassName, hInstance);
+    }
+    return jw32_wrap_bool(bRet);
 }
 
 
@@ -527,6 +645,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/RegisterClassEx lpWndClassEx)\n\n"
         "Registers a window class",
     },
+    {
+        "GetClassInfoEx",
+        cfun_GetClassInfoEx,
+        "(" MOD_NAME "/GetClassInfoEx hInstance lpszClass lpwcx)\n\n"
+        "Get info for a window class",
+    },
+    {
+        "UnregisterClass",
+        cfun_UnregisterClass,
+        "(" MOD_NAME "/UnregisterClass lpClassName hInstance)\n\n"
+        "Unregisters a window class",
+    },
     {NULL, NULL, NULL},
 };
 
@@ -535,4 +665,12 @@ JANET_MODULE_ENTRY(JanetTable *env)
 {
     janet_cfuns(env, MOD_NAME, cfuns);
     janet_register_abstract_type(&jw32_at_MSG);
+
+    class_wnd_proc_registry = janet_table(0);
+    atom_class_map = janet_table(0);
+
+    janet_def(env, "class_wnd_proc_registry", janet_wrap_table(class_wnd_proc_registry),
+              "Where all the WndProcs reside.");
+    janet_def(env, "atom_class_map", janet_wrap_table(atom_class_map),
+              "ATOM -> lpszClassName map.");
 }
