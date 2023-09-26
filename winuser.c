@@ -187,12 +187,6 @@ static void register_class_wnd_proc(Janet cls_name, Janet wnd_proc)
     /* TODO */
 }
 
-static Janet get_class_wnd_proc(Janet cls_name)
-{
-    /* TODO */
-    return janet_wrap_nil();
-}
-
 LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 /* TODO */
@@ -378,6 +372,8 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
     jw32_wc_t *jwc = janet_abstract(&jw32_at_WNDCLASSEX, sizeof(jw32_wc_t));
     memset(jwc, 0, sizeof(jw32_wc_t));
 
+    int size_set = 0;
+
     for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
         const uint8_t *kw = janet_getkeyword(argv, k);
 
@@ -386,14 +382,13 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
             jwc->wc.member = jw32_get_##type(argv, v);  \
         } else
 
-        __set_member(cbSize, uint)
+        if (!janet_cstrcmp(kw, "cbSize")) {
+            jwc->wc.cbSize = jw32_get_uint(argv, v);
+            size_set = 1;
+        } else
         __set_member(style, uint)
         if (!janet_cstrcmp(kw, "lpfnWndProc")) {
             jwc->wnd_proc = janet_getfunction(argv, v);
-            /* XXX: the wnd_proc should live beyond the wc struct's life span,
-               maybe we should do this in RegisterClassEx() after a successful
-               registration? */
-            janet_gcroot(argv[v]);
             jwc->wc.lpfnWndProc = jw32_wnd_proc;
         } else
         __set_member(cbClsExtra, int)
@@ -423,52 +418,32 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
         }
     }
 
+    if (!size_set) {
+        jwc->wc.cbSize = sizeof(WNDCLASSEX);
+    }
+
     return janet_wrap_abstract(jwc);
 }
 
-static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
+static Janet cfun_RegisterClassEx(int32_t argc, Janet *argv)
 {
-    Janet lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc"));
-
-    memset(wc, 0, sizeof(*wc));
-
-    table_val_to_struct_member(wc_table, wc, style, uint);
-
-    if (janet_checktype(lpfnWndProc, JANET_FUNCTION)) {
-        wc->lpfnWndProc = jw32_wnd_proc;
-    }
-
-    table_val_to_struct_member(wc_table, wc, cbClsExtra, int);
-    table_val_to_struct_member(wc_table, wc, cbWndExtra, int);
-    table_val_to_struct_member(wc_table, wc, hInstance, handle);
-    table_val_to_struct_member(wc_table, wc, hIcon, handle);
-    table_val_to_struct_member(wc_table, wc, hCursor, handle);
-    table_val_to_struct_member(wc_table, wc, hbrBackground, handle);
-    table_val_to_struct_member(wc_table, wc, lpszMenuName, lpcstr);
-    table_val_to_struct_member(wc_table, wc, lpszClassName, lpcstr);
-}
-
-static Janet cfun_RegisterClass(int32_t argc, Janet *argv)
-{
-    WNDCLASS wndClass;
+    jw32_wc_t *jwc;
 
     ATOM aRet;
 
-    JanetTable *wc_table;
-
     janet_fixarity(argc, 1);
 
-    wc_table = janet_gettable(argv, 0);
-    table_to_wndclass(wc_table, &wndClass);
-    if (!(wndClass.lpfnWndProc)) {
+    jwc = janet_getabstract(argv, 0, &jw32_at_WNDCLASSEX);
+    if (!(jwc->wnd_proc)) {
         janet_panicf("no suitable lpfnWndProc set");
     }
-    aRet = RegisterClass(&wndClass);
+    aRet = RegisterClassEx(&(jwc->wc));
     if (aRet) {
         /* RegisterClass succeeded, save our real function for jw32_wnd_proc() */
-        Janet wnd_proc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc")),
-            cls_name = jw32_cstr_to_keyword(wndClass.lpszClassName);
-        register_class_wnd_proc(cls_name, wnd_proc);
+        /* XXX: call janet_gcunroot() somewhere */
+        janet_gcroot(janet_wrap_function(jwc->wnd_proc));
+        Janet cls_id = jw32_wrap_atom(aRet);
+        register_class_wnd_proc(cls_id, janet_wrap_function(jwc->wnd_proc));
     }
 
     return jw32_wrap_atom(aRet);
@@ -547,9 +522,9 @@ static const JanetReg cfuns[] = {
         "Builds a WNDCLASSEX struct.",
     },
     {
-        "RegisterClass",
-        cfun_RegisterClass,
-        "(" MOD_NAME "/RegisterClass wndClass)\n\n"
+        "RegisterClassEx",
+        cfun_RegisterClassEx,
+        "(" MOD_NAME "/RegisterClassEx lpWndClassEx)\n\n"
         "Registers a window class",
     },
     {NULL, NULL, NULL},

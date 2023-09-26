@@ -161,14 +161,4 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 #define jw32_get_lresult(argv, n) ((LRESULT)jw32_get_lparam(argv, n))
 
 
-/* XXX: the jw32_get##type() thing would give bogus error messages */
-#define table_val_to_struct_member(tp, sp, member, type)                \
-    do {                                                                \
-        Janet j_##member = janet_table_get((tp), jw32_cstr_to_keyword(#member)); \
-        if (!janet_checktype(j_##member, JANET_NIL)) {                  \
-            (sp)->member = jw32_get_##type(&(j_##member), 0);           \
-        }                                                               \
-    } while (0)
-
-
 #endif  /* __JW32_TYPES_H */
