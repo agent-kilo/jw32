@@ -284,6 +284,148 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+/* extra space for our janet objects, to deal with gc and stuff */
+typedef struct {
+    JanetFunction *wnd_proc;
+    JanetString menu_name;
+    JanetString class_name;
+    WNDCLASSEX wc;
+} jw32_wc_t;
+
+static int WNDCLASSEX_gcmark(void *p, size_t len)
+{
+    jw32_wc_t *jwc = (jw32_wc_t *)p;
+
+    janet_mark(janet_wrap_abstract(jwc));
+    if (jwc->wnd_proc) {
+        janet_mark(janet_wrap_function(jwc->wnd_proc));
+    }
+    if (jwc->menu_name) {
+        janet_mark(janet_wrap_string(jwc->menu_name));
+    }
+    if (jwc->class_name) {
+        janet_mark(janet_wrap_string(jwc->class_name));
+    }
+
+    return 0;
+}
+
+static int WNDCLASSEX_get(void *p, Janet key, Janet *out)
+{
+    jw32_wc_t *jwc = (jw32_wc_t *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type)               \
+    if (!janet_cstrcmp(kw, #member)) {           \
+        *out = jw32_wrap_##type(jwc->wc.member); \
+        return 1;                                \
+    }
+
+    __get_member(cbSize, uint)
+    __get_member(style, uint)
+    if (!janet_cstrcmp(kw, "lpfnWndProc")) {
+        *out = janet_wrap_function(jwc->wnd_proc);
+        return 1;
+    }
+    __get_member(cbClsExtra, int)
+    __get_member(cbWndExtra, int)
+    __get_member(hInstance, handle)
+    __get_member(hIcon, handle)
+    __get_member(hCursor, handle)
+    __get_member(hbrBackground, handle)
+    if (!janet_cstrcmp(kw, "lpszMenuName")) {
+        if (jwc->menu_name) {
+            *out = janet_wrap_string(jwc->menu_name);
+        } else {
+            *out = janet_wrap_pointer((void *)jwc->wc.lpszMenuName);
+        }
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "lpszClassName")) {
+        if (jwc->class_name) {
+            *out = janet_wrap_string(jwc->class_name);
+        } else {
+            *out = janet_wrap_pointer((void *)jwc->wc.lpszClassName);
+        }
+        return 1;
+    }
+    __get_member(hIconSm, handle)
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_WNDCLASSEX = {
+    .name = MOD_NAME "/WNDCLASSEX",
+    .gc = NULL,
+    .gcmark = WNDCLASSEX_gcmark,
+    .get = WNDCLASSEX_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    jw32_wc_t *jwc = janet_abstract(&jw32_at_WNDCLASSEX, sizeof(jw32_wc_t));
+    memset(jwc, 0, sizeof(jw32_wc_t));
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type)                  \
+        if (!janet_cstrcmp(kw, #member)) {          \
+            jwc->wc.member = jw32_get_##type(argv, v);  \
+        } else
+
+        __set_member(cbSize, uint)
+        __set_member(style, uint)
+        if (!janet_cstrcmp(kw, "lpfnWndProc")) {
+            jwc->wnd_proc = janet_getfunction(argv, v);
+            /* XXX: the wnd_proc should live beyond the wc struct's life span,
+               maybe we should do this in RegisterClassEx() after a successful
+               registration? */
+            janet_gcroot(argv[v]);
+            jwc->wc.lpfnWndProc = jw32_wnd_proc;
+        } else
+        __set_member(cbClsExtra, int)
+        __set_member(cbWndExtra, int)
+        __set_member(hInstance, handle)
+        __set_member(hIcon, handle)
+        __set_member(hCursor, handle)
+        __set_member(hbrBackground, handle)
+        if (!janet_cstrcmp(kw, "lpszMenuName")) {
+            jwc->wc.lpszMenuName = jw32_get_lpcstr(argv, v);
+            if (janet_checktype(argv[v], JANET_STRING)) {
+                /* we need to at least keep these strings around until RegisterClassEx() is called */
+                /* see WNDCLASSEX_gcmark */
+                jwc->menu_name = janet_unwrap_string(argv[v]);
+            }
+        } else
+        if (!janet_cstrcmp(kw, "lpszClassName")) {
+            jwc->wc.lpszClassName = jw32_get_lpcstr(argv, v);
+            if (janet_checktype(argv[v], JANET_STRING)) {
+                jwc->class_name = janet_unwrap_string(argv[v]);
+            }
+        } else
+        __set_member(hIconSm, handle)
+#undef __set_member
+        {
+            janet_panicf("unknown key %v", argv[k]);
+        }
+    }
+
+    return janet_wrap_abstract(jwc);
+}
+
 static void table_to_wndclass(JanetTable *wc_table, WNDCLASS *wc)
 {
     Janet lpfnWndProc = janet_table_get(wc_table, jw32_cstr_to_keyword("lpfnWndProc"));
@@ -397,6 +539,12 @@ static const JanetReg cfuns[] = {
         cfun_UpdateWindow,
         "(" MOD_NAME "/UpdateWindow hWnd)\n\n"
         "Updates a window.",
+    },
+    {
+        "WNDCLASSEX",
+        cfun_WNDCLASSEX,
+        "(" MOD_NAME "/WNDCLASSEX ...)\n\n"
+        "Builds a WNDCLASSEX struct.",
     },
     {
         "RegisterClass",
