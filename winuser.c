@@ -191,28 +191,68 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
 }
 
-static JanetTable *class_wnd_proc_registry;
-static JanetTable *atom_class_map;
+static JanetArray *local_class_wnd_proc_registry;
+static JanetArray *global_class_wnd_proc_registry;
 
-static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
+static void register_class_wnd_proc(jw32_wc_t *jwc)
 {
     Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
-    Janet atom = jw32_wrap_atom(atmClass);
     Janet class_name = jw32_cstr_to_keyword(jwc->wc.lpszClassName);
-    Janet key;
+    Janet reg_entry_tuple[3];
+    Janet reg_entry;
+
+    reg_entry_tuple[0] = class_name;
 
     /* an application can register local or global classes, and they
        are looked up in different ways */
     if (jwc->wc.style & CS_GLOBALCLASS) {
-        key = class_name;
+        reg_entry_tuple[1] = wnd_proc;
+        /* (class_name wnd_proc) */
+        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 2));
+        janet_array_push(global_class_wnd_proc_registry, reg_entry);
     } else {
+        /* (class_name h_instance wnd_proc) */
         Janet h_instance = jw32_wrap_handle(jwc->wc.hInstance);
-        Janet key_tuple[2] = { class_name, h_instance };
-        key = janet_wrap_tuple(janet_tuple_n(key_tuple, 2));
+        reg_entry_tuple[1] = h_instance;
+        reg_entry_tuple[2] = wnd_proc;;
+        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 3));
+        janet_array_push(local_class_wnd_proc_registry, reg_entry);
     }
+}
 
-    janet_table_put(class_wnd_proc_registry, key, wnd_proc);
-    janet_table_put(atom_class_map, atom, class_name);
+static inline void remove_array_entry(JanetArray *array, int i) {
+    memmove(array->data + i,
+            array->data + i + 1,
+            (array->count - i - 1) * sizeof(Janet));
+    array->count -= 1;
+}
+
+static inline int search_local_class_wnd_proc(const uint8_t *class_name, HINSTANCE hInstance)
+{
+    for (int i = local_class_wnd_proc_registry->count - 1; i >= 0; i--) {
+        Janet entry = local_class_wnd_proc_registry->data[i];
+        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name h_instance wnd_proc) */
+        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
+        HINSTANCE ehInstance = jw32_unwrap_handle(entry_tuple[1]);
+        if ((ehInstance == hInstance || hInstance == NULL)
+            && !strcmp(entry_class_name, class_name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static inline int search_global_class_wnd_proc(const uint8_t *class_name)
+{
+    for (int i = global_class_wnd_proc_registry->count - 1; i >= 0; i--) {
+        Janet entry = global_class_wnd_proc_registry->data[i];
+        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name wnd_proc) */
+        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
+        if (!strcmp(entry_class_name, class_name)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
@@ -254,15 +294,22 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
        if the class was not found among local classes, try to unregister global classes with
        that name.
 
-       only unregister ONE class at a time. */
+       only unregister ONE class at a time.
 
-    local_key_tuple[0] = class_name;
-    local_key_tuple[1] = jw32_wrap_handle(hInstance);
-    local_key = janet_wrap_tuple(janet_tuple_n(local_key_tuple, 2));
-    janet_table_put(class_wnd_proc_registry, local_key, janet_wrap_nil());
+       XXX: these info is obtained by observation though, i couldn't find a precise description
+       in the win32 docs. i wouldn't want class name clashes in my program.... */
 
-    global_key = class_name;
-    janet_table_put(class_wnd_proc_registry, global_key, janet_wrap_nil());
+    const uint8_t *class_name_str = janet_unwrap_keyword(class_name);
+    int found = search_local_class_wnd_proc(class_name_str, hInstance);
+    if (found >= 0) {
+        remove_array_entry(local_class_wnd_proc_registry, found);
+        return;
+    }
+    found = search_global_class_wnd_proc(class_name_str);
+    if (found >= 0) {
+        remove_array_entry(global_class_wnd_proc_registry, found);
+        return;
+    }
 }
 
 LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -514,7 +561,7 @@ static Janet cfun_RegisterClassEx(int32_t argc, Janet *argv)
     aRet = RegisterClassEx(&(jwc->wc));
     if (aRet) {
         /* RegisterClass succeeded, save our real function for jw32_wnd_proc() */
-        register_class_wnd_proc(jwc, aRet);
+        register_class_wnd_proc(jwc);
     }
 
     return jw32_wrap_atom(aRet);
@@ -666,11 +713,11 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_cfuns(env, MOD_NAME, cfuns);
     janet_register_abstract_type(&jw32_at_MSG);
 
-    class_wnd_proc_registry = janet_table(0);
-    atom_class_map = janet_table(0);
+    local_class_wnd_proc_registry = janet_array(0);
+    global_class_wnd_proc_registry = janet_array(0);
 
-    janet_def(env, "class_wnd_proc_registry", janet_wrap_table(class_wnd_proc_registry),
-              "Where all the WndProcs reside.");
-    janet_def(env, "atom_class_map", janet_wrap_table(atom_class_map),
-              "ATOM -> lpszClassName map.");
+    janet_def(env, "local_class_wnd_proc_registry", janet_wrap_array(local_class_wnd_proc_registry),
+              "Where all the local WndProcs reside.");
+    janet_def(env, "global_class_wnd_proc_registry", janet_wrap_array(global_class_wnd_proc_registry),
+              "Where all the global WndProcs reside.");
 }
