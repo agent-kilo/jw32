@@ -14,6 +14,77 @@ typedef struct {
 } jw32_wc_t;
 
 
+static JanetArray *local_class_wnd_proc_registry;
+static JanetArray *global_class_wnd_proc_registry;
+
+
+static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
+  JanetFiber *fiber = NULL;
+  if (janet_pcall(fn, argc, argv, out, &fiber) == JANET_SIGNAL_OK) {
+    return 1;
+  } else {
+    janet_stacktrace(fiber, *out);
+    return 0;
+  }
+}
+
+static inline void remove_array_entry(JanetArray *array, int i) {
+    memmove(array->data + i,
+            array->data + i + 1,
+            (array->count - i - 1) * sizeof(Janet));
+    array->count -= 1;
+}
+
+static inline int search_local_class_wnd_proc(const uint8_t *class_name, HINSTANCE hInstance)
+{
+    for (int i = local_class_wnd_proc_registry->count - 1; i >= 0; i--) {
+        Janet entry = local_class_wnd_proc_registry->data[i];
+        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name h_instance wnd_proc) */
+        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
+        HINSTANCE ehInstance = jw32_unwrap_handle(entry_tuple[1]);
+        if ((ehInstance == hInstance || hInstance == NULL)
+            && !strcmp(entry_class_name, class_name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static inline int search_global_class_wnd_proc(const uint8_t *class_name)
+{
+    for (int i = global_class_wnd_proc_registry->count - 1; i >= 0; i--) {
+        Janet entry = global_class_wnd_proc_registry->data[i];
+        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name wnd_proc) */
+        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
+        if (!strcmp(entry_class_name, class_name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static Janet normalize_wnd_class_name(LPCSTR lpClassName)
+{
+    uint64_t maybe_atom = (uint64_t)lpClassName;
+    if (maybe_atom & ~(uint64_t)0xffff) {
+        /* higher bits are not zero, we have a string pointer */
+        return jw32_cstr_to_keyword(lpClassName);
+    } else {
+        /* looks like an ATOM */
+        ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
+#define __atom_name_buf_size 256 /* XXX: should be enough? */
+        char buffer[__atom_name_buf_size];
+        UINT uRet = GetAtomName(atmClass, buffer, __atom_name_buf_size);
+        if (uRet) {
+            return jw32_cstr_to_keyword(buffer);
+        } else {
+            return janet_wrap_nil();
+        }
+#undef __atom_name_buf_size
+    }
+}
+
+
 /*******************************************************************
  *
  * MESSAGING
@@ -191,9 +262,6 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
 }
 
-static JanetArray *local_class_wnd_proc_registry;
-static JanetArray *global_class_wnd_proc_registry;
-
 static void register_class_wnd_proc(jw32_wc_t *jwc)
 {
     Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
@@ -220,64 +288,12 @@ static void register_class_wnd_proc(jw32_wc_t *jwc)
     }
 }
 
-static inline void remove_array_entry(JanetArray *array, int i) {
-    memmove(array->data + i,
-            array->data + i + 1,
-            (array->count - i - 1) * sizeof(Janet));
-    array->count -= 1;
-}
-
-static inline int search_local_class_wnd_proc(const uint8_t *class_name, HINSTANCE hInstance)
-{
-    for (int i = local_class_wnd_proc_registry->count - 1; i >= 0; i--) {
-        Janet entry = local_class_wnd_proc_registry->data[i];
-        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name h_instance wnd_proc) */
-        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
-        HINSTANCE ehInstance = jw32_unwrap_handle(entry_tuple[1]);
-        if ((ehInstance == hInstance || hInstance == NULL)
-            && !strcmp(entry_class_name, class_name)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-static inline int search_global_class_wnd_proc(const uint8_t *class_name)
-{
-    for (int i = global_class_wnd_proc_registry->count - 1; i >= 0; i--) {
-        Janet entry = global_class_wnd_proc_registry->data[i];
-        const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name wnd_proc) */
-        const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
-        if (!strcmp(entry_class_name, class_name)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 {
     uint64_t maybe_atom = (uint64_t)lpClassName;
-    Janet class_name;
     Janet local_key, global_key;
     Janet local_key_tuple[2];
-
-    if (maybe_atom & ~(uint64_t)0xffff) {
-        /* higher bits are not zero, we have a string pointer */
-        class_name = jw32_cstr_to_keyword(lpClassName);
-    } else {
-        /* looks like an ATOM */
-        ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
-#define __atom_name_buf_size 256 /* XXX: should be enough? */
-        char buffer[__atom_name_buf_size];
-        UINT uRet = GetAtomName(atmClass, buffer, __atom_name_buf_size);
-        if (uRet) {
-            class_name = jw32_cstr_to_keyword(buffer);
-        } else {
-            class_name = janet_wrap_nil();
-        }
-#undef __atom_name_buf_size
-    }
+    Janet class_name = normalize_wnd_class_name(lpClassName);
 
     if (janet_checktype(class_name, JANET_NIL)) {
         return;
@@ -314,13 +330,39 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 
 LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-/* TODO */
     printf("\n---- jw32_wnd_proc ----\n");
     printf("hWnd = 0x%" PRIx64 "\n", (uint64_t)hWnd);
     printf("uMsg = 0x%" PRIx32 "\n", uMsg);
     printf("wParam = 0x%" PRIx64 "\n", wParam);
     printf("lParam = %lld\n", lParam);
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+    switch (uMsg) {
+    case WM_NCCREATE: {
+        CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
+        const Janet *param_tuple = (Janet *)cs->lpCreateParams;
+        Janet wnd_proc = param_tuple[0];
+        LPVOID lpRealParam = jw32_unwrap_lpvoid(param_tuple[1]);
+        Janet argv[4] = {
+            jw32_wrap_handle(hWnd),
+            jw32_wrap_uint(uMsg),
+            jw32_wrap_wparam(wParam),
+            jw32_wrap_lparam(lParam),
+        };
+        Janet ret;
+
+        janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
+        /* TODO: SetWindowLongPtr() */
+        cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
+        if (call_fn(janet_unwrap_function(wnd_proc), 4, argv, &ret)) {
+            return jw32_unwrap_bool(ret);
+        } else {
+            /* XXX: error handling? */
+            return FALSE;
+        }
+    }
+    default:
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
 }
 
 
@@ -349,6 +391,8 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
 
     HWND hWnd;
 
+    Janet class_name;
+
     janet_fixarity(argc, 11);
 
     lpClassName = jw32_get_lpcstr(argv, 0);
@@ -361,8 +405,38 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
     hWndParent = jw32_get_handle(argv, 7);
     hMenu = jw32_get_handle(argv, 8);
     hInstance = jw32_get_handle(argv, 9);
-    lpParam = jw32_get_lpvoid(argv, 10);
 
+    class_name = normalize_wnd_class_name(lpClassName);
+    if (!janet_checktype(class_name, JANET_NIL)) {
+        const uint8_t *class_name_str = janet_unwrap_keyword(class_name);
+        int found = -1;
+        Janet wnd_proc = janet_wrap_nil();
+
+        if (hInstance) {
+            found = search_local_class_wnd_proc(class_name_str, hInstance);
+            if (found >= 0) {
+                wnd_proc = (janet_unwrap_tuple(local_class_wnd_proc_registry->data[found]))[2];
+            }
+        }
+
+        if (!hInstance || found < 0) {
+            found = search_global_class_wnd_proc(class_name_str);
+            if (found >= 0) {
+                wnd_proc = (janet_unwrap_tuple(global_class_wnd_proc_registry->data[found]))[1];
+            }
+        }
+
+        if (janet_checktype(wnd_proc, JANET_FUNCTION)) {
+            /* it's a class that calls jw32_wnd_proc, prepare extra goodies for it */
+            janet_printf("wnd_proc (from registry) = %v\n", wnd_proc);
+            lpParam = jw32_get_lpvoid(argv, 10);
+            Janet param_tuple[2] = { wnd_proc, jw32_wrap_lpvoid(lpParam) };
+            lpParam = (LPVOID)janet_tuple_n(param_tuple, 2);
+        } else {
+            lpParam = jw32_get_lpvoid(argv, 10);
+        }
+    }
+    
     hWnd = CreateWindow(lpClassName, lpWindowName, dwStyle,
                         x, y, nWidth, nHeight,
                         hWndParent, hMenu, hInstance,
