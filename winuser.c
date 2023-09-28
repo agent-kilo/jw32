@@ -22,6 +22,8 @@ static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet 
   JanetFiber *fiber = NULL;
   int ret, lock;
 
+  /* XXX: if i call any function (cfuns or janet functions) inside fn,
+     there would be memory violations without this lock, i don't know why */
   lock = janet_gclock();
   if (janet_pcall(fn, argc, argv, out, &fiber) == JANET_SIGNAL_OK) {
       ret = 1;
@@ -356,8 +358,8 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         Janet ret;
 
         janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
-        /* TODO: SetWindowLongPtr() */
 
+        /* TODO: find a better place for our wnd_proc */
         SetLastError(0);
         /* XXX: it seems dialogs would use this space? */
         SetWindowLongPtr(hWnd, 0, (LONG_PTR)janet_unwrap_function(wnd_proc));
