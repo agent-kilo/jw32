@@ -20,12 +20,17 @@ static JanetArray *global_class_wnd_proc_registry;
 
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
+  int ret, lock;
+
+  lock = janet_gclock();
   if (janet_pcall(fn, argc, argv, out, &fiber) == JANET_SIGNAL_OK) {
-    return 1;
+      ret = 1;
   } else {
-    janet_stacktrace(fiber, *out);
-    return 0;
+      janet_stacktrace(fiber, *out);
+      ret = 0;
   }
+  janet_gcunlock(lock);
+  return ret;
 }
 
 static inline void remove_array_entry(JanetArray *array, int i) {
@@ -352,6 +357,12 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
         /* TODO: SetWindowLongPtr() */
+
+        SetLastError(0);
+        /* XXX: it seems dialogs would use this space? */
+        SetWindowLongPtr(hWnd, 0, (LONG_PTR)janet_unwrap_function(wnd_proc));
+        printf("yyyyyyyyyy GetLastError() = 0x%" PRIx32 "\n", GetLastError());
+
         cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
         if (call_fn(janet_unwrap_function(wnd_proc), 4, argv, &ret)) {
             return jw32_unwrap_bool(ret);
@@ -360,8 +371,34 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             return FALSE;
         }
     }
-    default:
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+    default: {
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetWindowLongPtr(hWnd, 0);
+        printf("xxxxxxxxxx wnd_proc_fn = 0x%" PRIx64 "\n", (uint64_t)wnd_proc_fn);
+        if (wnd_proc_fn) {
+            Janet argv[4] = {
+                jw32_wrap_handle(hWnd),
+                jw32_wrap_uint(uMsg),
+                jw32_wrap_wparam(wParam),
+                jw32_wrap_lparam(lParam),
+            };
+            Janet ret;
+
+            printf("xxxxxxxxxx before call_fn xxxxxxxxxx\n");
+            if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
+                printf("xxxxxxxxxx before return xxxxxxxxxx\n");
+                return jw32_unwrap_lresult(ret);
+            } else {
+                /* XXX: error handling? */
+                printf("xxxxxxxxxx before return: ERROR xxxxxxxxxx\n");
+                return FALSE;
+            }
+
+        } else {
+            /* it's before WM_NCCREATE, carry on the window creation */
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
+    }
     }
 }
 
@@ -481,6 +518,8 @@ static int WNDCLASSEX_gcmark(void *p, size_t len)
 {
     jw32_wc_t *jwc = (jw32_wc_t *)p;
 
+    printf("!!!!!!!!!! WNDCLASSEX_gcmark !!!!!!!!!!\n");
+
     janet_mark(janet_wrap_abstract(jwc));
     if (jwc->wnd_proc) {
         janet_mark(janet_wrap_function(jwc->wnd_proc));
@@ -491,6 +530,8 @@ static int WNDCLASSEX_gcmark(void *p, size_t len)
     if (jwc->class_name) {
         janet_mark(janet_wrap_string(jwc->class_name));
     }
+
+    printf("!!!!!!!!!! WNDCLASSEX_gcmark: done !!!!!!!!!!\n");
 
     return 0;
 }
@@ -612,6 +653,9 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
             janet_panicf("unknown key %v", argv[k]);
         }
     }
+
+    /* where we put our janet wndproc */
+    jwc->wc.cbWndExtra += sizeof(JanetFunction *); 
 
     if (!size_set) {
         jwc->wc.cbSize = sizeof(WNDCLASSEX);
