@@ -18,6 +18,358 @@ static JanetArray *local_class_wnd_proc_registry;
 static JanetArray *global_class_wnd_proc_registry;
 
 
+static void define_consts_wm(JanetTable *env)
+{
+#define __def(const_name)                                  \
+    janet_def(env, #const_name, jw32_wrap_int(const_name), \
+              "Constant for window message type.")
+    __def(WM_NULL);
+    __def(WM_CREATE);
+    __def(WM_DESTROY);
+    __def(WM_MOVE);
+    __def(WM_SIZE);
+    __def(WM_ACTIVATE);
+    __def(WM_SETFOCUS);
+    __def(WM_KILLFOCUS);
+    __def(WM_ENABLE);
+    __def(WM_SETREDRAW);
+    __def(WM_SETTEXT);
+    __def(WM_GETTEXT);
+    __def(WM_GETTEXTLENGTH);
+    __def(WM_PAINT);
+    __def(WM_CLOSE);
+#ifndef _WIN32_WCE
+    __def(WM_QUERYENDSESSION);
+    __def(WM_QUERYOPEN);
+    __def(WM_ENDSESSION);
+#endif
+    __def(WM_QUIT);
+    __def(WM_ERASEBKGND);
+    __def(WM_SYSCOLORCHANGE);
+    __def(WM_SHOWWINDOW);
+    __def(WM_WININICHANGE);
+#if(WINVER >= 0x0400)
+    __def(WM_SETTINGCHANGE);
+#endif
+    __def(WM_DEVMODECHANGE);
+    __def(WM_ACTIVATEAPP);
+    __def(WM_FONTCHANGE);
+    __def(WM_TIMECHANGE);
+    __def(WM_CANCELMODE);
+    __def(WM_SETCURSOR);
+    __def(WM_MOUSEACTIVATE);
+    __def(WM_CHILDACTIVATE);
+    __def(WM_QUEUESYNC);
+    __def(WM_GETMINMAXINFO);
+    __def(WM_PAINTICON);
+    __def(WM_ICONERASEBKGND);
+    __def(WM_NEXTDLGCTL);
+    __def(WM_SPOOLERSTATUS);
+    __def(WM_DRAWITEM);
+    __def(WM_MEASUREITEM);
+    __def(WM_DELETEITEM);
+    __def(WM_VKEYTOITEM);
+    __def(WM_CHARTOITEM);
+    __def(WM_SETFONT);
+    __def(WM_GETFONT);
+    __def(WM_SETHOTKEY);
+    __def(WM_GETHOTKEY);
+    __def(WM_QUERYDRAGICON);
+    __def(WM_COMPAREITEM);
+#if(WINVER >= 0x0500)
+#ifndef _WIN32_WCE
+    __def(WM_GETOBJECT);
+#endif
+#endif /* WINVER >= 0x0500 */
+    __def(WM_COMPACTING);
+    __def(WM_COMMNOTIFY);
+    __def(WM_WINDOWPOSCHANGING);
+    __def(WM_WINDOWPOSCHANGED);
+    __def(WM_POWER);
+    __def(WM_COPYDATA);
+    __def(WM_CANCELJOURNAL);
+#if(WINVER >= 0x0400)
+    __def(WM_NOTIFY);
+    __def(WM_INPUTLANGCHANGEREQUEST);
+    __def(WM_INPUTLANGCHANGE);
+    __def(WM_TCARD);
+    __def(WM_HELP);
+    __def(WM_USERCHANGED);
+    __def(WM_NOTIFYFORMAT);
+    __def(WM_CONTEXTMENU);
+    __def(WM_STYLECHANGING);
+    __def(WM_STYLECHANGED);
+    __def(WM_DISPLAYCHANGE);
+    __def(WM_GETICON);
+    __def(WM_SETICON);
+#endif /* WINVER >= 0x0400 */
+    __def(WM_NCCREATE);
+    __def(WM_NCDESTROY);
+    __def(WM_NCCALCSIZE);
+    __def(WM_NCHITTEST);
+    __def(WM_NCPAINT);
+    __def(WM_NCACTIVATE);
+    __def(WM_GETDLGCODE);
+#ifndef _WIN32_WCE
+    __def(WM_SYNCPAINT);
+#endif
+    __def(WM_NCMOUSEMOVE);
+    __def(WM_NCLBUTTONDOWN);
+    __def(WM_NCLBUTTONUP);
+    __def(WM_NCLBUTTONDBLCLK);
+    __def(WM_NCRBUTTONDOWN);
+    __def(WM_NCRBUTTONUP);
+    __def(WM_NCRBUTTONDBLCLK);
+    __def(WM_NCMBUTTONDOWN);
+    __def(WM_NCMBUTTONUP);
+    __def(WM_NCMBUTTONDBLCLK);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(WM_NCXBUTTONDOWN);
+    __def(WM_NCXBUTTONUP);
+    __def(WM_NCXBUTTONDBLCLK);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WM_INPUT_DEVICE_CHANGE);
+    __def(WM_INPUT);
+#endif /* _WIN32_WINNT >= 0x0501 */
+    __def(WM_KEYFIRST);
+    __def(WM_KEYDOWN);
+    __def(WM_KEYUP);
+    __def(WM_CHAR);
+    __def(WM_DEADCHAR);
+    __def(WM_SYSKEYDOWN);
+    __def(WM_SYSKEYUP);
+    __def(WM_SYSCHAR);
+    __def(WM_SYSDEADCHAR);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WM_UNICHAR);
+#endif /* _WIN32_WINNT >= 0x0501 */
+    __def(WM_KEYLAST);
+#if(WINVER >= 0x0400)
+    __def(WM_IME_STARTCOMPOSITION);
+    __def(WM_IME_ENDCOMPOSITION);
+    __def(WM_IME_COMPOSITION);
+    __def(WM_IME_KEYLAST);
+#endif /* WINVER >= 0x0400 */
+    __def(WM_INITDIALOG);
+    __def(WM_COMMAND);
+    __def(WM_SYSCOMMAND);
+    __def(WM_TIMER);
+    __def(WM_HSCROLL);
+    __def(WM_VSCROLL);
+    __def(WM_INITMENU);
+    __def(WM_INITMENUPOPUP);
+#if(WINVER >= 0x0601)
+    __def(WM_GESTURE);
+    __def(WM_GESTURENOTIFY);
+#endif /* WINVER >= 0x0601 */
+    __def(WM_MENUSELECT);
+    __def(WM_MENUCHAR);
+    __def(WM_ENTERIDLE);
+#if(WINVER >= 0x0500)
+#ifndef _WIN32_WCE
+    __def(WM_MENURBUTTONUP);
+    __def(WM_MENUDRAG);
+    __def(WM_MENUGETOBJECT);
+    __def(WM_UNINITMENUPOPUP);
+    __def(WM_MENUCOMMAND);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(WM_CHANGEUISTATE);
+    __def(WM_UPDATEUISTATE);
+    __def(WM_QUERYUISTATE);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#endif /* _WIN32_WCE */
+#endif /* WINVER >= 0x0500 */
+    __def(WM_CTLCOLORMSGBOX);
+    __def(WM_CTLCOLOREDIT);
+    __def(WM_CTLCOLORLISTBOX);
+    __def(WM_CTLCOLORBTN);
+    __def(WM_CTLCOLORDLG);
+    __def(WM_CTLCOLORSCROLLBAR);
+    __def(WM_CTLCOLORSTATIC);
+    __def(WM_MOUSEFIRST);
+    __def(WM_MOUSEMOVE);
+    __def(WM_LBUTTONDOWN);
+    __def(WM_LBUTTONUP);
+    __def(WM_LBUTTONDBLCLK);
+    __def(WM_RBUTTONDOWN);
+    __def(WM_RBUTTONUP);
+    __def(WM_RBUTTONDBLCLK);
+    __def(WM_MBUTTONDOWN);
+    __def(WM_MBUTTONUP);
+    __def(WM_MBUTTONDBLCLK);
+#if (_WIN32_WINNT >= 0x0400) || (_WIN32_WINDOWS > 0x0400)
+    __def(WM_MOUSEWHEEL);
+#endif
+#if (_WIN32_WINNT >= 0x0500)
+    __def(WM_XBUTTONDOWN);
+    __def(WM_XBUTTONUP);
+    __def(WM_XBUTTONDBLCLK);
+#endif
+#if (_WIN32_WINNT >= 0x0600)
+    __def(WM_MOUSEHWHEEL);
+#endif
+
+#if (_WIN32_WINNT >= 0x0600)
+    __def(WM_MOUSELAST);
+#elif (_WIN32_WINNT >= 0x0500)
+    __def(WM_MOUSELAST);
+#elif (_WIN32_WINNT >= 0x0400) || (_WIN32_WINDOWS > 0x0400)
+    __def(WM_MOUSELAST);
+#else
+    __def(WM_MOUSELAST);
+#endif /* (_WIN32_WINNT >= 0x0600) */
+
+    __def(WM_PARENTNOTIFY);
+    __def(WM_ENTERMENULOOP);
+    __def(WM_EXITMENULOOP);
+#if(WINVER >= 0x0400)
+    __def(WM_NEXTMENU);
+    __def(WM_SIZING);
+    __def(WM_CAPTURECHANGED);
+    __def(WM_MOVING);
+    __def(WM_POWERBROADCAST);
+    __def(WM_DEVICECHANGE);
+#endif /* WINVER >= 0x0400 */
+    __def(WM_MDICREATE);
+    __def(WM_MDIDESTROY);
+    __def(WM_MDIACTIVATE);
+    __def(WM_MDIRESTORE);
+    __def(WM_MDINEXT);
+    __def(WM_MDIMAXIMIZE);
+    __def(WM_MDITILE);
+    __def(WM_MDICASCADE);
+    __def(WM_MDIICONARRANGE);
+    __def(WM_MDIGETACTIVE);
+    __def(WM_MDISETMENU);
+    __def(WM_ENTERSIZEMOVE);
+    __def(WM_EXITSIZEMOVE);
+    __def(WM_DROPFILES);
+    __def(WM_MDIREFRESHMENU);
+#if(WINVER >= 0x0602)
+    __def(WM_POINTERDEVICECHANGE);
+    __def(WM_POINTERDEVICEINRANGE);
+    __def(WM_POINTERDEVICEOUTOFRANGE);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0601)
+    __def(WM_TOUCH);
+#endif /* WINVER >= 0x0601 */
+#if(WINVER >= 0x0602)
+    __def(WM_NCPOINTERUPDATE);
+    __def(WM_NCPOINTERDOWN);
+    __def(WM_NCPOINTERUP);
+    __def(WM_POINTERUPDATE);
+    __def(WM_POINTERDOWN);
+    __def(WM_POINTERUP);
+    __def(WM_POINTERENTER);
+    __def(WM_POINTERLEAVE);
+    __def(WM_POINTERACTIVATE);
+    __def(WM_POINTERCAPTURECHANGED);
+    __def(WM_TOUCHHITTESTING);
+    __def(WM_POINTERWHEEL);
+    __def(WM_POINTERHWHEEL);
+    __def(DM_POINTERHITTEST); /* DM? */
+    __def(WM_POINTERROUTEDTO);
+    __def(WM_POINTERROUTEDAWAY);
+    __def(WM_POINTERROUTEDRELEASED);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0400)
+    __def(WM_IME_SETCONTEXT);
+    __def(WM_IME_NOTIFY);
+    __def(WM_IME_CONTROL);
+    __def(WM_IME_COMPOSITIONFULL);
+    __def(WM_IME_SELECT);
+    __def(WM_IME_CHAR);
+#endif /* WINVER >= 0x0400 */
+#if(WINVER >= 0x0500)
+    __def(WM_IME_REQUEST);
+#endif /* WINVER >= 0x0500 */
+#if(WINVER >= 0x0400)
+    __def(WM_IME_KEYDOWN);
+    __def(WM_IME_KEYUP);
+#endif /* WINVER >= 0x0400 */
+#if((_WIN32_WINNT >= 0x0400) || (WINVER >= 0x0500))
+    __def(WM_MOUSEHOVER);
+    __def(WM_MOUSELEAVE);
+#endif
+#if(WINVER >= 0x0500)
+    __def(WM_NCMOUSEHOVER);
+    __def(WM_NCMOUSELEAVE);
+#endif /* WINVER >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WM_WTSSESSION_CHANGE);
+    __def(WM_TABLET_FIRST);
+    __def(WM_TABLET_LAST);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(WINVER >= 0x0601)
+    __def(WM_DPICHANGED);
+#endif /* WINVER >= 0x0601 */
+#if(WINVER >= 0x0605)
+    __def(WM_DPICHANGED_BEFOREPARENT);
+    __def(WM_DPICHANGED_AFTERPARENT);
+    __def(WM_GETDPISCALEDSIZE);
+#endif /* WINVER >= 0x0605 */
+    __def(WM_CUT);
+    __def(WM_COPY);
+    __def(WM_PASTE);
+    __def(WM_CLEAR);
+    __def(WM_UNDO);
+    __def(WM_RENDERFORMAT);
+    __def(WM_RENDERALLFORMATS);
+    __def(WM_DESTROYCLIPBOARD);
+    __def(WM_DRAWCLIPBOARD);
+    __def(WM_PAINTCLIPBOARD);
+    __def(WM_VSCROLLCLIPBOARD);
+    __def(WM_SIZECLIPBOARD);
+    __def(WM_ASKCBFORMATNAME);
+    __def(WM_CHANGECBCHAIN);
+    __def(WM_HSCROLLCLIPBOARD);
+    __def(WM_QUERYNEWPALETTE);
+    __def(WM_PALETTEISCHANGING);
+    __def(WM_PALETTECHANGED);
+    __def(WM_HOTKEY);
+#if(WINVER >= 0x0400)
+    __def(WM_PRINT);
+    __def(WM_PRINTCLIENT);
+#endif /* WINVER >= 0x0400 */
+#if(_WIN32_WINNT >= 0x0500)
+    __def(WM_APPCOMMAND);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WM_THEMECHANGED);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WM_CLIPBOARDUPDATE);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0600)
+    __def(WM_DWMCOMPOSITIONCHANGED);
+    __def(WM_DWMNCRENDERINGCHANGED);
+    __def(WM_DWMCOLORIZATIONCOLORCHANGED);
+    __def(WM_DWMWINDOWMAXIMIZEDCHANGE);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(WM_DWMSENDICONICTHUMBNAIL);
+    __def(WM_DWMSENDICONICLIVEPREVIEWBITMAP);
+#endif /* _WIN32_WINNT >= 0x0601 */
+#if(WINVER >= 0x0600)
+    __def(WM_GETTITLEBARINFOEX);
+#endif /* WINVER >= 0x0600 */
+#if(WINVER >= 0x0400)
+    __def(WM_HANDHELDFIRST);
+    __def(WM_HANDHELDLAST);
+    __def(WM_AFXFIRST);
+    __def(WM_AFXLAST);
+#endif /* WINVER >= 0x0400 */
+    __def(WM_PENWINFIRST);
+    __def(WM_PENWINLAST);
+#if(WINVER >= 0x0400)
+    __def(WM_APP);
+#endif /* WINVER >= 0x0400 */
+    __def(WM_USER);
+
+#undef __def
+}
+
 static void define_consts_mb(JanetTable *env)
 {
 #define __def(const_name)                                   \
@@ -939,6 +1291,7 @@ static void init_global_states(JanetTable *env)
 
 JANET_MODULE_ENTRY(JanetTable *env)
 {
+    define_consts_wm(env);
     define_consts_mb(env);
     define_consts_button_id(env);
 
