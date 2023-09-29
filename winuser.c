@@ -170,9 +170,12 @@ static Janet cfun_MSG(int32_t argc, Janet *argv)
             if (idx.len != 2) {
                 janet_panicf("expected 2 values for pt, got %d", idx.len);
             }
-            /* XXX: bogus error message */
-            msg->pt.x = jw32_get_long(idx.items, 0);
-            msg->pt.y = jw32_get_long(idx.items, 1);
+            if (!janet_checkint(idx.items[0]) || !janet_checkint(idx.items[1])) {
+                janet_panicf("expected 32 bit signed integers for pt, got [%v %v]",
+                             idx.items[0], idx.items[1]);
+            }
+            msg->pt.x = janet_unwrap_integer(idx.items[0]);
+            msg->pt.y = janet_unwrap_integer(idx.items[1]);
         } else
 #ifdef _MAC
         __set_member(lPrivate, dword)
@@ -347,7 +350,6 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_NCCREATE: {
         CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
         const Janet *param_tuple = (Janet *)cs->lpCreateParams;
-        Janet wnd_proc = param_tuple[0];
         LPVOID lpRealParam = jw32_unwrap_lpvoid(param_tuple[1]);
         Janet argv[4] = {
             jw32_wrap_handle(hWnd),
@@ -357,17 +359,25 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         };
         Janet ret;
 
-        janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
 
-        /* TODO: find a better place for our wnd_proc */
-        SetLastError(0);
-        /* XXX: it seems dialogs would use this space? */
-        SetWindowLongPtr(hWnd, 0, (LONG_PTR)janet_unwrap_function(wnd_proc));
-        printf("yyyyyyyyyy GetLastError() = 0x%" PRIx32 "\n", GetLastError());
+        /* there will be race conditions if the windows of a same class run
+           on multiple threads, but in that case the class memory slot would
+           just be set more than once, to the same value. a minor issue. */
+
+        if (!wnd_proc_fn) {
+            Janet wnd_proc = param_tuple[0];
+            wnd_proc_fn = janet_unwrap_function(wnd_proc);
+
+            janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
+
+            /* TODO: some special handling in SetClassLongPtr() binding? */
+            SetClassLongPtr(hWnd, 0, (LONG_PTR)wnd_proc_fn);
+        }
 
         cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
-        if (call_fn(janet_unwrap_function(wnd_proc), 4, argv, &ret)) {
-            return jw32_unwrap_bool(ret);
+        if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
+            return jw32_unwrap_lresult(ret);
         } else {
             /* XXX: error handling? */
             return FALSE;
@@ -375,7 +385,7 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 
     default: {
-        JanetFunction *wnd_proc_fn = (JanetFunction *)GetWindowLongPtr(hWnd, 0);
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
         printf("xxxxxxxxxx wnd_proc_fn = 0x%" PRIx64 "\n", (uint64_t)wnd_proc_fn);
         if (wnd_proc_fn) {
             Janet argv[4] = {
@@ -467,9 +477,11 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
 
         if (janet_checktype(wnd_proc, JANET_FUNCTION)) {
             /* it's a class that calls jw32_wnd_proc, prepare extra goodies for it */
+            Janet param_tuple[2];
             janet_printf("wnd_proc (from registry) = %v\n", wnd_proc);
             lpParam = jw32_get_lpvoid(argv, 10);
-            Janet param_tuple[2] = { wnd_proc, jw32_wrap_lpvoid(lpParam) };
+            param_tuple[0] = wnd_proc;
+            param_tuple[1] = jw32_wrap_lpvoid(lpParam);
             lpParam = (LPVOID)janet_tuple_n(param_tuple, 2);
         } else {
             lpParam = jw32_get_lpvoid(argv, 10);
@@ -656,8 +668,8 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
         }
     }
 
-    /* where we put our janet wndproc */
-    jwc->wc.cbWndExtra += sizeof(JanetFunction *); 
+    /* extra space for our janet wndproc */
+    jwc->wc.cbClsExtra += sizeof(JanetFunction *); 
 
     if (!size_set) {
         jwc->wc.cbSize = sizeof(WNDCLASSEX);
