@@ -18,6 +18,65 @@ static JanetArray *local_class_wnd_proc_registry;
 static JanetArray *global_class_wnd_proc_registry;
 
 
+static void define_consts_mb(JanetTable *env)
+{
+#define __def(const_name)                                   \
+    janet_def(env, #const_name, jw32_wrap_long(const_name), \
+              "Constant for MessageBox().")
+    /* buttons */
+    __def(MB_ABORTRETRYIGNORE);
+    __def(MB_CANCELTRYCONTINUE);
+    __def(MB_HELP);
+    __def(MB_OK);
+    __def(MB_OKCANCEL);
+    __def(MB_RETRYCANCEL);
+    __def(MB_YESNO);
+    __def(MB_YESNOCANCEL);
+    /* icons */
+    __def(MB_ICONEXCLAMATION);
+    __def(MB_ICONWARNING);
+    __def(MB_ICONINFORMATION);
+    __def(MB_ICONASTERISK);
+    __def(MB_ICONQUESTION);
+    __def(MB_ICONSTOP);
+    __def(MB_ICONERROR);
+    __def(MB_ICONHAND);
+    /* default button */
+    __def(MB_DEFBUTTON1);
+    __def(MB_DEFBUTTON2);
+    __def(MB_DEFBUTTON3);
+    __def(MB_DEFBUTTON4);
+    /* modality */
+    __def(MB_APPLMODAL);
+    __def(MB_SYSTEMMODAL);
+    __def(MB_TASKMODAL);
+    /* other options */
+    __def(MB_DEFAULT_DESKTOP_ONLY);
+    __def(MB_RIGHT);
+    __def(MB_RTLREADING);
+    __def(MB_SETFOREGROUND);
+    __def(MB_TOPMOST);
+    __def(MB_SERVICE_NOTIFICATION);
+#undef __def
+}
+
+static void define_consts_button_id(JanetTable *env)
+{
+#define __def(const_name)                                  \
+    janet_def(env, #const_name, jw32_wrap_int(const_name), \
+              "Constant for MessageBox()'s return value.")
+    __def(IDABORT);
+    __def(IDCANCEL);
+    __def(IDCONTINUE);
+    __def(IDIGNORE);
+    __def(IDNO);
+    __def(IDOK);
+    __def(IDRETRY);
+    __def(IDTRYAGAIN);
+    __def(IDYES);
+#undef __def
+}
+
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
   int ret, lock;
@@ -421,6 +480,26 @@ LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
  *
  *******************************************************************/
 
+static Janet cfun_MessageBox(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    LPCSTR lpText;
+    LPCSTR lpCaption;
+    UINT uType;
+
+    int iRet;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_get_handle(argv, 0);
+    lpText = jw32_get_lpcstr(argv, 1);
+    lpCaption = jw32_get_lpcstr(argv, 2);
+    uType = jw32_get_uint(argv, 3);
+
+    iRet = MessageBox(hWnd, lpText, lpCaption, uType);
+    return jw32_wrap_int(iRet);
+}
+
 static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 {
     janet_fixarity(argc, 0);
@@ -789,6 +868,12 @@ static const JanetReg cfuns[] = {
 
     /*********************** WINDOW-RELATED ************************/
     {
+        "MessageBox",
+        cfun_MessageBox,
+        "(" MOD_NAME "/MessageBox hWnd lpText lpCaption uType)\n\n"
+        "Shows a message box.",
+    },
+    {
         "GetDesktopWindow",
         cfun_GetDesktopWindow,
         "(" MOD_NAME "/GetDesktopWindow)\n\n"
@@ -840,11 +925,8 @@ static const JanetReg cfuns[] = {
 };
 
 
-JANET_MODULE_ENTRY(JanetTable *env)
+static void init_global_states(JanetTable *env)
 {
-    janet_cfuns(env, MOD_NAME, cfuns);
-    janet_register_abstract_type(&jw32_at_MSG);
-
     local_class_wnd_proc_registry = janet_array(0);
     global_class_wnd_proc_registry = janet_array(0);
 
@@ -852,4 +934,17 @@ JANET_MODULE_ENTRY(JanetTable *env)
               "Where all the local WndProcs reside.");
     janet_def(env, "global_class_wnd_proc_registry", janet_wrap_array(global_class_wnd_proc_registry),
               "Where all the global WndProcs reside.");
+}
+
+
+JANET_MODULE_ENTRY(JanetTable *env)
+{
+    define_consts_mb(env);
+    define_consts_button_id(env);
+
+    janet_register_abstract_type(&jw32_at_MSG);
+
+    janet_cfuns(env, MOD_NAME, cfuns);
+
+    init_global_states(env);
 }
