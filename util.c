@@ -28,4 +28,7 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     janet_cfuns(env, MOD_NAME, cfuns);
+
+    janet_def(env, "NULL", jw32_wrap_lpvoid(NULL),
+              "The NULL pointer, for comparison with API return values.");
 }
