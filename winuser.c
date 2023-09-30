@@ -632,6 +632,29 @@ static void define_consts_cw(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_sw(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),      \
+              "Constant for ShowWindow() commands.")
+    __def(SW_HIDE);
+    __def(SW_SHOWNORMAL);
+    __def(SW_NORMAL);
+    __def(SW_SHOWMINIMIZED);
+    __def(SW_SHOWMAXIMIZED);
+    __def(SW_MAXIMIZE);
+    __def(SW_SHOWNOACTIVATE);
+    __def(SW_SHOW);
+    __def(SW_MINIMIZE);
+    __def(SW_SHOWMINNOACTIVE);
+    __def(SW_SHOWNA);
+    __def(SW_RESTORE);
+    __def(SW_SHOWDEFAULT);
+    __def(SW_FORCEMINIMIZE);
+    __def(SW_MAX);
+#undef __def
+}
+
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
   int ret, lock;
@@ -1598,6 +1621,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_ws(env);
     define_consts_ws_ex(env);
     define_consts_cw(env);
+    define_consts_sw(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
 
