@@ -1,30 +1,42 @@
 (declare-project :name "jw32")
 
+(def debug-flags
+  ["/DJW32_DEBUG"]
+  #[]
+  )
+(def common-headers ["types.h" "debug.h"])
+
 (declare-native
  :name "jw32/winuser"
  :source ["winuser.c"]
- :headers ["winuser.h" "types.h"]
+ :headers ["winuser.h" ;common-headers]
+ :cflags [;debug-flags]
  :ldflags ["user32.lib"])
  
 (declare-native
  :name "jw32/processthreadsapi"
  :source ["processthreadsapi.c"]
- :headers ["processthreadsapi.h" "types.h"]
+ :headers ["processthreadsapi.h" ;common-headers]
+ :cflags [;debug-flags]
  :ldflags ["user32.lib"])
 
 (declare-native
  :name "jw32/libloaderapi"
  :source ["libloaderapi.c"]
- :headers ["libloaderapi.h" "types.h"]
+ :headers ["libloaderapi.h" ;common-headers]
+ :cflags [;debug-flags]
  :ldflags ["user32.lib"])
 
 (declare-native
  :name "jw32/errhandlingapi"
  :source ["errhandlingapi.c"]
- :headers ["errhandlingapi.h" "types.h"]
+ :headers ["errhandlingapi.h" ;common-headers]
+ :cflags [;debug-flags]
  :ldflags ["user32.lib"])
 
 (declare-native
  :name "jw32/util"
  :source ["util.c"]
+ :headers ["debug.h"]
+ :cflags [;debug-flags]
  :ldflags [])

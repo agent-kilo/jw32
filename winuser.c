@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include "winuser.h"
+#include "debug.h"
 
 #define MOD_NAME "winuser"
 
@@ -716,16 +717,16 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
     } else {
         /* looks like an ATOM */
         ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
-        printf("atmClass = %hu\n", atmClass);
+        jw32_dbg_val(atmClass, "%hu");
 #define __atom_name_buf_size 256 /* XXX: should be enough? */
         char buffer[__atom_name_buf_size];
         /* TODO: this doesn't work, the user atom table cannot be searched like this */
         UINT uRet = GetAtomName(atmClass, buffer, __atom_name_buf_size);
         if (uRet) {
-            printf("buffer = %s\n", buffer);
+            jw32_dbg_val(buffer, "%s");
             return jw32_cstr_to_keyword(buffer);
         } else {
-            printf("failed to get atom name: 0x%lx\n", GetLastError());
+            jw32_dbg("failed to get atom name: 0x%lx\n", GetLastError());
             return janet_wrap_nil();
         }
 #undef __atom_name_buf_size
@@ -991,11 +992,11 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 
 LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    printf("\n---- jw32_wnd_proc ----\n");
-    printf("hWnd = 0x%" PRIx64 "\n", (uint64_t)hWnd);
-    printf("uMsg = 0x%" PRIx32 "\n", uMsg);
-    printf("wParam = 0x%" PRIx64 "\n", wParam);
-    printf("lParam = %lld\n", lParam);
+    jw32_dbg_msg("===========================");
+    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
+    jw32_dbg_val(uMsg, "0x%" PRIx32);
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "0x%lld");
 
     switch (uMsg) {
     case WM_NCCREATE: {
@@ -1020,7 +1021,7 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             Janet wnd_proc = param_tuple[0];
             wnd_proc_fn = janet_unwrap_function(wnd_proc);
 
-            janet_printf("wnd_proc (from lpCreateParams) = %v\n", wnd_proc);
+            jw32_dbg_jval(wnd_proc, "%v");
 
             /* TODO: some special handling in SetClassLongPtr() binding? */
             SetClassLongPtr(hWnd, 0, (LONG_PTR)wnd_proc_fn);
@@ -1037,7 +1038,7 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
     default: {
         JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
-        printf("xxxxxxxxxx wnd_proc_fn = 0x%" PRIx64 "\n", (uint64_t)wnd_proc_fn);
+        jw32_dbg_val((uint64_t)wnd_proc_fn, "0x%" PRIx64);
         if (wnd_proc_fn) {
             Janet argv[4] = {
                 jw32_wrap_handle(hWnd),
@@ -1047,13 +1048,13 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             };
             Janet ret;
 
-            printf("xxxxxxxxxx before call_fn xxxxxxxxxx\n");
+            jw32_dbg_msg("before call_fn");
             if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
-                printf("xxxxxxxxxx before return xxxxxxxxxx\n");
+                jw32_dbg_msg("before return");
                 return jw32_unwrap_lresult(ret);
             } else {
                 /* XXX: error handling? */
-                printf("xxxxxxxxxx before return: ERROR xxxxxxxxxx\n");
+                jw32_dbg_msg("before return: ERROR");
                 return FALSE;
             }
 
@@ -1151,7 +1152,7 @@ static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
         if (janet_checktype(wnd_proc, JANET_FUNCTION)) {
             /* it's a class that calls jw32_wnd_proc, prepare extra goodies for it */
             Janet param_tuple[2];
-            janet_printf("wnd_proc (from registry) = %v\n", wnd_proc);
+            jw32_dbg_jval(wnd_proc, "%v");
             lpParam = jw32_get_lpvoid(argv, 11);
             param_tuple[0] = wnd_proc;
             param_tuple[1] = jw32_wrap_lpvoid(lpParam);
@@ -1218,7 +1219,7 @@ static int WNDCLASSEX_gcmark(void *p, size_t len)
 {
     jw32_wc_t *jwc = (jw32_wc_t *)p;
 
-    printf("!!!!!!!!!! WNDCLASSEX_gcmark !!!!!!!!!!\n");
+    jw32_dbg_msg("gcmark begin");
 
     janet_mark(janet_wrap_abstract(jwc));
     if (jwc->wnd_proc) {
@@ -1231,7 +1232,7 @@ static int WNDCLASSEX_gcmark(void *p, size_t len)
         janet_mark(janet_wrap_string(jwc->class_name));
     }
 
-    printf("!!!!!!!!!! WNDCLASSEX_gcmark: done !!!!!!!!!!\n");
+    jw32_dbg_msg("gcmark end");
 
     return 0;
 }
