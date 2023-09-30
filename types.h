@@ -149,6 +149,7 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 #define jw32_unwrap_long(x) ((LONG)jw32_unwrap_int(x))
 #define jw32_get_long(argv, n) ((LONG)jw32_get_int(argv, n))
 
+
 /* BOOL: 32 bit signed */
 #define jw32_wrap_bool(x)   jw32_wrap_int(x)
 #define jw32_unwrap_bool(x) ((BOOL)jw32_unwrap_int(x))
@@ -159,6 +160,12 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 #define jw32_wrap_lresult(x)   jw32_wrap_lparam(x)
 #define jw32_unwrap_lresult(x) ((LRESULT)jw32_unwrap_lparam(x))
 #define jw32_get_lresult(argv, n) ((LRESULT)jw32_get_lparam(argv, n))
+
+
+/* ULONG_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
+#define jw32_wrap_ulong_ptr(x) janet_wrap_u64((uint64_t)(x))
+#define jw32_unwrap_ulong_ptr(x) ((ULONG_PTR)janet_unwrap_u64(x))
+#define jw32_get_ulong_ptr(argv, n) ((ULONG_PTR)janet_getuinteger64(argv, n))
 
 
 #endif  /* __JW32_TYPES_H */

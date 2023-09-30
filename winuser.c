@@ -429,6 +429,104 @@ static void define_consts_button_id(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_idi(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_ulong_ptr(const_name), \
+              "Constant for system icon ID.")
+    __def(IDI_APPLICATION);
+    __def(IDI_ERROR);
+    __def(IDI_QUESTION);
+    __def(IDI_WARNING);
+    __def(IDI_INFORMATION);
+    __def(IDI_WINLOGO);
+    __def(IDI_SHIELD);
+#undef __def
+}
+
+static void define_consts_idc(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_ulong_ptr(const_name), \
+              "Constant for system cursor ID.")
+    __def(IDC_ARROW);
+    __def(IDC_IBEAM);
+    __def(IDC_WAIT);
+    __def(IDC_CROSS);
+    __def(IDC_UPARROW);
+    /* XXX: the handwriting cursor (which looks like a pen) has no constant defined */
+    __def(IDC_SIZENWSE);
+    __def(IDC_SIZENESW);
+    __def(IDC_SIZEWE);
+    __def(IDC_SIZENS);
+    __def(IDC_SIZEALL);
+    __def(IDC_NO);
+    __def(IDC_HAND);
+    __def(IDC_APPSTARTING);
+    __def(IDC_HELP);
+    __def(IDC_PIN);
+    __def(IDC_PERSON);
+#undef __def
+}
+
+static void define_consts_color(JanetTable *env)
+{
+#define __def(const_name) \
+    janet_def(env, #const_name, jw32_wrap_ulong_ptr(const_name), \
+              "Constant for system cursor ID.")
+
+#ifndef NOCOLOR
+
+    __def(COLOR_SCROLLBAR);
+    __def(COLOR_BACKGROUND);
+    __def(COLOR_ACTIVECAPTION);
+    __def(COLOR_INACTIVECAPTION);
+    __def(COLOR_MENU);
+    __def(COLOR_WINDOW);
+    __def(COLOR_WINDOWFRAME);
+    __def(COLOR_MENUTEXT);
+    __def(COLOR_WINDOWTEXT);
+    __def(COLOR_CAPTIONTEXT);
+    __def(COLOR_ACTIVEBORDER);
+    __def(COLOR_INACTIVEBORDER);
+    __def(COLOR_APPWORKSPACE);
+    __def(COLOR_HIGHLIGHT);
+    __def(COLOR_HIGHLIGHTTEXT);
+    __def(COLOR_BTNFACE);
+    __def(COLOR_BTNSHADOW);
+    __def(COLOR_GRAYTEXT);
+    __def(COLOR_BTNTEXT);
+    __def(COLOR_INACTIVECAPTIONTEXT);
+    __def(COLOR_BTNHIGHLIGHT);
+#if(WINVER >= 0x0400)
+    __def(COLOR_3DDKSHADOW);
+    __def(COLOR_3DLIGHT);
+    __def(COLOR_INFOTEXT);
+    __def(COLOR_INFOBK);
+#endif /* WINVER >= 0x0400 */
+#if(WINVER >= 0x0500)
+    __def(COLOR_HOTLIGHT);
+    __def(COLOR_GRADIENTACTIVECAPTION);
+    __def(COLOR_GRADIENTINACTIVECAPTION);
+#if(WINVER >= 0x0501)
+    __def(COLOR_MENUHILIGHT);
+    __def(COLOR_MENUBAR);
+#endif /* WINVER >= 0x0501 */
+#endif /* WINVER >= 0x0500 */
+#if(WINVER >= 0x0400)
+    __def(COLOR_DESKTOP);
+    __def(COLOR_3DFACE);
+    __def(COLOR_3DSHADOW);
+    __def(COLOR_3DHIGHLIGHT);
+    __def(COLOR_3DHILIGHT);
+    __def(COLOR_BTNHILIGHT);
+#endif /* WINVER >= 0x0400 */
+
+#endif /* !NOCOLOR */
+
+#undef __def
+}
+
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
   int ret, lock;
@@ -664,6 +762,16 @@ static Janet cfun_DefWindowProc(int32_t argc, Janet *argv)
     lRet = DefWindowProc(hWnd, uMsg, wParam, lParam);
 
     return jw32_wrap_lresult(lRet);
+}
+
+static Janet cfun_PostQuitMessage(int32_t argc, Janet *argv)
+{
+    int nExitCode;
+
+    janet_fixarity(argc, 1);
+    nExitCode = jw32_get_int(argv, 0);
+    PostQuitMessage(nExitCode);
+    return janet_wrap_nil();
 }
 
 static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
@@ -927,6 +1035,17 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
     return jw32_wrap_handle(hWnd);
 }
 
+static Janet cfun_DestroyWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+    hWnd = jw32_get_handle(argv, 0);
+    bRet = DestroyWindow(hWnd);
+    return jw32_wrap_bool(bRet);
+}
+
 static Janet cfun_ShowWindow(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -1178,6 +1297,45 @@ static Janet cfun_UnregisterClass(int32_t argc, Janet *argv)
 }
 
 
+/*******************************************************************
+ *
+ * RESOURCES
+ *
+ *******************************************************************/
+
+static Janet cfun_LoadIcon(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInstance;
+    LPCSTR lpIconName;
+
+    HICON hRet;
+
+    janet_fixarity(argc, 2);
+
+    hInstance = jw32_get_handle(argv, 0);
+    lpIconName = jw32_get_lpcstr(argv, 1);
+
+    hRet = LoadIcon(hInstance, lpIconName);
+    return jw32_wrap_handle(hRet);
+}
+
+static Janet cfun_LoadCursor(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInstance;
+    LPCSTR lpCursorName;
+
+    HCURSOR hRet;
+
+    janet_fixarity(argc, 2);
+
+    hInstance = jw32_get_handle(argv, 0);
+    lpCursorName = jw32_get_lpcstr(argv, 1);
+
+    hRet = LoadCursor(hInstance, lpCursorName);
+    return jw32_wrap_handle(hRet);
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -1212,6 +1370,12 @@ static const JanetReg cfuns[] = {
         "Default window procedure.",
     },
     {
+        "PostQuitMessage",
+        cfun_PostQuitMessage,
+        "(" MOD_NAME "/PostQuitMessage nExitCode)\n\n"
+        "Tells the current thread to quit.",
+    },
+    {
         "PostThreadMessage",
         cfun_PostThreadMessage,
         "(" MOD_NAME "/PostThreadMessage idThread uMsg wParam lParam)\n\n"
@@ -1236,6 +1400,12 @@ static const JanetReg cfuns[] = {
         cfun_CreateWindow,
         "(" MOD_NAME "/CreateWindow lpClassName lpWindowName dwStyle x y nWidth nHeight hWndParent hMenu hInstance lpParam)\n\n"
         "Creates a window.",
+    },
+    {
+        "DestroyWindow",
+        cfun_DestroyWindow,
+        "(" MOD_NAME "/DestroyWindow hWnd)\n\n"
+        "Destroys a window.",
     },
     {
         "ShowWindow",
@@ -1273,6 +1443,21 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/UnregisterClass lpClassName hInstance)\n\n"
         "Unregisters a window class",
     },
+
+    /************************** RESOURCES **************************/
+    {
+        "LoadIcon",
+        cfun_LoadIcon,
+        "(" MOD_NAME "/LoadIcon hInstance lpIconName)\n\n"
+        "Loads an icon.",
+    },
+    {
+        "LoadCursor",
+        cfun_LoadCursor,
+        "(" MOD_NAME "/LoadCursor hInstance lpCursorName)\n\n"
+        "Loads an cursor.",
+    },
+
     {NULL, NULL, NULL},
 };
 
@@ -1294,6 +1479,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_wm(env);
     define_consts_mb(env);
     define_consts_button_id(env);
+    define_consts_idi(env);
+    define_consts_idc(env);
+    define_consts_color(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
 
