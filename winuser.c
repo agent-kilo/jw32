@@ -21,7 +21,7 @@ static JanetArray *global_class_wnd_proc_registry;
 static void define_consts_wm(JanetTable *env)
 {
 #define __def(const_name)                                  \
-    janet_def(env, #const_name, jw32_wrap_int(const_name), \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name), \
               "Constant for window message type.")
     __def(WM_NULL);
     __def(WM_CREATE);
@@ -527,6 +527,111 @@ static void define_consts_color(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_ws(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for window styles.")
+
+#ifndef NOWINSTYLES
+    __def(WS_OVERLAPPED);
+    __def(WS_POPUP);
+    __def(WS_CHILD);
+    __def(WS_MINIMIZE);
+    __def(WS_VISIBLE);
+    __def(WS_DISABLED);
+    __def(WS_CLIPSIBLINGS);
+    __def(WS_CLIPCHILDREN);
+    __def(WS_MAXIMIZE);
+    __def(WS_CAPTION);     /* WS_BORDER | WS_DLGFRAME  */
+    __def(WS_BORDER);
+    __def(WS_DLGFRAME);
+    __def(WS_VSCROLL);
+    __def(WS_HSCROLL);
+    __def(WS_SYSMENU);
+    __def(WS_THICKFRAME);
+    __def(WS_GROUP);
+    __def(WS_TABSTOP);
+    __def(WS_MINIMIZEBOX);
+    __def(WS_MAXIMIZEBOX);
+    __def(WS_TILED);
+    __def(WS_ICONIC);
+    __def(WS_SIZEBOX);
+    __def(WS_TILEDWINDOW);
+    __def(WS_OVERLAPPEDWINDOW);
+    __def(WS_POPUPWINDOW);
+    __def(WS_CHILDWINDOW);
+#endif /* !NOWINSTYLES */
+
+#undef __def
+}
+
+static void define_consts_ws_ex(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for extended window styles.")
+
+#ifndef NOWINSTYLES
+
+    __def(WS_EX_DLGMODALFRAME);
+    __def(WS_EX_NOPARENTNOTIFY);
+    __def(WS_EX_TOPMOST);
+    __def(WS_EX_ACCEPTFILES);
+    __def(WS_EX_TRANSPARENT);
+#if(WINVER >= 0x0400)
+    __def(WS_EX_MDICHILD);
+    __def(WS_EX_TOOLWINDOW);
+    __def(WS_EX_WINDOWEDGE);
+    __def(WS_EX_CLIENTEDGE);
+    __def(WS_EX_CONTEXTHELP);
+#endif /* WINVER >= 0x0400 */
+#if(WINVER >= 0x0400)
+    __def(WS_EX_RIGHT);
+    __def(WS_EX_LEFT);
+    __def(WS_EX_RTLREADING);
+    __def(WS_EX_LTRREADING);
+    __def(WS_EX_LEFTSCROLLBAR);
+    __def(WS_EX_RIGHTSCROLLBAR);
+    __def(WS_EX_CONTROLPARENT);
+    __def(WS_EX_STATICEDGE);
+    __def(WS_EX_APPWINDOW);
+    __def(WS_EX_OVERLAPPEDWINDOW);
+    __def(WS_EX_PALETTEWINDOW);
+#endif /* WINVER >= 0x0400 */
+#if(_WIN32_WINNT >= 0x0500)
+    __def(WS_EX_LAYERED);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#if(WINVER >= 0x0500)
+    __def(WS_EX_NOINHERITLAYOUT);
+#endif /* WINVER >= 0x0500 */
+#if(WINVER >= 0x0602)
+    __def(WS_EX_NOREDIRECTIONBITMAP);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0500)
+    __def(WS_EX_LAYOUTRTL);
+#endif /* WINVER >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(WS_EX_COMPOSITED);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0500)
+    __def(WS_EX_NOACTIVATE);
+#endif /* _WIN32_WINNT >= 0x0500 */
+
+#endif /* !NOWINSTYLES */
+
+#undef __def
+}
+
+static void define_consts_cw(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),      \
+              "Constant for window position.")
+    __def(CW_USEDEFAULT);
+#undef __def
+}
+
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
   int ret, lock;
@@ -588,12 +693,16 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
     } else {
         /* looks like an ATOM */
         ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
+        printf("atmClass = %hu\n", atmClass);
 #define __atom_name_buf_size 256 /* XXX: should be enough? */
         char buffer[__atom_name_buf_size];
+        /* TODO: this doesn't work, the user atom table cannot be searched like this */
         UINT uRet = GetAtomName(atmClass, buffer, __atom_name_buf_size);
         if (uRet) {
+            printf("buffer = %s\n", buffer);
             return jw32_cstr_to_keyword(buffer);
         } else {
+            printf("failed to get atom name: 0x%lx\n", GetLastError());
             return janet_wrap_nil();
         }
 #undef __atom_name_buf_size
@@ -857,7 +966,7 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
     }
 }
 
-LRESULT jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     printf("\n---- jw32_wnd_proc ----\n");
     printf("hWnd = 0x%" PRIx64 "\n", (uint64_t)hWnd);
@@ -967,8 +1076,9 @@ static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
     return jw32_wrap_handle(GetDesktopWindow());
 }
 
-static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
+static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
 {
+    DWORD dwExStyle;
     LPCSTR lpClassName, lpWindowName;
     DWORD dwStyle;
     int x, y, nWidth, nHeight;
@@ -981,18 +1091,19 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
 
     Janet class_name;
 
-    janet_fixarity(argc, 11);
+    janet_fixarity(argc, 12);
 
-    lpClassName = jw32_get_lpcstr(argv, 0);
-    lpWindowName = jw32_get_lpcstr(argv, 1);
-    dwStyle = jw32_get_dword(argv, 2);
-    x = jw32_get_int(argv, 3);
-    y = jw32_get_int(argv, 4);
-    nWidth = jw32_get_int(argv, 5);
-    nHeight = jw32_get_int(argv, 6);
-    hWndParent = jw32_get_handle(argv, 7);
-    hMenu = jw32_get_handle(argv, 8);
-    hInstance = jw32_get_handle(argv, 9);
+    dwExStyle = jw32_get_dword(argv, 0);
+    lpClassName = jw32_get_lpcstr(argv, 1);
+    lpWindowName = jw32_get_lpcstr(argv, 2);
+    dwStyle = jw32_get_dword(argv, 3);
+    x = jw32_get_int(argv, 4);
+    y = jw32_get_int(argv, 5);
+    nWidth = jw32_get_int(argv, 6);
+    nHeight = jw32_get_int(argv, 7);
+    hWndParent = jw32_get_handle(argv, 8);
+    hMenu = jw32_get_handle(argv, 9);
+    hInstance = jw32_get_handle(argv, 10);
 
     class_name = normalize_wnd_class_name(lpClassName);
     if (!janet_checktype(class_name, JANET_NIL)) {
@@ -1018,19 +1129,21 @@ static Janet cfun_CreateWindow(int32_t argc, Janet *argv)
             /* it's a class that calls jw32_wnd_proc, prepare extra goodies for it */
             Janet param_tuple[2];
             janet_printf("wnd_proc (from registry) = %v\n", wnd_proc);
-            lpParam = jw32_get_lpvoid(argv, 10);
+            lpParam = jw32_get_lpvoid(argv, 11);
             param_tuple[0] = wnd_proc;
             param_tuple[1] = jw32_wrap_lpvoid(lpParam);
             lpParam = (LPVOID)janet_tuple_n(param_tuple, 2);
         } else {
-            lpParam = jw32_get_lpvoid(argv, 10);
+            lpParam = jw32_get_lpvoid(argv, 11);
         }
     }
-    
-    hWnd = CreateWindow(lpClassName, lpWindowName, dwStyle,
-                        x, y, nWidth, nHeight,
-                        hWndParent, hMenu, hInstance,
-                        lpParam);
+
+    hWnd = CreateWindowEx(dwExStyle,
+                          lpClassName, lpWindowName,
+                          dwStyle,
+                          x, y, nWidth, nHeight,
+                          hWndParent, hMenu, hInstance,
+                          lpParam);
 
     return jw32_wrap_handle(hWnd);
 }
@@ -1396,9 +1509,9 @@ static const JanetReg cfuns[] = {
         "Win32 function wrapper.",
     },
     {
-        "CreateWindow",
-        cfun_CreateWindow,
-        "(" MOD_NAME "/CreateWindow lpClassName lpWindowName dwStyle x y nWidth nHeight hWndParent hMenu hInstance lpParam)\n\n"
+        "CreateWindowEx",
+        cfun_CreateWindowEx,
+        "(" MOD_NAME "/CreateWindowEx dwExStyle lpClassName lpWindowName dwStyle x y nWidth nHeight hWndParent hMenu hInstance lpParam)\n\n"
         "Creates a window.",
     },
     {
@@ -1482,6 +1595,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_idi(env);
     define_consts_idc(env);
     define_consts_color(env);
+    define_consts_ws(env);
+    define_consts_ws_ex(env);
+    define_consts_cw(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
 

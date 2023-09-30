@@ -23,3 +23,8 @@
  :source ["errhandlingapi.c"]
  :headers ["errhandlingapi.h" "types.h"]
  :ldflags ["user32.lib"])
+
+(declare-native
+ :name "jw32/util"
+ :source ["util.c"]
+ :ldflags [])
