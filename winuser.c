@@ -529,6 +529,33 @@ static void define_consts_color(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_cs(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),             \
+              "Constant for class styles.")
+
+#ifndef NOWINSTYLES
+    __def(CS_VREDRAW);
+    __def(CS_HREDRAW);
+    __def(CS_DBLCLKS);
+    __def(CS_OWNDC);
+    __def(CS_CLASSDC);
+    __def(CS_PARENTDC);
+    __def(CS_NOCLOSE);
+    __def(CS_SAVEBITS);
+    __def(CS_BYTEALIGNCLIENT);
+    __def(CS_BYTEALIGNWINDOW);
+    __def(CS_GLOBALCLASS);
+    __def(CS_IME);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(CS_DROPSHADOW);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#endif /* !NOWINSTYLES */
+
+#undef __def
+}
+
 static void define_consts_ws(JanetTable *env)
 {
 #define __def(const_name)                                       \
@@ -723,7 +750,7 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
         jw32_dbg_val(atmClass, "%hu");
         jw32_dbg_jval(class_name);
 
-        return class_name;
+        return class_name; /* may be nil */
     }
 }
 
@@ -1622,6 +1649,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_idi(env);
     define_consts_idc(env);
     define_consts_color(env);
+    define_consts_cs(env);
     define_consts_ws(env);
     define_consts_ws_ex(env);
     define_consts_cw(env);
