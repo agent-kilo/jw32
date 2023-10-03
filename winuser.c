@@ -1081,9 +1081,10 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                 jw32_dbg_msg("before return");
                 return jw32_unwrap_lresult(ret);
             } else {
-                /* XXX: error handling? */
                 jw32_dbg_msg("before return: ERROR");
-                return 0;
+                /* XXX: -1 means "abort" in WM_CREATE, but other messages may not
+                   understand this value */
+                return -1;
             }
         } else {
             /* it's before WM_NCCREATE, carry on with the window creation */
