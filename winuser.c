@@ -1017,6 +1017,8 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
        may be other classes with the same name */
 }
 
+#define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
+
 LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     jw32_dbg_msg("===========================");
@@ -1037,34 +1039,33 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             jw32_wrap_lparam(lParam),
         };
         Janet ret;
+        BOOL bSet;
 
-        JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
+        //JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
 
-        /* there will be race conditions if the windows of a same class run
-           on multiple threads, but in that case the class memory slot would
-           just be set more than once, to the same value. a minor issue. */
+        Janet wnd_proc = param_tuple[0];
+        wnd_proc_fn = janet_unwrap_function(wnd_proc);
 
-        if (!wnd_proc_fn) {
-            Janet wnd_proc = param_tuple[0];
-            wnd_proc_fn = janet_unwrap_function(wnd_proc);
+        jw32_dbg_jval(wnd_proc);
 
-            jw32_dbg_jval(wnd_proc);
-
-            /* TODO: some special handling in SetClassLongPtr() binding? */
-            SetClassLongPtr(hWnd, 0, (LONG_PTR)wnd_proc_fn);
+        bSet = SetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME, (HANDLE)wnd_proc_fn);
+        if (!bSet) {
+            jw32_dbg_msg("SetProp() failed!");
+            jw32_dbg_val(GetLastError(), "0x%x");
+            return FALSE; /* abort window creation */
         }
 
         cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
         if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
             return jw32_unwrap_lresult(ret);
         } else {
-            /* XXX: error handling? */
-            return FALSE;
+            return FALSE; /* abort window creation */
         }
     }
 
     default: {
-        JanetFunction *wnd_proc_fn = (JanetFunction *)GetClassLongPtr(hWnd, 0);
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
         jw32_dbg_val((uint64_t)wnd_proc_fn, "0x%" PRIx64);
         if (wnd_proc_fn) {
             Janet argv[4] = {
@@ -1082,11 +1083,10 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             } else {
                 /* XXX: error handling? */
                 jw32_dbg_msg("before return: ERROR");
-                return FALSE;
+                return 0;
             }
-
         } else {
-            /* it's before WM_NCCREATE, carry on the window creation */
+            /* it's before WM_NCCREATE, carry on with the window creation */
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
     }
@@ -1381,9 +1381,6 @@ static Janet cfun_WNDCLASSEX(int32_t argc, Janet *argv)
             janet_panicf("unknown key %v", argv[k]);
         }
     }
-
-    /* extra space for our janet wndproc */
-    jwc->wc.cbClsExtra += sizeof(JanetFunction *); 
 
     if (!size_set) {
         jwc->wc.cbSize = sizeof(WNDCLASSEX);
