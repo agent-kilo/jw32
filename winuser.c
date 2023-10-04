@@ -20,6 +20,11 @@ static JanetArray *global_class_wnd_proc_registry;
 static JanetTable *atom_class_name_map;
 
 
+/* pre-defined window properties we used */
+#define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
+#define JW32_MAX_PROP_LEN (sizeof(JW32_WND_PROC_FN_PROP_NAME)) /* includes the trailing null byte */
+
+
 static void define_consts_wm(JanetTable *env)
 {
 #define __def(const_name)                                  \
@@ -738,13 +743,12 @@ static inline int search_global_class_wnd_proc(const uint8_t *class_name)
 
 static Janet normalize_wnd_class_name(LPCSTR lpClassName)
 {
-    uint64_t maybe_atom = (uint64_t)lpClassName;
-    if (maybe_atom & ~(uint64_t)0xffff) {
-        /* higher bits are not zero, we have a string pointer */
+    if (!check_atom(lpClassName)) {
+        /* we have a string pointer */
         return jw32_cstr_to_keyword(lpClassName);
     } else {
         /* looks like an ATOM */
-        ATOM atmClass = (ATOM)(maybe_atom & 0xffff);
+        ATOM atmClass = lpcstr_to_atom(lpClassName);
         Janet class_name = janet_table_get(atom_class_name_map, jw32_wrap_atom(atmClass));
 
         jw32_dbg_val(atmClass, "%hu");
@@ -976,7 +980,6 @@ static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
 
 static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 {
-    uint64_t maybe_atom = (uint64_t)lpClassName;
     Janet local_key, global_key;
     Janet local_key_tuple[2];
     Janet class_name = normalize_wnd_class_name(lpClassName);
@@ -1016,8 +1019,6 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
     /* here we keep the entry in atom_class_name_map, since there
        may be other classes with the same name */
 }
-
-#define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
 
 LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1458,6 +1459,83 @@ static Janet cfun_UnregisterClass(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_GetProp(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    LPCSTR lpString;
+
+    HANDLE hData;
+
+    char buf[JW32_MAX_PROP_LEN];
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    lpString = jw32_get_lpcstr(argv, 1); /* may be an atom */
+
+    hData = GetProp(hWnd, lpString);
+
+    if (hData) {
+        if (check_atom(lpString)) {
+            ATOM atom = lpcstr_to_atom(lpString);
+            if (!GlobalGetAtomName(atom, buf, JW32_MAX_PROP_LEN)) {
+                janet_panicf("inconsistent stat: atom 0x%hx not found", atom);
+            }
+            lpString = buf;
+        }
+
+        if (!strcmp(lpString, JW32_WND_PROC_FN_PROP_NAME)) {
+            JanetFunction *wnd_proc_fn = (JanetFunction *)hData;
+            return janet_wrap_function(wnd_proc_fn);
+        } else {
+            return jw32_wrap_handle(hData);
+        }
+    } else {
+        return jw32_wrap_handle(NULL);
+    }
+}
+
+static Janet cfun_SetProp(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    LPCSTR lpMaybeAtom, lpString;
+    HANDLE hData;
+
+    BOOL bRet;
+
+    char buf[JW32_MAX_PROP_LEN];
+
+    janet_fixarity(argc, 3);
+
+    hWnd = jw32_get_handle(argv, 0);
+    lpMaybeAtom = jw32_get_lpcstr(argv, 1);
+
+    if (check_atom(lpMaybeAtom)) {
+        ATOM atom = lpcstr_to_atom(lpMaybeAtom);
+        if (!GlobalGetAtomName(atom, buf, JW32_MAX_PROP_LEN)) {
+            lpString = NULL; /* can't find the atom string, don't bother checking it */
+        } else {
+            lpString = buf;
+        }
+    } else {
+        lpString = lpMaybeAtom;
+    }
+
+    if (lpString) {
+        if (!strcmp(lpString, JW32_WND_PROC_FN_PROP_NAME)) {
+            JanetFunction *wnd_proc_fn = janet_getfunction(argv, 2);
+            hData = (HANDLE)wnd_proc_fn;
+        } else {
+            hData = jw32_get_handle(argv, 2);
+        }
+    } else {
+        hData = jw32_get_handle(argv, 2);
+    }
+
+    bRet = SetProp(hWnd, lpMaybeAtom, hData);
+    return jw32_wrap_bool(bRet);
+}
+
 
 /*******************************************************************
  *
@@ -1604,6 +1682,18 @@ static const JanetReg cfuns[] = {
         cfun_UnregisterClass,
         "(" MOD_NAME "/UnregisterClass lpClassName hInstance)\n\n"
         "Unregisters a window class",
+    },
+    {
+        "GetProp",
+        cfun_GetProp,
+        "(" MOD_NAME "/GetProp hWnd lpString)\n\n"
+        "Gets a window property",
+    },
+    {
+        "SetProp",
+        cfun_SetProp,
+        "(" MOD_NAME "/SetProp hWnd lpString hData)\n\n"
+        "Sets a window property",
     },
 
     /************************** RESOURCES **************************/

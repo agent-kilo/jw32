@@ -94,6 +94,11 @@ static inline WORD jw32_get_word(const Janet *argv, int32_t n)
 #define jw32_unwrap_atom(x) ((ATOM)jw32_unwrap_word(x))
 #define jw32_get_atom(argv, n) ((ATOM)jw32_get_word(argv, n))
 
+/* x should be an LPCSTR, which may store an ATOM when its higher
+   bits are set to zero */
+#define check_atom(x) (!((uint64_t)(x) & ~(uint64_t)0xffff))
+#define lpcstr_to_atom(x) ((ATOM)((uint64_t)(x) & 0xffff))
+
 
 /* XXX: below are some number types, but janet only has
    int32_t <-> double float conversions.
