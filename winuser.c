@@ -1043,7 +1043,7 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         BOOL bSet;
 
         Janet wnd_proc = param_tuple[0];
-        wnd_proc_fn = janet_unwrap_function(wnd_proc);
+        JanetFunction *wnd_proc_fn = janet_unwrap_function(wnd_proc);
 
         jw32_dbg_jval(wnd_proc);
 
