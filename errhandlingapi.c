@@ -35,6 +35,16 @@ static Janet cfun_SetErrorMode(int32_t argc, Janet *argv)
     return jw32_wrap_uint(uRet);
 }
 
+static Janet cfun_GetErrorMode(int32_t argc, Janet *argv)
+{
+    UINT uRet;
+
+    janet_fixarity(argc, 0);
+
+    uRet = GetErrorMode();
+    return jw32_wrap_uint(uRet);
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -42,6 +52,18 @@ static const JanetReg cfuns[] = {
         cfun_GetLastError,
         "(" MOD_NAME "/GetLastError)\n\n"
         "Retrieves the calling thread's last-error code value.",
+    },
+    {
+        "SetErrorMode",
+        cfun_SetErrorMode,
+        "(" MOD_NAME "/SetErrorMode uMode)\n\n"
+        "Sets the process error mode.",
+    },
+    {
+        "GetErrorMode",
+        cfun_GetErrorMode,
+        "(" MOD_NAME "/GetErrorMode)\n\n"
+        "Gets the process error mode.",
     },
     {NULL, NULL, NULL},
 };
