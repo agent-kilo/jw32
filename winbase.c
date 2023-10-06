@@ -1,0 +1,201 @@
+#include <windows.h>
+#include <janet.h>
+#include "debug.h"
+
+#define MOD_NAME "winbase"
+
+
+static Janet cfun_AddAtom(int32_t argc, Janet *argv)
+{
+    LPCSTR lpString;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    lpString = jw32_get_lpcstr(argv, 0);
+    aRet = AddAtom(lpString);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_DeleteAtom(int32_t argc, Janet *argv)
+{
+    ATOM nAtom;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    nAtom = jw32_get_atom(argv, 0);
+    aRet = DeleteAtom(nAtom);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_FindAtom(int32_t argc, Janet *argv)
+{
+    LPCSTR lpString;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    lpString = jw32_get_lpcstr(argv, 0);
+    aRet = FindAtom(lpString);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_GetAtomName(int32_t argc, Janet *argv)
+{
+    ATOM nAtom;
+    JanetBuffer *name_buf;
+
+    UINT uRet;
+
+    int32_t buf_growth = 1;
+
+    janet_fixarity(argc, 2);
+
+    nAtom = jw32_get_atom(argv, 0);
+    name_buf = janet_getbuffer(argv, 1);
+
+    janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+    uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
+    while (uRet >= name_buf->capacity - 1) {
+        buf_growth *= 2;
+        janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
+    }
+
+    if (uRet > 0) {
+        janet_buffer_setcount(name_buf, uRet + 1); /* plus one null byte */
+    }
+
+    return jw32_wrap_uint(uRet);
+}
+
+static Janet cfun_GlobalAddAtom(int32_t argc, Janet *argv)
+{
+    LPCSTR lpString;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    lpString = jw32_get_lpcstr(argv, 0);
+    aRet = GlobalAddAtom(lpString);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_GlobalDeleteAtom(int32_t argc, Janet *argv)
+{
+    ATOM nAtom;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    nAtom = jw32_get_atom(argv, 0);
+    aRet = GlobalDeleteAtom(nAtom);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_GlobalFindAtom(int32_t argc, Janet *argv)
+{
+    LPCSTR lpString;
+
+    ATOM aRet;
+
+    janet_fixarity(argc, 1);
+
+    lpString = jw32_get_lpcstr(argv, 0);
+    aRet = GlobalFindAtom(lpString);
+    return jw32_wrap_atom(aRet);
+}
+
+static Janet cfun_GlobalGetAtomName(int32_t argc, Janet *argv)
+{
+    ATOM nAtom;
+    JanetBuffer *name_buf;
+
+    UINT uRet;
+
+    int32_t buf_growth = 1;
+
+    janet_fixarity(argc, 2);
+
+    nAtom = jw32_get_atom(argv, 0);
+    name_buf = janet_getbuffer(argv, 1);
+
+    janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+    uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
+    while (uRet >= name_buf->capacity - 1) {
+        buf_growth *= 2;
+        janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
+    }
+
+    if (uRet > 0) {
+        janet_buffer_setcount(name_buf, uRet + 1); /* plus one null byte */
+    }
+
+    return jw32_wrap_uint(uRet);
+}
+
+
+static const JanetReg cfuns[] = {
+    {
+        "AddAtom",
+        cfun_AddAtom,
+        "(" MOD_NAME "/AddAtom lpString)\n\n"
+        "Adds an atom.",
+    },
+    {
+        "DeleteAtom",
+        cfun_DeleteAtom,
+        "(" MOD_NAME "/DeleteAtom nAtom)\n\n"
+        "Deletes an atom.",
+    },
+    {
+        "FindAtom",
+        cfun_FindAtom,
+        "(" MOD_NAME "/FindAtom lpString)\n\n"
+        "Finds an atom.",
+    },
+    {
+        "GetAtomName",
+        cfun_GetAtomName,
+        "(" MOD_NAME "/GetAtomName nAtom lpBuffer)\n\n"
+        "lpBuffer should be a janet buffer, who's content will be overridden upon a successful call",
+    },
+    {
+        "GlobalAddAtom",
+        cfun_GlobalAddAtom,
+        "(" MOD_NAME "/GlobalAddAtom lpString)\n\n"
+        "Adds a global atom.",
+    },
+    {
+        "GlobalDeleteAtom",
+        cfun_GlobalDeleteAtom,
+        "(" MOD_NAME "/GlobalDeleteAtom nAtom)\n\n"
+        "Deletes a global atom.",
+    },
+    {
+        "GlobalFindAtom",
+        cfun_GlobalFindAtom,
+        "(" MOD_NAME "/GlobalFindAtom lpString)\n\n"
+        "Finds a global atom.",
+    },
+    {
+        "GlobalGetAtomName",
+        cfun_GlobalGetAtomName,
+        "(" MOD_NAME "/GlobalGetAtomName nAtom lpBuffer)\n\n"
+        "lpBuffer should be a janet buffer, who's content will be overridden upon a successful call",
+    },
+    {NULL, NULL, NULL},
+};
+
+
+JANET_MODULE_ENTRY(JanetTable *env)
+{
+    janet_cfuns(env, MOD_NAME, cfuns);
+}
