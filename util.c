@@ -1,6 +1,4 @@
-#include <windows.h>
-#include <janet.h>
-#include "types.h"
+#include "jw32.h"
 
 #define MOD_NAME "util"
 

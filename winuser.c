@@ -1,6 +1,4 @@
-#include <stdio.h>
-#include <inttypes.h>
-#include "winuser.h"
+#include "jw32.h"
 #include "debug.h"
 
 #define MOD_NAME "winuser"

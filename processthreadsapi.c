@@ -1,4 +1,4 @@
-#include "processthreadsapi.h"
+#include "jw32.h"
 
 #define MOD_NAME "processthreadsapi"
 

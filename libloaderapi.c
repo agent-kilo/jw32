@@ -1,4 +1,4 @@
-#include "libloaderapi.h"
+#include "jw32.h"
 
 #define MOD_NAME "libloaderapi"
 
