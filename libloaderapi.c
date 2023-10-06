@@ -43,18 +43,24 @@ static Janet cfun_GetModuleFileName(int32_t argc, Janet *argv)
 
     DWORD dwRet;
 
-    int32_t buf_growth = 1;
+    int32_t cap = JW32_BUFFER_INIT_CAPACITY;
 
     janet_fixarity(argc, 2);
 
     hModule = jw32_get_handle(argv, 0);
     file_name_buf = janet_getbuffer(argv, 1);
 
+    if (file_name_buf->capacity > JW32_BUFFER_INIT_CAPACITY) {
+        cap = lower_power_of_two(file_name_buf->capacity);
+    }
+
+    jw32_dbg_val(cap, "%d");
+
     do {
-        janet_buffer_ensure(file_name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        janet_buffer_ensure(file_name_buf, cap, 1);
         jw32_dbg_val(file_name_buf->capacity, "%d");
         dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
-        buf_growth *= 2;
+        cap *= 2;
     } while (dwRet >= file_name_buf->capacity);
 
     if (dwRet > 0) {

@@ -50,18 +50,24 @@ static Janet cfun_GetAtomName(int32_t argc, Janet *argv)
 
     UINT uRet;
 
-    int32_t buf_growth = 1;
+    int32_t cap = JW32_BUFFER_INIT_CAPACITY;
 
     janet_fixarity(argc, 2);
 
     nAtom = jw32_get_atom(argv, 0);
     name_buf = janet_getbuffer(argv, 1);
 
+    if (name_buf->capacity > JW32_BUFFER_INIT_CAPACITY) {
+        cap = lower_power_of_two(name_buf->capacity);
+    }
+
+    jw32_dbg_val(cap, "%d");
+
     do {
-        janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        janet_buffer_ensure(name_buf, cap, 1);
         jw32_dbg_val(name_buf->capacity, "%d");
         uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
-        buf_growth *= 2;
+        cap *= 2;
     } while (uRet >= name_buf->capacity - 1);
 
     if (uRet > 0) {
@@ -117,23 +123,28 @@ static Janet cfun_GlobalGetAtomName(int32_t argc, Janet *argv)
 
     UINT uRet;
 
-    int32_t buf_growth = 1;
+    int32_t cap = JW32_BUFFER_INIT_CAPACITY;
 
     janet_fixarity(argc, 2);
 
     nAtom = jw32_get_atom(argv, 0);
     name_buf = janet_getbuffer(argv, 1);
 
-    janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
-    uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
-    while (uRet >= name_buf->capacity - 1) {
-        buf_growth *= 2;
-        janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
-        uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
+    if (name_buf->capacity > JW32_BUFFER_INIT_CAPACITY) {
+        cap = lower_power_of_two(name_buf->capacity);
     }
 
+    jw32_dbg_val(cap, "%d");
+
+    do {
+        janet_buffer_ensure(name_buf, cap, 1);
+        jw32_dbg_val(name_buf->capacity, "%d");
+        uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
+        cap *= 2;
+    } while (uRet >= name_buf->capacity - 1);
+
     if (uRet > 0) {
-        janet_buffer_setcount(name_buf, uRet + 1); /* plus one null byte */
+        name_buf->count = uRet;
     }
 
     return jw32_wrap_uint(uRet);
