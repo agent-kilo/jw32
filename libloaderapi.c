@@ -35,6 +35,36 @@ static Janet cfun_GetModuleHandleEx(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_GetModuleFileName(int32_t argc, Janet *argv)
+{
+    HMODULE hModule;
+    JanetBuffer *file_name_buf;
+
+    DWORD dwRet;
+
+    int32_t buf_growth = 1;
+
+    janet_fixarity(argc, 2);
+
+    hModule = jw32_get_handle(argv, 0);
+    file_name_buf = janet_getbuffer(argv, 1);
+
+    janet_buffer_ensure(file_name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+    dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
+    while (dwRet >= file_name_buf->capacity) {
+        /* upper bound is set in janet_buffer_ensure(), 2 GBytes maximum */
+        buf_growth *= 2;
+        janet_buffer_ensure(file_name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
+    }
+
+    if (dwRet > 0) {
+        janet_buffer_setcount(file_name_buf, dwRet + 1); /* plus one null byte */
+    }
+
+    return jw32_wrap_dword(dwRet);
+}
+
 static Janet cfun_FreeLibrary(int32_t argc, Janet *argv)
 {
     HMODULE hLibModule;
@@ -61,6 +91,12 @@ static const JanetReg cfuns[] = {
         cfun_GetModuleHandleEx,
         "(" MOD_NAME "/GetModuleHandleEx dwFlags lpModuleName)\n\n"
         "Returns the module handle specified by lpModuleName.",
+    },
+    {
+        "GetModuleFileName",
+        cfun_GetModuleFileName,
+        "(" MOD_NAME "/GetModuleFileName hModule lpFilename)\n\n"
+        "lpFilename should be a buffer, who's content will be overridden upon a successful call",
     },
     {
         "FreeLibrary",
