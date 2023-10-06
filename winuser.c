@@ -1763,6 +1763,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_sw(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
+    janet_register_abstract_type(&jw32_at_WNDCLASSEX);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 
