@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <janet.h>
+#include "types.h"
 #include "debug.h"
 
 #define MOD_NAME "winbase"

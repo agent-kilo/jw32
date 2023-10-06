@@ -35,6 +35,13 @@
  :ldflags ["user32.lib"])
 
 (declare-native
+ :name "jw32/winbase"
+ :source ["winbase.c"]
+ :headers [;common-headers]
+ :cflags [;debug-flags]
+ :ldflags ["kernel32.lib"])
+
+(declare-native
  :name "jw32/util"
  :source ["util.c"]
  :headers ["debug.h"]
