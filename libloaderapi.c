@@ -50,16 +50,12 @@ static Janet cfun_GetModuleFileName(int32_t argc, Janet *argv)
     hModule = jw32_get_handle(argv, 0);
     file_name_buf = janet_getbuffer(argv, 1);
 
-    janet_buffer_ensure(file_name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
-    jw32_dbg_val(file_name_buf->capacity, "%d");
-    dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
-    while (dwRet >= file_name_buf->capacity) {
-        /* upper bound is set in janet_buffer_ensure(), 2 GBytes maximum */
-        buf_growth *= 2;
+    do {
         janet_buffer_ensure(file_name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
         jw32_dbg_val(file_name_buf->capacity, "%d");
         dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
-    }
+        buf_growth *= 2;
+    } while (dwRet >= file_name_buf->capacity);
 
     if (dwRet > 0) {
         file_name_buf->count = dwRet;

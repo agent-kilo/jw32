@@ -1,4 +1,5 @@
 #include "jw32.h"
+#include "debug.h"
 
 #define MOD_NAME "winbase"
 
@@ -56,13 +57,12 @@ static Janet cfun_GetAtomName(int32_t argc, Janet *argv)
     nAtom = jw32_get_atom(argv, 0);
     name_buf = janet_getbuffer(argv, 1);
 
-    janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
-    uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
-    while (uRet >= name_buf->capacity - 1) {
-        buf_growth *= 2;
+    do {
         janet_buffer_ensure(name_buf, JW32_BUFFER_INIT_CAPACITY, buf_growth);
+        jw32_dbg_val(name_buf->capacity, "%d");
         uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
-    }
+        buf_growth *= 2;
+    } while (uRet >= name_buf->capacity - 1);
 
     if (uRet > 0) {
         name_buf->count = uRet;
