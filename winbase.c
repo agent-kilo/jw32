@@ -65,7 +65,7 @@ static Janet cfun_GetAtomName(int32_t argc, Janet *argv)
     }
 
     if (uRet > 0) {
-        janet_buffer_setcount(name_buf, uRet + 1); /* plus one null byte */
+        name_buf->count = uRet;
     }
 
     return jw32_wrap_uint(uRet);

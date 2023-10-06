@@ -22,9 +22,6 @@ static JanetTable *atom_class_name_map;
 #define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
 #define JW32_MAX_PROP_LEN (sizeof(JW32_WND_PROC_FN_PROP_NAME)) /* includes the trailing null byte */
 
-/* minimum buffer size for ad-hoc buffers, to store names, paths and such */
-#define JW32_BUFFER_INIT_CAPACITY 128
-
 
 static void define_consts_wm(JanetTable *env)
 {
