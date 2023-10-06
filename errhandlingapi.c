@@ -16,6 +16,17 @@ static void define_consts_sem(JanetTable *env)
 }
 
 
+static Janet cfun_SetLastError(int32_t argc, Janet *argv)
+{
+    DWORD dwErrCode;
+
+    janet_fixarity(argc, 1);
+
+    dwErrCode = jw32_get_dword(argv, 0);
+    SetLastError(dwErrCode);
+    return janet_wrap_nil();
+}
+
 static Janet cfun_GetLastError(int32_t argc, Janet *argv)
 {
     janet_fixarity(argc, 0);
@@ -47,6 +58,12 @@ static Janet cfun_GetErrorMode(int32_t argc, Janet *argv)
 
 
 static const JanetReg cfuns[] = {
+    {
+        "SetLastError",
+        cfun_SetLastError,
+        "(" MOD_NAME "/SetLastError dwErrCode)\n\n"
+        "Sets the calling thread's last-error code value.",
+    },
     {
         "GetLastError",
         cfun_GetLastError,
