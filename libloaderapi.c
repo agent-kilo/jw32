@@ -4,6 +4,28 @@
 #define MOD_NAME "libloaderapi"
 
 
+static void define_consts_load_library_ex(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name), \
+              "Constant flag for LoadLibraryEx.")
+    __def(DONT_RESOLVE_DLL_REFERENCES);
+    __def(LOAD_IGNORE_CODE_AUTHZ_LEVEL);
+    __def(LOAD_LIBRARY_AS_DATAFILE);
+    __def(LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE);
+    __def(LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    __def(LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    __def(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    __def(LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    __def(LOAD_LIBRARY_SEARCH_SYSTEM32);
+    __def(LOAD_LIBRARY_SEARCH_USER_DIRS);
+    __def(LOAD_WITH_ALTERED_SEARCH_PATH);
+    __def(LOAD_LIBRARY_REQUIRE_SIGNED_TARGET);
+    __def(LOAD_LIBRARY_SAFE_CURRENT_DIRS);
+#undef __def
+}
+
+
 static Janet cfun_GetModuleHandle(int32_t argc, Janet *argv)
 {
     LPCSTR lpModuleName;
@@ -158,5 +180,7 @@ static const JanetReg cfuns[] = {
 
 JANET_MODULE_ENTRY(JanetTable *env)
 {
+    define_consts_load_library_ex(env);
+
     janet_cfuns(env, MOD_NAME, cfuns);
 }
