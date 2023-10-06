@@ -70,6 +70,37 @@ static Janet cfun_GetModuleFileName(int32_t argc, Janet *argv)
     return jw32_wrap_dword(dwRet);
 }
 
+static Janet cfun_LoadLibrary(int32_t argc, Janet *argv)
+{
+    LPCSTR lpLibFileName;
+
+    HMODULE hRet;
+
+    janet_fixarity(argc, 1);
+
+    lpLibFileName = jw32_get_lpcstr(argv, 0);
+    hRet = LoadLibrary(lpLibFileName);
+    return jw32_wrap_handle(hRet);
+}
+
+static Janet cfun_LoadLibraryEx(int32_t argc, Janet *argv)
+{
+    LPCSTR lpLibFileName;
+    HANDLE hFile;
+    DWORD dwFlags;
+
+    HMODULE hRet;
+
+    janet_fixarity(argc, 3);
+
+    lpLibFileName = jw32_get_lpcstr(argv, 0);
+    hFile = jw32_get_handle(argv, 1);
+    dwFlags = jw32_get_dword(argv, 2);
+
+    hRet = LoadLibraryEx(lpLibFileName, hFile, dwFlags);
+    return jw32_wrap_handle(hRet);
+}
+
 static Janet cfun_FreeLibrary(int32_t argc, Janet *argv)
 {
     HMODULE hLibModule;
@@ -102,6 +133,18 @@ static const JanetReg cfuns[] = {
         cfun_GetModuleFileName,
         "(" MOD_NAME "/GetModuleFileName hModule lpFilename)\n\n"
         "lpFilename should be a buffer, who's content will be overridden upon a successful call",
+    },
+    {
+        "LoadLibrary",
+        cfun_LoadLibrary,
+        "(" MOD_NAME "/LoadLibrary lpLibFileName)\n\n"
+        "Loads a dynamic-link library module.",
+    },
+    {
+        "LoadLibraryEx",
+        cfun_LoadLibraryEx,
+        "(" MOD_NAME "/LoadLibraryEx lpLibFileName hFile dwFlags)\n\n"
+        "Loads a dynamic-link library module.",
     },
     {
         "FreeLibrary",

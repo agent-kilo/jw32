@@ -150,6 +150,20 @@ static Janet cfun_GlobalGetAtomName(int32_t argc, Janet *argv)
     return jw32_wrap_uint(uRet);
 }
 
+static Janet cfun_SetDllDirectory(int32_t argc, Janet *argv)
+{
+    LPCSTR lpPathName;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    lpPathName = jw32_get_lpcstr(argv, 0);
+
+    bRet = SetDllDirectory(lpPathName);
+    return jw32_wrap_bool(bRet);
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -199,6 +213,12 @@ static const JanetReg cfuns[] = {
         cfun_GlobalGetAtomName,
         "(" MOD_NAME "/GlobalGetAtomName nAtom lpBuffer)\n\n"
         "lpBuffer should be a janet buffer, who's content will be overridden upon a successful call",
+    },
+    {
+        "SetDllDirectory",
+        cfun_SetDllDirectory,
+        "(" MOD_NAME "/SetDllDirectory lpPathName)\n\n"
+        "Adds a directory to the DLL search path.",
     },
     {NULL, NULL, NULL},
 };

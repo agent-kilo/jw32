@@ -18,21 +18,21 @@
  :source ["processthreadsapi.c"]
  :headers [;common-headers]
  :cflags [;debug-flags]
- :ldflags ["user32.lib"])
+ :ldflags ["kernel32.lib"])
 
 (declare-native
  :name "jw32/libloaderapi"
  :source ["libloaderapi.c"]
  :headers [;common-headers]
  :cflags [;debug-flags]
- :ldflags ["user32.lib"])
+ :ldflags ["user32.lib" "kernel32.lib"])
 
 (declare-native
  :name "jw32/errhandlingapi"
  :source ["errhandlingapi.c"]
  :headers [;common-headers]
  :cflags [;debug-flags]
- :ldflags ["user32.lib"])
+ :ldflags ["user32.lib" "kernel32.lib"])
 
 (declare-native
  :name "jw32/winbase"
