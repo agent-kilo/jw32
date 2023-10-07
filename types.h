@@ -172,5 +172,10 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 #define jw32_unwrap_ulong_ptr(x) ((ULONG_PTR)janet_unwrap_u64(x))
 #define jw32_get_ulong_ptr(argv, n) ((ULONG_PTR)janet_getuinteger64(argv, n))
 
+/* UINT_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
+#define jw32_wrap_uint_ptr(x) janet_wrap_u64((uint64_t)(x))
+#define jw32_unwrap_uint_ptr(x) ((UINT_PTR)janet_unwrap_u64(x))
+#define jw32_get_uint_ptr(argv, n) ((UINT_PTR)janet_getuinteger64(argv, n))
+
 
 #endif  /* __JW32_TYPES_H */

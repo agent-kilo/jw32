@@ -870,6 +870,26 @@ static void define_consts_sm(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_mf(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
+              "Constant for menu item flags.")
+    __def(MF_BITMAP);
+    __def(MF_CHECKED);
+    __def(MF_DISABLED);
+    __def(MF_ENABLED);
+    __def(MF_GRAYED);
+    __def(MF_MENUBARBREAK);
+    __def(MF_MENUBREAK);
+    __def(MF_OWNERDRAW);
+    __def(MF_POPUP);
+    __def(MF_SEPARATOR);
+    __def(MF_STRING);
+    __def(MF_UNCHECKED);
+#undef __def
+}
+
 
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
@@ -1801,6 +1821,69 @@ static Janet cfun_LoadImage(int32_t argc, Janet *argv)
     return jw32_wrap_handle(hRet);
 }
 
+static Janet cfun_CreateMenu(int32_t argc, Janet *argv)
+{
+    janet_fixarity(argc, 0);
+
+    return jw32_wrap_handle(CreateMenu());
+}
+
+static Janet cfun_CreatePopupMenu(int32_t argc, Janet *argv)
+{
+    janet_fixarity(argc, 0);
+
+    return jw32_wrap_handle(CreatePopupMenu());
+}
+
+static Janet cfun_DestroyMenu(int32_t argc, Janet *argv)
+{
+    HMENU hMenu;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    hMenu = jw32_get_handle(argv, 0);
+    bRet = DestroyMenu(hMenu);
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_AppendMenu(int32_t argc, Janet *argv)
+{
+    HMENU hMenu;
+    UINT uFlags;
+    UINT_PTR uIDNewItem;
+    LPCSTR lpNewItem;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 4);
+
+    hMenu = jw32_get_handle(argv, 0);
+    uFlags = jw32_get_uint(argv, 1);
+    uIDNewItem = jw32_get_uint_ptr(argv, 2);
+    lpNewItem = jw32_get_lpcstr(argv, 3);
+
+    bRet = AppendMenu(hMenu, uFlags, uIDNewItem, lpNewItem);
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_SetMenu(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    HMENU hMenu;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    hMenu = jw32_get_handle(argv, 1);
+
+    bRet = SetMenu(hWnd, hMenu);
+    return jw32_wrap_bool(bRet);
+}
+
 
 static const JanetReg cfuns[] = {
 
@@ -1940,6 +2023,36 @@ static const JanetReg cfuns[] = {
         cfun_LoadImage,
         "(" MOD_NAME "/LoadImage hInst name type cx cy fuLoad)\n\n"
         "Loads an image.",
+    },
+    {
+        "CreateMenu",
+        cfun_CreateMenu,
+        "(" MOD_NAME "/CreateMenu)\n\n"
+        "Creates a menu.",
+    },
+    {
+        "CreatePopupMenu",
+        cfun_CreatePopupMenu,
+        "(" MOD_NAME "/CreatePopupMenu)\n\n"
+        "Creates a popup menu.",
+    },
+    {
+        "DestroyMenu",
+        cfun_DestroyMenu,
+        "(" MOD_NAME "/DestroyMenu hMenu)\n\n"
+        "Creates a menu.",
+    },
+    {
+        "AppendMenu",
+        cfun_AppendMenu,
+        "(" MOD_NAME "/AppendMenu hMenu uFlags uIDNewItem lpNewItem)\n\n"
+        "Appends a new item to a menu.",
+    },
+    {
+        "SetMenu",
+        cfun_SetMenu,
+        "(" MOD_NAME "/SetMenu hWnd hMenu)\n\n"
+        "Assigns a menu to a window.",
     },
 
     {NULL, NULL, NULL},
