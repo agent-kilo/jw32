@@ -687,6 +687,190 @@ static void define_consts_sw(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_image(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
+              "Constant for image resource types.")
+    __def(IMAGE_BITMAP);
+    __def(IMAGE_CURSOR);
+    __def(IMAGE_ICON);
+#undef __def
+}
+
+static void define_consts_lr(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
+              "Constant for image loading flags.")
+    __def(LR_CREATEDIBSECTION);
+    __def(LR_DEFAULTCOLOR);
+    __def(LR_DEFAULTSIZE);
+    __def(LR_LOADFROMFILE);
+    __def(LR_LOADMAP3DCOLORS);
+    __def(LR_LOADTRANSPARENT);
+    __def(LR_MONOCHROME);
+    __def(LR_SHARED);
+    __def(LR_VGACOLOR);
+#undef __def
+}
+
+static void define_consts_sm(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for system metrics().")
+
+#ifndef NOSYSMETRICS
+
+    __def(SM_CXSCREEN);
+    __def(SM_CYSCREEN);
+    __def(SM_CXVSCROLL);
+    __def(SM_CYHSCROLL);
+    __def(SM_CYCAPTION);
+    __def(SM_CXBORDER);
+    __def(SM_CYBORDER);
+    __def(SM_CXDLGFRAME);
+    __def(SM_CYDLGFRAME);
+    __def(SM_CYVTHUMB);
+    __def(SM_CXHTHUMB);
+    __def(SM_CXICON);
+    __def(SM_CYICON);
+    __def(SM_CXCURSOR);
+    __def(SM_CYCURSOR);
+    __def(SM_CYMENU);
+    __def(SM_CXFULLSCREEN);
+    __def(SM_CYFULLSCREEN);
+    __def(SM_CYKANJIWINDOW);
+    __def(SM_MOUSEPRESENT);
+    __def(SM_CYVSCROLL);
+    __def(SM_CXHSCROLL);
+    __def(SM_DEBUG);
+    __def(SM_SWAPBUTTON);
+    __def(SM_RESERVED1);
+    __def(SM_RESERVED2);
+    __def(SM_RESERVED3);
+    __def(SM_RESERVED4);
+    __def(SM_CXMIN);
+    __def(SM_CYMIN);
+    __def(SM_CXSIZE);
+    __def(SM_CYSIZE);
+    __def(SM_CXFRAME);
+    __def(SM_CYFRAME);
+    __def(SM_CXMINTRACK);
+    __def(SM_CYMINTRACK);
+    __def(SM_CXDOUBLECLK);
+    __def(SM_CYDOUBLECLK);
+    __def(SM_CXICONSPACING);
+    __def(SM_CYICONSPACING);
+    __def(SM_MENUDROPALIGNMENT);
+    __def(SM_PENWINDOWS);
+    __def(SM_DBCSENABLED);
+    __def(SM_CMOUSEBUTTONS);
+#if(WINVER >= 0x0400)
+    __def(SM_CXFIXEDFRAME);
+    __def(SM_CYFIXEDFRAME);
+    __def(SM_CXSIZEFRAME);
+    __def(SM_CYSIZEFRAME);
+    __def(SM_SECURE);
+    __def(SM_CXEDGE);
+    __def(SM_CYEDGE);
+    __def(SM_CXMINSPACING);
+    __def(SM_CYMINSPACING);
+    __def(SM_CXSMICON);
+    __def(SM_CYSMICON);
+    __def(SM_CYSMCAPTION);
+    __def(SM_CXSMSIZE);
+    __def(SM_CYSMSIZE);
+    __def(SM_CXMENUSIZE);
+    __def(SM_CYMENUSIZE);
+    __def(SM_ARRANGE);
+    __def(SM_CXMINIMIZED);
+    __def(SM_CYMINIMIZED);
+    __def(SM_CXMAXTRACK);
+    __def(SM_CYMAXTRACK);
+    __def(SM_CXMAXIMIZED);
+    __def(SM_CYMAXIMIZED);
+    __def(SM_NETWORK);
+    __def(SM_CLEANBOOT);
+    __def(SM_CXDRAG);
+    __def(SM_CYDRAG);
+#endif /* WINVER >= 0x0400 */
+    __def(SM_SHOWSOUNDS);
+#if(WINVER >= 0x0400)
+    __def(SM_CXMENUCHECK);
+    __def(SM_CYMENUCHECK);
+    __def(SM_SLOWMACHINE);
+    __def(SM_MIDEASTENABLED);
+#endif /* WINVER >= 0x0400 */
+#if (WINVER >= 0x0500) || (_WIN32_WINNT >= 0x0400)
+    __def(SM_MOUSEWHEELPRESENT);
+#endif
+#if(WINVER >= 0x0500)
+    __def(SM_XVIRTUALSCREEN);
+    __def(SM_YVIRTUALSCREEN);
+    __def(SM_CXVIRTUALSCREEN);
+    __def(SM_CYVIRTUALSCREEN);
+    __def(SM_CMONITORS);
+    __def(SM_SAMEDISPLAYFORMAT);
+#endif /* WINVER >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0500)
+    __def(SM_IMMENABLED);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(SM_CXFOCUSBORDER);
+    __def(SM_CYFOCUSBORDER);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(SM_TABLETPC);
+    __def(SM_MEDIACENTER);
+    __def(SM_STARTER);
+    __def(SM_SERVERR2);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0600)
+    __def(SM_MOUSEHORIZONTALWHEELPRESENT);
+    __def(SM_CXPADDEDBORDER);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(WINVER >= 0x0601)
+    __def(SM_DIGITIZER);
+    __def(SM_MAXIMUMTOUCHES);
+#endif /* WINVER >= 0x0601 */
+
+#if (WINVER < 0x0500) && (!defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0400))
+    __def(SM_CMETRICS);
+#elif WINVER == 0x500
+    __def(SM_CMETRICS);
+#elif WINVER == 0x501
+    __def(SM_CMETRICS);
+#elif WINVER == 0x600
+    __def(SM_CMETRICS);
+#else
+    __def(SM_CMETRICS);
+#endif
+
+#if(WINVER >= 0x0500)
+    __def(SM_REMOTESESSION);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(SM_SHUTTINGDOWN);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(WINVER >= 0x0501)
+    __def(SM_REMOTECONTROL);
+#endif /* WINVER >= 0x0501 */
+#if(WINVER >= 0x0501)
+    __def(SM_CARETBLINKINGENABLED);
+#endif /* WINVER >= 0x0501 */
+#if(WINVER >= 0x0602)
+    __def(SM_CONVERTIBLESLATEMODE);
+    __def(SM_SYSTEMDOCKED);
+#endif /* WINVER >= 0x0602 */
+#endif /* WINVER >= 0x0500 */
+
+#endif /* !NOSYSMETRICS */
+
+#undef __def
+}
+
+
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
   int ret, lock;
@@ -1594,6 +1778,29 @@ static Janet cfun_LoadCursor(int32_t argc, Janet *argv)
     return jw32_wrap_handle(hRet);
 }
 
+static Janet cfun_LoadImage(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInst;
+    LPCSTR name;
+    UINT type;
+    int cx, cy;
+    UINT fuLoad;
+
+    HANDLE hRet;
+
+    janet_fixarity(argc, 6);
+
+    hInst = jw32_get_handle(argv, 0);
+    name = jw32_get_lpcstr(argv, 1);
+    type = jw32_get_uint(argv, 2);
+    cx = jw32_get_int(argv, 3);
+    cy = jw32_get_int(argv, 4);
+    fuLoad = jw32_get_uint(argv, 5);
+
+    hRet = LoadImage(hInst, name, type, cx, cy, fuLoad);
+    return jw32_wrap_handle(hRet);
+}
+
 
 static const JanetReg cfuns[] = {
 
@@ -1726,7 +1933,13 @@ static const JanetReg cfuns[] = {
         "LoadCursor",
         cfun_LoadCursor,
         "(" MOD_NAME "/LoadCursor hInstance lpCursorName)\n\n"
-        "Loads an cursor.",
+        "Loads a cursor.",
+    },
+    {
+        "LoadImage",
+        cfun_LoadImage,
+        "(" MOD_NAME "/LoadImage hInst name type cx cy fuLoad)\n\n"
+        "Loads an image.",
     },
 
     {NULL, NULL, NULL},
@@ -1761,6 +1974,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_ws_ex(env);
     define_consts_cw(env);
     define_consts_sw(env);
+    define_consts_image(env);
+    define_consts_lr(env);
+    define_consts_sm(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
