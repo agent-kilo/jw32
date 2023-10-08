@@ -1170,6 +1170,26 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
 }
 
+static Janet cfun_PostMessage(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT Msg;
+    WPARAM wParam;
+    LPARAM lParam;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_get_handle(argv, 0);
+    Msg = jw32_get_uint(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
+
+    bRet = PostMessage(hWnd, Msg, wParam, lParam);
+    return jw32_wrap_bool(bRet);
+}
+
 static Janet cfun_SendMessage(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -1970,9 +1990,15 @@ static const JanetReg cfuns[] = {
         "Returns non-zero if succeeded, zero otherwise.",
     },
     {
+        "PostMessage",
+        cfun_PostMessage,
+        "(" MOD_NAME "/PostMessage hWnd uMsg wParam lParam)\n\n"
+        "Post the specified message to a window message queue.",
+    },
+    {
         "SendMessage",
         cfun_SendMessage,
-        "(" MOD_NAME "/SendMessage idThread uMsg wParam lParam)\n\n"
+        "(" MOD_NAME "/SendMessage hWnd uMsg wParam lParam)\n\n"
         "Calls the window procedure with the specified message.",
     },
 

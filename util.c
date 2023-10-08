@@ -11,6 +11,26 @@ static Janet cfun_IsNull(int32_t argc, Janet *argv)
     return janet_wrap_boolean(p == NULL);
 }
 
+static Janet cfun_LOWORD(int32_t argc, Janet *argv)
+{
+    DWORD_PTR dwordptr;
+
+    janet_fixarity(argc, 1);
+
+    dwordptr = jw32_get_dword_ptr(argv, 0);
+    return jw32_wrap_word(LOWORD(dwordptr));
+}
+
+static Janet cfun_HIWORD(int32_t argc, Janet *argv)
+{
+    DWORD_PTR dwordptr;
+
+    janet_fixarity(argc, 1);
+
+    dwordptr = jw32_get_dword_ptr(argv, 0);
+    return jw32_wrap_word(HIWORD(dwordptr));
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -18,6 +38,18 @@ static const JanetReg cfuns[] = {
         cfun_IsNull,
         "(" MOD_NAME "/null? pointer)\n\n"
         "Check if pointer is NULL.",
+    },
+    {
+        "LOWORD",
+        cfun_LOWORD,
+        "(" MOD_NAME "/LOWORD dwordptr)\n\n"
+        "Retrieves LOWORD.",
+    },
+    {
+        "HIWORD",
+        cfun_HIWORD,
+        "(" MOD_NAME "/HIWORD dwordptr)\n\n"
+        "Retrieves HIWORD.",
     },
     {NULL, NULL, NULL},
 };
