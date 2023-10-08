@@ -138,15 +138,15 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 
 
 /* WPARAM: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsighed */
-#define jw32_wrap_wparam(x)   janet_wrap_u64((uint64_t)(x))
-#define jw32_unwrap_wparam(x) ((WPARAM)janet_unwrap_u64(x))
-#define jw32_get_wparam(argv, n) ((WPARAM)janet_getuinteger64(argv, n))
+#define jw32_wrap_wparam(x)   jw32_wrap_uint_ptr(x)
+#define jw32_unwrap_wparam(x) ((WPARAM)jw32_unwrap_uint_ptr(x))
+#define jw32_get_wparam(argv, n) ((WPARAM)jw32_get_uint_ptr(argv, n))
 
 
 /* LPARAM: 64 bit (on x64 machines) or 32 bit (on x86 machines) sighed */
-#define jw32_wrap_lparam(x)   janet_wrap_s64((int64_t)(x))
-#define jw32_unwrap_lparam(x) ((LPARAM)janet_unwrap_s64(x))
-#define jw32_get_lparam(argv, n) ((LPARAM)janet_getinteger64(argv, n))
+#define jw32_wrap_lparam(x)   jw32_wrap_long_ptr(x)
+#define jw32_unwrap_lparam(x) ((LPARAM)jw32_unwrap_long_ptr(x))
+#define jw32_get_lparam(argv, n) ((LPARAM)jw32_get_long_ptr(argv, n))
 
 
 /* LONG: 32 bit signed */
@@ -170,19 +170,45 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 /* ULONG_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
 #define jw32_wrap_ulong_ptr(x) janet_wrap_u64((uint64_t)(x))
 #define jw32_unwrap_ulong_ptr(x) ((ULONG_PTR)janet_unwrap_u64(x))
-#define jw32_get_ulong_ptr(argv, n) ((ULONG_PTR)janet_getuinteger64(argv, n))
+static inline ULONG_PTR jw32_get_ulong_ptr(const Janet *argv, int32_t n)
+{
+    Janet x = argv[n];
+
+    switch (janet_type(x)) {
+    case JANET_POINTER:
+        return (ULONG_PTR)janet_unwrap_pointer(x);
+    default:
+        return (ULONG_PTR)janet_getuinteger64(argv, n);
+    }
+}
+
+
+/* LONG_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) signed */
+#define jw32_wrap_long_ptr(x) janet_wrap_s64((int64_t)(x))
+#define jw32_unwrap_long_ptr(x) ((LONG_PTR)janet_unwrap_s64(x))
+static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
+{
+    Janet x = argv[n];
+
+    switch (janet_type(x)) {
+    case JANET_POINTER:
+        return (LONG_PTR)janet_unwrap_pointer(x);
+    default:
+        return (LONG_PTR)janet_getinteger64(argv, n);
+    }
+}
 
 
 /* UINT_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
 #define jw32_wrap_uint_ptr(x) janet_wrap_u64((uint64_t)(x))
 #define jw32_unwrap_uint_ptr(x) ((UINT_PTR)janet_unwrap_u64(x))
-#define jw32_get_uint_ptr(argv, n) ((UINT_PTR)janet_getuinteger64(argv, n))
+#define jw32_get_uint_ptr(argv, n) ((UINT_PTR)jw32_get_ulong_ptr(argv, n))
 
 
 /* DWORD_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
 #define jw32_wrap_dword_ptr(x) janet_wrap_u64((uint64_t)(x))
 #define jw32_unwrap_dword_ptr(x) ((DWORD_PTR)janet_unwrap_u64(x))
-#define jw32_get_dword_ptr(argv, n) ((DWORD_PTR)janet_getuinteger64(argv, n))
+#define jw32_get_dword_ptr(argv, n) ((DWORD_PTR)jw32_get_ulong_ptr(argv, n))
 
 
 #endif  /* __JW32_TYPES_H */

@@ -909,6 +909,21 @@ static void define_consts_hwnd(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_icon(JanetTable *env)
+{
+#define __def(const_name)                                         \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),        \
+              "Constant for icon types.")
+
+    __def(ICON_BIG);
+    __def(ICON_SMALL);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(ICON_SMALL2);
+#endif /* _WIN32_WINNT >= 0x0501 */
+
+#undef __def
+}
+
 
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
   JanetFiber *fiber = NULL;
@@ -2163,6 +2178,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_sm(env);
     define_consts_mf(env);
     define_consts_hwnd(env);
+    define_consts_icon(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
