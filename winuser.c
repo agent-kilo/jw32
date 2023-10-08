@@ -872,7 +872,7 @@ static void define_consts_sm(JanetTable *env)
 
 static void define_consts_mf(JanetTable *env)
 {
-#define __def(const_name)                                      \
+#define __def(const_name)                                       \
     janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
               "Constant for menu item flags.")
     __def(MF_BITMAP);
@@ -887,6 +887,25 @@ static void define_consts_mf(JanetTable *env)
     __def(MF_SEPARATOR);
     __def(MF_STRING);
     __def(MF_UNCHECKED);
+#undef __def
+}
+
+static void define_consts_hwnd(JanetTable *env)
+{
+#define __def(const_name)                                         \
+    janet_def(env, #const_name, jw32_wrap_handle(const_name),     \
+              "Constant for special HWND handles.")
+
+    __def(HWND_BROADCAST);
+#if(WINVER >= 0x0500)
+    __def(HWND_MESSAGE);
+#endif /* WINVER >= 0x0500 */
+    __def(HWND_DESKTOP);
+    __def(HWND_TOP);
+    __def(HWND_BOTTOM);
+    __def(HWND_TOPMOST);
+    __def(HWND_NOTOPMOST);
+
 #undef __def
 }
 
@@ -1149,6 +1168,26 @@ static Janet cfun_PostThreadMessage(int32_t argc, Janet *argv)
     lParam = jw32_get_lparam(argv, 3);
 
     return jw32_wrap_bool(PostThreadMessage(idThread, uMsg, wParam, lParam));
+}
+
+static Janet cfun_SendMessage(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT Msg;
+    WPARAM wParam;
+    LPARAM lParam;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_get_handle(argv, 0);
+    Msg = jw32_get_uint(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
+
+    lRet = SendMessage(hWnd, Msg, wParam, lParam);
+    return jw32_wrap_lresult(lRet);
 }
 
 static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
@@ -1930,6 +1969,12 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/PostThreadMessage idThread uMsg wParam lParam)\n\n"
         "Returns non-zero if succeeded, zero otherwise.",
     },
+    {
+        "SendMessage",
+        cfun_SendMessage,
+        "(" MOD_NAME "/SendMessage idThread uMsg wParam lParam)\n\n"
+        "Calls the window procedure with the specified message.",
+    },
 
     /*********************** WINDOW-RELATED ************************/
     {
@@ -2090,6 +2135,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_image(env);
     define_consts_lr(env);
     define_consts_sm(env);
+    define_consts_mf(env);
+    define_consts_hwnd(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
