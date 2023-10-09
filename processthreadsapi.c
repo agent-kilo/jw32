@@ -5,6 +5,9 @@
 
 static Janet cfun_GetCurrentThreadId(int32_t argc, Janet *argv)
 {
+    (void)argv;
+    janet_fixarity(argc, 0);
+
     return jw32_wrap_dword(GetCurrentThreadId());
 }
 

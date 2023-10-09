@@ -81,9 +81,9 @@ static Janet cfun_GetModuleFileName(int32_t argc, Janet *argv)
     do {
         janet_buffer_ensure(file_name_buf, cap, 1);
         jw32_dbg_val(file_name_buf->capacity, "%d");
-        dwRet = GetModuleFileName(hModule, file_name_buf->data, file_name_buf->capacity);
+        dwRet = GetModuleFileName(hModule, (LPSTR)file_name_buf->data, file_name_buf->capacity);
         cap *= 2;
-    } while (dwRet >= file_name_buf->capacity);
+    } while (dwRet >= (DWORD)(file_name_buf->capacity));
 
     if (dwRet > 0) {
         file_name_buf->count = dwRet;

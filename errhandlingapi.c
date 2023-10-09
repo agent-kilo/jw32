@@ -29,6 +29,7 @@ static Janet cfun_SetLastError(int32_t argc, Janet *argv)
 
 static Janet cfun_GetLastError(int32_t argc, Janet *argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     return jw32_wrap_dword(GetLastError());
@@ -50,6 +51,7 @@ static Janet cfun_GetErrorMode(int32_t argc, Janet *argv)
 {
     UINT uRet;
 
+    (void)argv;
     janet_fixarity(argc, 0);
 
     uRet = GetErrorMode();
