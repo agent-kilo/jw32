@@ -1402,7 +1402,7 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    jw32_dbg_msg("===========================");
+    jw32_dbg_msg("###########################");
     jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
     jw32_dbg_val(uMsg, "0x%" PRIx32);
     jw32_dbg_val(wParam, "0x%" PRIx64);
@@ -1508,6 +1508,40 @@ static Janet cfun_DialogBox(int32_t argc, Janet *argv)
         nRet = DialogBox(hInstance, lpTemplate, hWndParent, NULL);
     }
     return jw32_wrap_int_ptr(nRet);
+}
+
+static Janet cfun_CreateDialog(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInstance;
+    LPCSTR lpName;
+    HWND hWndParent;
+    JanetFunction *dlg_proc_fn = NULL;
+
+    HWND hRet;
+
+    janet_fixarity(argc, 4);
+
+    hInstance = jw32_get_handle(argv, 0);
+    lpName = jw32_get_lpcstr(argv, 1);
+    hWndParent = jw32_get_handle(argv, 2);
+    if (!janet_checktype(argv[3], JANET_NIL)) {
+        dlg_proc_fn = janet_getfunction(argv, 3);
+    }
+
+    if (dlg_proc_fn) {
+        LPARAM dlgParam;
+        Janet param_tuple[2];
+
+        param_tuple[0] = janet_wrap_function(dlg_proc_fn);
+        param_tuple[1] = jw32_wrap_lparam((LPARAM)NULL);
+        dlgParam = (LPARAM)janet_tuple_n(param_tuple, 2);
+
+        hRet = CreateDialogParam(hInstance, lpName, hWndParent, jw32_dlg_proc, dlgParam);
+    } else {
+        hRet = CreateDialog(hInstance, lpName, hWndParent, NULL);
+    }
+
+    return jw32_wrap_handle(hRet);
 }
 
 static Janet cfun_IsDialogMessage(int32_t argc, Janet *argv)
@@ -2165,6 +2199,12 @@ static const JanetReg cfuns[] = {
         cfun_DialogBox,
         "(" MOD_NAME "/DialogBox hInstance lpTemplate hWndParent lpDialogFunc)\n\n"
         "Shows a dialog box.",
+    },
+    {
+        "CreateDialog",
+        cfun_CreateDialog,
+        "(" MOD_NAME "/CreateDialog hInstance lpName hWndParent lpDialogFunc)\n\n"
+        "Creates a dialog box.",
     },
     {
         "EndDialog",
