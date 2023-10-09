@@ -926,7 +926,8 @@ static void define_consts_icon(JanetTable *env)
 }
 
 
-static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out) {
+static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out)
+{
   JanetFiber *fiber = NULL;
   int ret, lock;
 
@@ -941,6 +942,62 @@ static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet 
   }
   janet_gcunlock(lock);
   return ret;
+}
+
+static int call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Janet *out)
+{
+    Janet argv[4] = {
+        jw32_wrap_handle(hWnd),
+        jw32_wrap_uint(uMsg),
+        jw32_wrap_wparam(wParam),
+        jw32_wrap_lparam(lParam),
+    };
+
+    return call_fn(fn, 4, argv, out);
+}
+
+static LRESULT maybe_call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lFailRet, BOOL bCallDefProc)
+{
+    jw32_dbg_val((uint64_t)fn, "0x%" PRIx64);
+
+    if (fn) {
+        Janet ret;
+
+        if (call_wnd_proc_fn(fn, hWnd, uMsg, wParam, lParam, &ret)) {
+            return jw32_unwrap_lresult(ret);
+        } else {
+            jw32_dbg_msg("call_wnd_proc_fn() failed!");
+            return lFailRet;
+        }
+    } else {
+        jw32_dbg_msg("wnd_proc not found");
+        if (bCallDefProc) {
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        } else {
+            return -1;
+        }
+    }
+}
+
+static INT_PTR maybe_call_dlg_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, INT_PTR nFailRet)
+{
+    jw32_dbg_val((uint64_t)fn, "0x%" PRIx64);
+
+    if (fn) {
+        Janet ret;
+
+        if (call_wnd_proc_fn(fn, hWnd, uMsg, wParam, lParam, &ret)) {
+            INT_PTR nRet = jw32_unwrap_int_ptr(ret);
+            jw32_dbg_val(nRet, "0x%" PRIx64);
+            return nRet;
+        } else {
+            jw32_dbg_msg("call_wnd_proc_fn() failed!");
+            return nFailRet;
+        }
+    } else {
+        jw32_dbg_msg("dlg_proc not found");
+        return FALSE;
+    }
 }
 
 static inline void remove_array_entry(JanetArray *array, int i) {
@@ -1308,13 +1365,6 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
         const Janet *param_tuple = (Janet *)cs->lpCreateParams;
         LPVOID lpRealParam = jw32_unwrap_lpvoid(param_tuple[1]);
-        Janet argv[4] = {
-            jw32_wrap_handle(hWnd),
-            jw32_wrap_uint(uMsg),
-            jw32_wrap_wparam(wParam),
-            jw32_wrap_lparam(lParam),
-        };
-        Janet ret;
         BOOL bSet;
 
         Janet wnd_proc = param_tuple[0];
@@ -1330,64 +1380,22 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         }
 
         cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
-        if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
-            return jw32_unwrap_lresult(ret);
-        } else {
-            return FALSE; /* abort window creation */
-        }
+        /* return FALSE when failed, to abort window creation */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, FALSE, FALSE);
     }
 
     case WM_NCDESTROY: {
         JanetFunction *wnd_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
-        jw32_dbg_val((uint64_t)wnd_proc_fn, "0x%" PRIx64);
-        if (wnd_proc_fn) {
-            Janet argv[4] = {
-                jw32_wrap_handle(hWnd),
-                jw32_wrap_uint(uMsg),
-                jw32_wrap_wparam(wParam),
-                jw32_wrap_lparam(lParam),
-            };
-            Janet ret;
-
-            if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
-                return jw32_unwrap_lresult(ret);
-            } else {
-                jw32_dbg_msg("call_fn() failed!");
-                /* we did clean up things, so the message IS handled, right? RIGHT? */
-                return 0;
-            }
-        } else {
-            jw32_dbg_msg("hmmm, are we dealing with the wrong window?");
-            return -1;
-        }
+        /* return zero when failed, to indicate we did the clean-up */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, 0, FALSE);
     }
 
     default: {
         JanetFunction *wnd_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
-        jw32_dbg_val((uint64_t)wnd_proc_fn, "0x%" PRIx64);
-        if (wnd_proc_fn) {
-            Janet argv[4] = {
-                jw32_wrap_handle(hWnd),
-                jw32_wrap_uint(uMsg),
-                jw32_wrap_wparam(wParam),
-                jw32_wrap_lparam(lParam),
-            };
-            Janet ret;
-
-            jw32_dbg_msg("before call_fn");
-            if (call_fn(wnd_proc_fn, 4, argv, &ret)) {
-                jw32_dbg_msg("before return");
-                return jw32_unwrap_lresult(ret);
-            } else {
-                jw32_dbg_msg("before return: ERROR");
-                /* XXX: -1 means "abort" in WM_CREATE, but other messages may not
-                   understand this value */
-                return -1;
-            }
-        } else {
-            /* it's before WM_NCCREATE, carry on with the window creation */
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
-        }
+        /* XXX: -1 means "abort" in WM_CREATE, but other messages may not
+           understand this value */
+        /* and we call DefWindowProc() when we can't find wnd_proc */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, -1, TRUE);
     }
     }
 }
@@ -1404,13 +1412,6 @@ INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     case WM_INITDIALOG: {
         const Janet *param_tuple = (Janet *)lParam;
         LPARAM lpRealParam = jw32_unwrap_lparam(param_tuple[1]);
-        Janet argv[4] = {
-            jw32_wrap_handle(hWnd),
-            jw32_wrap_uint(uMsg),
-            jw32_wrap_wparam(wParam),
-            jw32_wrap_lparam(lpRealParam),
-        };
-        Janet ret;
         BOOL bSet;
 
         Janet dlg_proc = param_tuple[0];
@@ -1429,67 +1430,18 @@ INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             return TRUE; /* set default keyboard focus */
         }
 
-        if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
-            INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
-            jw32_dbg_val(iptrRet, "0x%" PRIx64);
-            return iptrRet;
-        } else {
-            jw32_dbg_msg("call_fn() failed!");
-            return TRUE; /* set default keyboard focus */
-        }
+        /* set default keyboard focus even if we failed */
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lpRealParam, TRUE);
     }
 
     case WM_NCDESTROY: {
         JanetFunction *dlg_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
-        jw32_dbg_val((uint64_t)dlg_proc_fn, "0x%" PRIx64);
-        if (dlg_proc_fn) {
-            Janet argv[4] = {
-                jw32_wrap_handle(hWnd),
-                jw32_wrap_uint(uMsg),
-                jw32_wrap_wparam(wParam),
-                jw32_wrap_lparam(lParam),
-            };
-            Janet ret;
-
-            if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
-                INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
-                jw32_dbg_val(iptrRet, "0x%" PRIx64);
-                return iptrRet;
-            } else {
-                jw32_dbg_msg("call_fn() failed!");
-                /* we did clean up things */
-                return TRUE;
-            }
-        } else {
-            jw32_dbg_msg("hmmm, are we dealing with the wrong window?");
-            return FALSE;
-        }
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
     }
 
     default: {
         JanetFunction *dlg_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
-        jw32_dbg_val((uint64_t)dlg_proc_fn, "0x%" PRIx64);
-        if (dlg_proc_fn) {
-            Janet argv[4] = {
-                jw32_wrap_handle(hWnd),
-                jw32_wrap_uint(uMsg),
-                jw32_wrap_wparam(wParam),
-                jw32_wrap_lparam(lParam),
-            };
-            Janet ret;
-
-            if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
-                INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
-                jw32_dbg_val(iptrRet, "0x%" PRIx64);
-                return iptrRet;
-            } else {
-                jw32_dbg_msg("call_fn() failed!");
-                return FALSE; /* we did not handle the message */
-            }
-        } else {
-            /* it's before WM_INITDIALOG, or WM_INITDIALOG failed */
-            return FALSE;
-        }
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
     }
     }
 }
@@ -1556,6 +1508,22 @@ static Janet cfun_DialogBox(int32_t argc, Janet *argv)
         nRet = DialogBox(hInstance, lpTemplate, hWndParent, NULL);
     }
     return jw32_wrap_int_ptr(nRet);
+}
+
+static Janet cfun_IsDialogMessage(int32_t argc, Janet *argv)
+{
+    HWND hDlg;
+    MSG *lpMsg;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hDlg = jw32_get_handle(argv, 0);
+    lpMsg = janet_getabstract(argv, 1, &jw32_at_MSG);
+
+    bRet = IsDialogMessage(hDlg, lpMsg);
+    return jw32_wrap_bool(bRet);
 }
 
 static Janet cfun_EndDialog(int32_t argc, Janet *argv)
@@ -2177,6 +2145,12 @@ static const JanetReg cfuns[] = {
         cfun_SendMessage,
         "(" MOD_NAME "/SendMessage hWnd uMsg wParam lParam)\n\n"
         "Calls the window procedure with the specified message.",
+    },
+    {
+        "IsDialogMessage",
+        cfun_IsDialogMessage,
+        "(" MOD_NAME "/IsDialogMessage hDlg lpMsg)\n\n"
+        "Process possible dialog messages.",
     },
 
     /*********************** WINDOW-RELATED ************************/
