@@ -471,7 +471,6 @@ static void define_consts_idc(JanetTable *env)
     __def(IDC_HELP);
     __def(IDC_PIN);
     __def(IDC_PERSON);
-    __def(IDC_STATIC);
 #undef __def
 }
 
