@@ -20,6 +20,7 @@ static JanetTable *atom_class_name_map;
 
 /* pre-defined window properties we used */
 #define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
+#define JW32_DLG_PROC_FN_PROP_NAME "jw32_dlg_proc_fn"
 #define JW32_MAX_PROP_LEN (sizeof(JW32_WND_PROC_FN_PROP_NAME)) /* includes the trailing null byte */
 
 
@@ -1357,6 +1358,7 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             }
         } else {
             jw32_dbg_msg("hmmm, are we dealing with the wrong window?");
+            return -1;
         }
     }
 
@@ -1390,6 +1392,108 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     }
 }
 
+INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    jw32_dbg_msg("===========================");
+    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
+    jw32_dbg_val(uMsg, "0x%" PRIx32);
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "0x%lld");
+
+    switch (uMsg) {
+    case WM_INITDIALOG: {
+        const Janet *param_tuple = (Janet *)lParam;
+        LPARAM lpRealParam = jw32_unwrap_lparam(param_tuple[1]);
+        Janet argv[4] = {
+            jw32_wrap_handle(hWnd),
+            jw32_wrap_uint(uMsg),
+            jw32_wrap_wparam(wParam),
+            jw32_wrap_lparam(lpRealParam),
+        };
+        Janet ret;
+        BOOL bSet;
+
+        Janet dlg_proc = param_tuple[0];
+        JanetFunction *dlg_proc_fn = janet_unwrap_function(dlg_proc);
+
+        jw32_dbg_jval(dlg_proc);
+
+        bSet = SetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME, (HANDLE)dlg_proc_fn);
+        if (!bSet) {
+            jw32_dbg_msg("SetProp() failed!");
+            jw32_dbg_val(GetLastError(), "0x%x");
+            if (!EndDialog(hWnd, -1)) {
+                jw32_dbg_msg("EndDialog() failed!");
+                jw32_dbg_val(GetLastError(), "0x%x");
+            }
+            return TRUE; /* set default keyboard focus */
+        }
+
+        if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
+            INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
+            jw32_dbg_val(iptrRet, "0x%" PRIx64);
+            return iptrRet;
+        } else {
+            jw32_dbg_msg("call_fn() failed!");
+            return TRUE; /* set default keyboard focus */
+        }
+    }
+
+    case WM_NCDESTROY: {
+        JanetFunction *dlg_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
+        jw32_dbg_val((uint64_t)dlg_proc_fn, "0x%" PRIx64);
+        if (dlg_proc_fn) {
+            Janet argv[4] = {
+                jw32_wrap_handle(hWnd),
+                jw32_wrap_uint(uMsg),
+                jw32_wrap_wparam(wParam),
+                jw32_wrap_lparam(lParam),
+            };
+            Janet ret;
+
+            if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
+                INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
+                jw32_dbg_val(iptrRet, "0x%" PRIx64);
+                return iptrRet;
+            } else {
+                jw32_dbg_msg("call_fn() failed!");
+                /* we did clean up things */
+                return TRUE;
+            }
+        } else {
+            jw32_dbg_msg("hmmm, are we dealing with the wrong window?");
+            return FALSE;
+        }
+    }
+
+    default: {
+        JanetFunction *dlg_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
+        jw32_dbg_val((uint64_t)dlg_proc_fn, "0x%" PRIx64);
+        if (dlg_proc_fn) {
+            Janet argv[4] = {
+                jw32_wrap_handle(hWnd),
+                jw32_wrap_uint(uMsg),
+                jw32_wrap_wparam(wParam),
+                jw32_wrap_lparam(lParam),
+            };
+            Janet ret;
+
+            if (call_fn(dlg_proc_fn, 4, argv, &ret)) {
+                INT_PTR iptrRet = jw32_unwrap_int_ptr(ret);
+                jw32_dbg_val(iptrRet, "0x%" PRIx64);
+                return iptrRet;
+            } else {
+                jw32_dbg_msg("call_fn() failed!");
+                return FALSE; /* we did not handle the message */
+            }
+        } else {
+            /* it's before WM_INITDIALOG, or WM_INITDIALOG failed */
+            return FALSE;
+        }
+    }
+    }
+}
+
 
 /*******************************************************************
  *
@@ -1415,6 +1519,59 @@ static Janet cfun_MessageBox(int32_t argc, Janet *argv)
 
     iRet = MessageBox(hWnd, lpText, lpCaption, uType);
     return jw32_wrap_int(iRet);
+}
+
+static Janet cfun_DialogBox(int32_t argc, Janet *argv)
+{
+    HINSTANCE hInstance;
+    LPCSTR lpTemplate;
+    HWND hWndParent;
+    JanetFunction *dlg_proc_fn = NULL;
+
+    INT_PTR nRet;
+
+    janet_fixarity(argc, 4);
+
+    hInstance = jw32_get_handle(argv, 0);
+    lpTemplate = jw32_get_lpcstr(argv, 1);
+    hWndParent = jw32_get_handle(argv, 2);
+    if (!janet_checktype(argv[3], JANET_NIL)) {
+        dlg_proc_fn = janet_getfunction(argv, 3);
+    }
+
+    if (dlg_proc_fn) {
+        /* we don't have an extra param to pass to the dlg proc,
+           but include a NULL pointer here anyway, so that jw32_dlg_proc
+           won't get confused. */
+
+        LPARAM dlgParam;
+        Janet param_tuple[2];
+
+        param_tuple[0] = janet_wrap_function(dlg_proc_fn);
+        param_tuple[1] = jw32_wrap_lparam((LPARAM)NULL);
+        dlgParam = (LPARAM)janet_tuple_n(param_tuple, 2);
+
+        nRet = DialogBoxParam(hInstance, lpTemplate, hWndParent, jw32_dlg_proc, dlgParam);
+    } else {
+        nRet = DialogBox(hInstance, lpTemplate, hWndParent, NULL);
+    }
+    return jw32_wrap_int_ptr(nRet);
+}
+
+static Janet cfun_EndDialog(int32_t argc, Janet *argv)
+{
+    HWND hDlg;
+    INT_PTR nResult;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hDlg = jw32_get_handle(argv, 0);
+    nResult = jw32_get_int_ptr(argv, 1);
+
+    bRet = EndDialog(hDlg, nResult);
+    return jw32_wrap_bool(bRet);
 }
 
 static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
@@ -2028,6 +2185,18 @@ static const JanetReg cfuns[] = {
         cfun_MessageBox,
         "(" MOD_NAME "/MessageBox hWnd lpText lpCaption uType)\n\n"
         "Shows a message box.",
+    },
+    {
+        "DialogBox",
+        cfun_DialogBox,
+        "(" MOD_NAME "/DialogBox hInstance lpTemplate hWndParent lpDialogFunc)\n\n"
+        "Shows a dialog box.",
+    },
+    {
+        "EndDialog",
+        cfun_EndDialog,
+        "(" MOD_NAME "/EndDialog hDlg nResult)\n\n"
+        "Ends a dialog box.",
     },
     {
         "GetDesktopWindow",

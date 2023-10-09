@@ -199,6 +199,12 @@ static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
 }
 
 
+/* INT_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) signed */
+#define jw32_wrap_int_ptr(x) janet_wrap_s64((int64_t)(x))
+#define jw32_unwrap_int_ptr(x) ((INT_PTR)janet_unwrap_s64(x))
+#define jw32_get_int_ptr(argv, n) ((INT_PTR)jw32_get_long_ptr(argv, n))
+
+
 /* UINT_PTR: 64 bit (on x64 machines) or 32 bit (on x86 machines) unsigned */
 #define jw32_wrap_uint_ptr(x) janet_wrap_u64((uint64_t)(x))
 #define jw32_unwrap_uint_ptr(x) ((UINT_PTR)janet_unwrap_u64(x))
