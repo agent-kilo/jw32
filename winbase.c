@@ -66,9 +66,9 @@ static Janet cfun_GetAtomName(int32_t argc, Janet *argv)
     do {
         janet_buffer_ensure(name_buf, cap, 1);
         jw32_dbg_val(name_buf->capacity, "%d");
-        uRet = GetAtomName(nAtom, name_buf->data, name_buf->capacity);
+        uRet = GetAtomName(nAtom, (LPSTR)name_buf->data, name_buf->capacity);
         cap *= 2;
-    } while (uRet >= name_buf->capacity - 1);
+    } while (uRet >= (UINT)(name_buf->capacity - 1));
 
     if (uRet > 0) {
         name_buf->count = uRet;
@@ -139,9 +139,9 @@ static Janet cfun_GlobalGetAtomName(int32_t argc, Janet *argv)
     do {
         janet_buffer_ensure(name_buf, cap, 1);
         jw32_dbg_val(name_buf->capacity, "%d");
-        uRet = GlobalGetAtomName(nAtom, name_buf->data, name_buf->capacity);
+        uRet = GlobalGetAtomName(nAtom, (LPSTR)name_buf->data, name_buf->capacity);
         cap *= 2;
-    } while (uRet >= name_buf->capacity - 1);
+    } while (uRet >= (UINT)(name_buf->capacity - 1));
 
     if (uRet > 0) {
         name_buf->count = uRet;
