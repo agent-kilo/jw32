@@ -1,7 +1,7 @@
 (declare-project :name "jw32")
 
 (def cflags
-  ["/nologo"])
+  ["/nologo" "/W4"])
 (def debug-flags
   ["/DJW32_DEBUG"]
   #[]
