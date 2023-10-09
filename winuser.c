@@ -957,7 +957,7 @@ static inline int search_local_class_wnd_proc(const uint8_t *class_name, HINSTAN
         const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
         HINSTANCE ehInstance = jw32_unwrap_handle(entry_tuple[1]);
         if ((ehInstance == hInstance || hInstance == NULL)
-            && !strcmp(entry_class_name, class_name)) {
+            && !strcmp((const char *)entry_class_name, (const char *)class_name)) {
             return i;
         }
     }
@@ -970,7 +970,7 @@ static inline int search_global_class_wnd_proc(const uint8_t *class_name)
         Janet entry = global_class_wnd_proc_registry->data[i];
         const Janet *entry_tuple = janet_unwrap_tuple(entry); /* (class_name wnd_proc) */
         const uint8_t *entry_class_name = janet_unwrap_keyword(entry_tuple[0]);
-        if (!strcmp(entry_class_name, class_name)) {
+        if (!strcmp((const char *)entry_class_name, (const char *)class_name)) {
             return i;
         }
     }
@@ -1256,8 +1256,6 @@ static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
 
 static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 {
-    Janet local_key, global_key;
-    Janet local_key_tuple[2];
     Janet class_name = normalize_wnd_class_name(lpClassName);
 
     if (janet_checktype(class_name, JANET_NIL)) {
@@ -1421,6 +1419,7 @@ static Janet cfun_MessageBox(int32_t argc, Janet *argv)
 
 static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     return jw32_wrap_handle(GetDesktopWindow());
@@ -1486,6 +1485,8 @@ static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
         } else {
             lpParam = jw32_get_lpvoid(argv, 11);
         }
+    } else {
+        lpParam = jw32_get_lpvoid(argv, 11);
     }
 
     hWnd = CreateWindowEx(dwExStyle,
@@ -1544,6 +1545,8 @@ static Janet cfun_UpdateWindow(int32_t argc, Janet *argv)
 static int WNDCLASSEX_gcmark(void *p, size_t len)
 {
     jw32_wc_t *jwc = (jw32_wc_t *)p;
+
+    (void)len;
 
     jw32_dbg_msg("gcmark begin");
 
@@ -1897,6 +1900,7 @@ static Janet cfun_LoadImage(int32_t argc, Janet *argv)
 
 static Janet cfun_CreateMenu(int32_t argc, Janet *argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     return jw32_wrap_handle(CreateMenu());
@@ -1904,6 +1908,7 @@ static Janet cfun_CreateMenu(int32_t argc, Janet *argv)
 
 static Janet cfun_CreatePopupMenu(int32_t argc, Janet *argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     return jw32_wrap_handle(CreatePopupMenu());
