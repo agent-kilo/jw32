@@ -61,4 +61,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
 
     janet_def(env, "NULL", jw32_wrap_lpvoid(NULL),
               "The NULL pointer, for comparison with API return values.");
+    janet_def(env, "TRUE", jw32_wrap_bool(TRUE),
+              "TRUE value, for comparison with API return values.");
+    janet_def(env, "FALSE", jw32_wrap_bool(FALSE),
+              "FALSE value, for comparison with API return values.");
 }
