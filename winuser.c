@@ -1297,11 +1297,13 @@ static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
 
 LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_msg("============= jw32_wnd_proc ===============");
     jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
     jw32_dbg_val(uMsg, "0x%" PRIx32);
     jw32_dbg_val(wParam, "0x%" PRIx64);
     jw32_dbg_val(lParam, "%lld");
+#endif
 
     switch (uMsg) {
     case WM_NCCREATE: {
@@ -1345,11 +1347,13 @@ LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_msg("============= jw32_dlg_proc ===============");
     jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
     jw32_dbg_val(uMsg, "0x%" PRIx32);
     jw32_dbg_val(wParam, "0x%" PRIx64);
     jw32_dbg_val(lParam, "%lld");
+#endif
 
     switch (uMsg) {
     case WM_INITDIALOG: {
@@ -1398,6 +1402,7 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     Janet argv[7], ret;
     JanetFunction *win_event_proc_fn = NULL;
 
+#ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_msg("============= jw32_win_event_proc ===============");
     jw32_dbg_val((uint64_t)hWinEventHook, "0x%" PRIx64);
     jw32_dbg_val(event, "0x%" PRIx32);
@@ -1406,6 +1411,7 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     jw32_dbg_val(idChild, "%ld");
     jw32_dbg_val(idEventThread, "0x%" PRIx32);
     jw32_dbg_val(dwmsEventTime, "0x%" PRIx32);
+#endif
 
     if (janet_checktype(win_event_proc, JANET_NIL)) {
         jw32_dbg_msg("nil win_event_proc!");

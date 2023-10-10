@@ -3,8 +3,10 @@
 (def cflags
   ["/nologo" "/W4"])
 (def debug-flags
-  ["/DJW32_DEBUG"]
-  #[]
+  [
+   "/DJW32_DEBUG"
+   #"/DJW32_CALLBACK_DEBUG"
+  ]
   )
 (def common-headers ["jw32.h" "types.h"])
 
