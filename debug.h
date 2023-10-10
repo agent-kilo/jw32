@@ -37,10 +37,10 @@
     do {} while (0)
 
 #define jw32_dbg_val(val, fmt)                  \
-    do {} while (0)
+    do { (void)(val); } while (0)
 
-#define jw32_dbg_jval(val, fmt)                 \
-    do {} while (0)
+#define jw32_dbg_jval(val)                      \
+    do { (void)(val); } while (0)
 
 #endif /* JW32_DEBUG */
 
