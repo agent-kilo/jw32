@@ -1159,7 +1159,9 @@ static INT_PTR maybe_call_dlg_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, W
 
         if (call_wnd_proc_fn(fn, hWnd, uMsg, wParam, lParam, &ret)) {
             INT_PTR nRet = jw32_unwrap_int_ptr(ret);
+#ifdef JW32_CALLBACK_DEBUG
             jw32_dbg_val(nRet, "0x%" PRIx64);
+#endif
             return nRet;
         } else {
             jw32_dbg_msg("call_wnd_proc_fn() failed!");
