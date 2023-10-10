@@ -17,12 +17,20 @@ static JanetArray *local_class_wnd_proc_registry;
 static JanetArray *global_class_wnd_proc_registry;
 static JanetTable *atom_class_name_map;
 
+static JanetTable *win_event_hook_registry;
+
 
 /* pre-defined window properties we used */
 #define JW32_WND_PROC_FN_PROP_NAME "jw32_wnd_proc_fn"
 #define JW32_DLG_PROC_FN_PROP_NAME "jw32_dlg_proc_fn"
 #define JW32_MAX_PROP_LEN (sizeof(JW32_WND_PROC_FN_PROP_NAME)) /* includes the trailing null byte */
 
+
+/*******************************************************************
+ *
+ * CONSTANT DEFINITIONS
+ *
+ *******************************************************************/
 
 static void define_consts_wm(JanetTable *env)
 {
@@ -925,6 +933,139 @@ static void define_consts_icon(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_winevent(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for setting WinEvent hooks.")
+    __def(WINEVENT_INCONTEXT);
+    __def(WINEVENT_OUTOFCONTEXT);
+    __def(WINEVENT_SKIPOWNPROCESS);
+    __def(WINEVENT_SKIPOWNTHREAD);
+#undef __def
+}
+
+static void define_consts_event(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for WinEvent types.")
+
+    __def(EVENT_MIN);
+    __def(EVENT_MAX);
+    __def(EVENT_SYSTEM_SOUND);
+    __def(EVENT_SYSTEM_ALERT);
+    __def(EVENT_SYSTEM_FOREGROUND);
+    __def(EVENT_SYSTEM_MENUSTART);
+    __def(EVENT_SYSTEM_MENUEND);
+    __def(EVENT_SYSTEM_MENUPOPUPSTART);
+    __def(EVENT_SYSTEM_MENUPOPUPEND);
+    __def(EVENT_SYSTEM_CAPTURESTART);
+    __def(EVENT_SYSTEM_CAPTUREEND);
+    __def(EVENT_SYSTEM_MOVESIZESTART);
+    __def(EVENT_SYSTEM_MOVESIZEEND);
+    __def(EVENT_SYSTEM_CONTEXTHELPSTART);
+    __def(EVENT_SYSTEM_CONTEXTHELPEND);
+    __def(EVENT_SYSTEM_DRAGDROPSTART);
+    __def(EVENT_SYSTEM_DRAGDROPEND);
+    __def(EVENT_SYSTEM_DIALOGSTART);
+    __def(EVENT_SYSTEM_DIALOGEND);
+    __def(EVENT_SYSTEM_SCROLLINGSTART);
+    __def(EVENT_SYSTEM_SCROLLINGEND);
+    __def(EVENT_SYSTEM_SWITCHSTART);
+    __def(EVENT_SYSTEM_SWITCHEND);
+    __def(EVENT_SYSTEM_MINIMIZESTART);
+    __def(EVENT_SYSTEM_MINIMIZEEND);
+#if(_WIN32_WINNT >= 0x0600)
+    __def(EVENT_SYSTEM_DESKTOPSWITCH);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(_WIN32_WINNT >= 0x0602)
+    __def(EVENT_SYSTEM_SWITCHER_APPGRABBED);
+    __def(EVENT_SYSTEM_SWITCHER_APPOVERTARGET);
+    __def(EVENT_SYSTEM_SWITCHER_APPDROPPED);
+    __def(EVENT_SYSTEM_SWITCHER_CANCELLED);
+    __def(EVENT_SYSTEM_IME_KEY_NOTIFICATION);
+#endif /* _WIN32_WINNT >= 0x0602 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(EVENT_SYSTEM_END);
+    __def(EVENT_OEM_DEFINED_START);
+    __def(EVENT_OEM_DEFINED_END);
+    __def(EVENT_UIA_EVENTID_START);
+    __def(EVENT_UIA_EVENTID_END);
+    __def(EVENT_UIA_PROPID_START);
+    __def(EVENT_UIA_PROPID_END);
+#endif /* _WIN32_WINNT >= 0x0601 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(EVENT_CONSOLE_CARET);
+    __def(EVENT_CONSOLE_UPDATE_REGION);
+    __def(EVENT_CONSOLE_UPDATE_SIMPLE);
+    __def(EVENT_CONSOLE_UPDATE_SCROLL);
+    __def(EVENT_CONSOLE_LAYOUT);
+    __def(EVENT_CONSOLE_START_APPLICATION);
+    __def(EVENT_CONSOLE_END_APPLICATION);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(EVENT_CONSOLE_END);
+#endif /* _WIN32_WINNT >= 0x0601 */
+    __def(EVENT_OBJECT_CREATE);
+    __def(EVENT_OBJECT_DESTROY);
+    __def(EVENT_OBJECT_SHOW);
+    __def(EVENT_OBJECT_HIDE);
+    __def(EVENT_OBJECT_REORDER);
+    __def(EVENT_OBJECT_FOCUS);
+    __def(EVENT_OBJECT_SELECTION);
+    __def(EVENT_OBJECT_SELECTIONADD);
+    __def(EVENT_OBJECT_SELECTIONREMOVE);
+    __def(EVENT_OBJECT_SELECTIONWITHIN);
+    __def(EVENT_OBJECT_STATECHANGE);
+    __def(EVENT_OBJECT_LOCATIONCHANGE);
+    __def(EVENT_OBJECT_NAMECHANGE);
+    __def(EVENT_OBJECT_DESCRIPTIONCHANGE);
+    __def(EVENT_OBJECT_VALUECHANGE);
+    __def(EVENT_OBJECT_PARENTCHANGE);
+    __def(EVENT_OBJECT_HELPCHANGE);
+    __def(EVENT_OBJECT_DEFACTIONCHANGE);
+    __def(EVENT_OBJECT_ACCELERATORCHANGE);
+#if(_WIN32_WINNT >= 0x0600)
+    __def(EVENT_OBJECT_INVOKED);
+    __def(EVENT_OBJECT_TEXTSELECTIONCHANGED);
+    __def(EVENT_OBJECT_CONTENTSCROLLED);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(EVENT_SYSTEM_ARRANGMENTPREVIEW);
+#endif /* _WIN32_WINNT >= 0x0601 */
+#if(_WIN32_WINNT >= 0x0602)
+    __def(EVENT_OBJECT_CLOAKED);
+    __def(EVENT_OBJECT_UNCLOAKED);
+    __def(EVENT_OBJECT_LIVEREGIONCHANGED);
+    __def(EVENT_OBJECT_HOSTEDOBJECTSINVALIDATED);
+    __def(EVENT_OBJECT_DRAGSTART);
+    __def(EVENT_OBJECT_DRAGCANCEL);
+    __def(EVENT_OBJECT_DRAGCOMPLETE);
+
+    __def(EVENT_OBJECT_DRAGENTER);
+    __def(EVENT_OBJECT_DRAGLEAVE);
+    __def(EVENT_OBJECT_DRAGDROPPED);
+    __def(EVENT_OBJECT_IME_SHOW);
+    __def(EVENT_OBJECT_IME_HIDE);
+    __def(EVENT_OBJECT_IME_CHANGE);
+    __def(EVENT_OBJECT_TEXTEDIT_CONVERSIONTARGETCHANGED);
+#endif /* _WIN32_WINNT >= 0x0602 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(EVENT_OBJECT_END);
+    __def(EVENT_AIA_START);
+    __def(EVENT_AIA_END);
+#endif /* _WIN32_WINNT >= 0x0601 */
+
+#undef __def
+}
+
+
+/*******************************************************************
+ *
+ * HELPER FUNCTIONS
+ *
+ *******************************************************************/
 
 static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out)
 {
@@ -1052,6 +1193,205 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
     }
 }
 
+static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
+{
+    Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
+    Janet class_name = jw32_cstr_to_keyword(jwc->wc.lpszClassName);
+    Janet atom = jw32_wrap_atom(atmClass);
+    Janet reg_entry_tuple[3];
+    Janet reg_entry;
+
+    reg_entry_tuple[0] = class_name;
+
+    /* an application can register local or global classes, and they
+       are looked up in different ways */
+    if (jwc->wc.style & CS_GLOBALCLASS) {
+        reg_entry_tuple[1] = wnd_proc;
+        /* (class_name wnd_proc) */
+        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 2));
+        janet_array_push(global_class_wnd_proc_registry, reg_entry);
+    } else {
+        /* (class_name h_instance wnd_proc) */
+        Janet h_instance = jw32_wrap_handle(jwc->wc.hInstance);
+        reg_entry_tuple[1] = h_instance;
+        reg_entry_tuple[2] = wnd_proc;;
+        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 3));
+        janet_array_push(local_class_wnd_proc_registry, reg_entry);
+    }
+
+    janet_table_put(atom_class_name_map, atom, class_name);
+}
+
+static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
+{
+    Janet class_name = normalize_wnd_class_name(lpClassName);
+
+    if (janet_checktype(class_name, JANET_NIL)) {
+        return;
+    }
+
+    /* the logic inside UnregisterClass():
+
+       hInstance == NULL means wildcard, search ALL local classes first; when there were
+       multiple local classes with the same name, the one registered last gets
+       unregistered first.
+
+       hInstance != NULL means to search the local classes registered by this module first.
+
+       if the class was not found among local classes, try to unregister global classes with
+       that name.
+
+       only unregister ONE class at a time.
+
+       XXX: these info is obtained by observation though, i couldn't find a precise description
+       in the win32 docs. i wouldn't want class name clashes in my program.... */
+
+    const uint8_t *class_name_str = janet_unwrap_keyword(class_name);
+    int found = search_local_class_wnd_proc(class_name_str, hInstance);
+    if (found >= 0) {
+        remove_array_entry(local_class_wnd_proc_registry, found);
+        return;
+    }
+    found = search_global_class_wnd_proc(class_name_str);
+    if (found >= 0) {
+        remove_array_entry(global_class_wnd_proc_registry, found);
+        return;
+    }
+
+    /* here we keep the entry in atom_class_name_map, since there
+       may be other classes with the same name */
+}
+
+
+/*******************************************************************
+ *
+ * CALLBACKS
+ *
+ *******************************************************************/
+
+LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    jw32_dbg_msg("===========================");
+    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
+    jw32_dbg_val(uMsg, "0x%" PRIx32);
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "0x%lld");
+
+    switch (uMsg) {
+    case WM_NCCREATE: {
+        CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
+        const Janet *param_tuple = (Janet *)cs->lpCreateParams;
+        LPVOID lpRealParam = jw32_unwrap_lpvoid(param_tuple[1]);
+        BOOL bSet;
+
+        Janet wnd_proc = param_tuple[0];
+        JanetFunction *wnd_proc_fn = janet_unwrap_function(wnd_proc);
+
+        jw32_dbg_jval(wnd_proc);
+
+        bSet = SetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME, (HANDLE)wnd_proc_fn);
+        if (!bSet) {
+            jw32_dbg_msg("SetProp() failed!");
+            jw32_dbg_val(GetLastError(), "0x%x");
+            return FALSE; /* abort window creation */
+        }
+
+        cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
+        /* return FALSE when failed, to abort window creation */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, FALSE, FALSE);
+    }
+
+    case WM_NCDESTROY: {
+        JanetFunction *wnd_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
+        /* return zero when failed, to indicate we did the clean-up */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, 0, FALSE);
+    }
+
+    default: {
+        JanetFunction *wnd_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
+        /* XXX: -1 means "abort" in WM_CREATE, but other messages may not
+           understand this value */
+        /* and we call DefWindowProc() when we can't find wnd_proc */
+        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, -1, TRUE);
+    }
+    }
+}
+
+INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    jw32_dbg_msg("###########################");
+    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
+    jw32_dbg_val(uMsg, "0x%" PRIx32);
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "0x%lld");
+
+    switch (uMsg) {
+    case WM_INITDIALOG: {
+        const Janet *param_tuple = (Janet *)lParam;
+        LPARAM lpRealParam = jw32_unwrap_lparam(param_tuple[1]);
+        BOOL bSet;
+
+        Janet dlg_proc = param_tuple[0];
+        JanetFunction *dlg_proc_fn = janet_unwrap_function(dlg_proc);
+
+        jw32_dbg_jval(dlg_proc);
+
+        bSet = SetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME, (HANDLE)dlg_proc_fn);
+        if (!bSet) {
+            jw32_dbg_msg("SetProp() failed!");
+            jw32_dbg_val(GetLastError(), "0x%x");
+            if (!EndDialog(hWnd, -1)) {
+                jw32_dbg_msg("EndDialog() failed!");
+                jw32_dbg_val(GetLastError(), "0x%x");
+            }
+            return TRUE; /* set default keyboard focus */
+        }
+
+        /* set default keyboard focus even if we failed */
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lpRealParam, TRUE);
+    }
+
+    case WM_NCDESTROY: {
+        JanetFunction *dlg_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
+    }
+
+    default: {
+        JanetFunction *dlg_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
+        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
+    }
+    }
+}
+
+void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
+                                  HWND hwnd, LONG idObject, LONG idChild,
+                                  DWORD idEventThread, DWORD dwmsEventTime)
+{
+    Janet hook = jw32_wrap_handle(hWinEventHook),
+        win_event_proc = janet_table_get(win_event_hook_registry, hook);
+    Janet argv[7], ret;
+    JanetFunction *win_event_proc_fn = NULL;
+
+    if (janet_checktype(win_event_proc, JANET_NIL)) {
+        jw32_dbg_msg("nil win_event_proc!");
+        return;
+    }
+
+    win_event_proc_fn = janet_unwrap_function(win_event_proc);
+
+    argv[0] = jw32_wrap_handle(hWinEventHook);
+    argv[1] = jw32_wrap_dword(event);
+    argv[2] = jw32_wrap_handle(hwnd);
+    argv[3] = jw32_wrap_long(idObject);
+    argv[4] = jw32_wrap_long(idChild);
+    argv[5] = jw32_wrap_dword(idEventThread);
+    argv[6] = jw32_wrap_dword(dwmsEventTime);
+
+    if (!call_fn(win_event_proc_fn, 7, argv, &ret)) {
+        jw32_dbg_jval(ret);
+    }
+}
+
 
 /*******************************************************************
  *
@@ -1148,6 +1488,57 @@ static Janet cfun_MSG(int32_t argc, Janet *argv)
     }
 
     return janet_wrap_abstract(msg);
+}
+
+static Janet cfun_SetWinEventHook(int32_t argc, Janet *argv)
+{
+    DWORD eventMin, eventMax;
+    HMODULE hmodWinEventProc;
+    JanetFunction *win_event_proc_fn;
+    DWORD idProcess, idThread, dwFlags;
+
+    HWINEVENTHOOK hHook;
+
+    janet_fixarity(argc, 7);
+
+    eventMin = jw32_get_dword(argv, 0);
+    eventMax = jw32_get_dword(argv, 1);
+    hmodWinEventProc = jw32_get_handle(argv, 2);
+    win_event_proc_fn = janet_getfunction(argv, 3);
+    idProcess = jw32_get_dword(argv, 4);
+    idThread = jw32_get_dword(argv, 5);
+    dwFlags = jw32_get_dword(argv, 6);
+
+    hHook = SetWinEventHook(eventMin, eventMax, hmodWinEventProc,
+                           jw32_win_event_proc, idProcess, idThread, dwFlags);
+
+    if (hHook) {
+        Janet hook = jw32_wrap_handle(hHook);
+        janet_table_put(win_event_hook_registry, hook, janet_wrap_function(win_event_proc_fn));
+        jw32_dbg_jval(hook);
+        jw32_dbg_jval(argv[3]);
+    }
+
+    return jw32_wrap_handle(hHook);
+}
+
+static Janet cfun_UnhookWinEvent(int32_t argc, Janet *argv)
+{
+    HWINEVENTHOOK hWinEventHook;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    hWinEventHook = jw32_get_handle(argv, 0);
+    bRet = UnhookWinEvent(hWinEventHook);
+
+    if (bRet) {
+        Janet removed = janet_table_remove(win_event_hook_registry, jw32_wrap_handle(hWinEventHook));
+        jw32_dbg_jval(removed);
+    }
+
+    return jw32_wrap_bool(bRet);
 }
 
 static Janet cfun_GetMessage(int32_t argc, Janet *argv)
@@ -1281,169 +1672,6 @@ static Janet cfun_SendMessage(int32_t argc, Janet *argv)
 
     lRet = SendMessage(hWnd, Msg, wParam, lParam);
     return jw32_wrap_lresult(lRet);
-}
-
-static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
-{
-    Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
-    Janet class_name = jw32_cstr_to_keyword(jwc->wc.lpszClassName);
-    Janet atom = jw32_wrap_atom(atmClass);
-    Janet reg_entry_tuple[3];
-    Janet reg_entry;
-
-    reg_entry_tuple[0] = class_name;
-
-    /* an application can register local or global classes, and they
-       are looked up in different ways */
-    if (jwc->wc.style & CS_GLOBALCLASS) {
-        reg_entry_tuple[1] = wnd_proc;
-        /* (class_name wnd_proc) */
-        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 2));
-        janet_array_push(global_class_wnd_proc_registry, reg_entry);
-    } else {
-        /* (class_name h_instance wnd_proc) */
-        Janet h_instance = jw32_wrap_handle(jwc->wc.hInstance);
-        reg_entry_tuple[1] = h_instance;
-        reg_entry_tuple[2] = wnd_proc;;
-        reg_entry = janet_wrap_tuple(janet_tuple_n(reg_entry_tuple, 3));
-        janet_array_push(local_class_wnd_proc_registry, reg_entry);
-    }
-
-    janet_table_put(atom_class_name_map, atom, class_name);
-}
-
-static void unregister_class_wnd_proc(LPCSTR lpClassName, HINSTANCE hInstance)
-{
-    Janet class_name = normalize_wnd_class_name(lpClassName);
-
-    if (janet_checktype(class_name, JANET_NIL)) {
-        return;
-    }
-
-    /* the logic inside UnregisterClass():
-
-       hInstance == NULL means wildcard, search ALL local classes first; when there were
-       multiple local classes with the same name, the one registered last gets
-       unregistered first.
-
-       hInstance != NULL means to search the local classes registered by this module first.
-
-       if the class was not found among local classes, try to unregister global classes with
-       that name.
-
-       only unregister ONE class at a time.
-
-       XXX: these info is obtained by observation though, i couldn't find a precise description
-       in the win32 docs. i wouldn't want class name clashes in my program.... */
-
-    const uint8_t *class_name_str = janet_unwrap_keyword(class_name);
-    int found = search_local_class_wnd_proc(class_name_str, hInstance);
-    if (found >= 0) {
-        remove_array_entry(local_class_wnd_proc_registry, found);
-        return;
-    }
-    found = search_global_class_wnd_proc(class_name_str);
-    if (found >= 0) {
-        remove_array_entry(global_class_wnd_proc_registry, found);
-        return;
-    }
-
-    /* here we keep the entry in atom_class_name_map, since there
-       may be other classes with the same name */
-}
-
-LRESULT CALLBACK jw32_wnd_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    jw32_dbg_msg("===========================");
-    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
-    jw32_dbg_val(uMsg, "0x%" PRIx32);
-    jw32_dbg_val(wParam, "0x%" PRIx64);
-    jw32_dbg_val(lParam, "0x%lld");
-
-    switch (uMsg) {
-    case WM_NCCREATE: {
-        CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
-        const Janet *param_tuple = (Janet *)cs->lpCreateParams;
-        LPVOID lpRealParam = jw32_unwrap_lpvoid(param_tuple[1]);
-        BOOL bSet;
-
-        Janet wnd_proc = param_tuple[0];
-        JanetFunction *wnd_proc_fn = janet_unwrap_function(wnd_proc);
-
-        jw32_dbg_jval(wnd_proc);
-
-        bSet = SetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME, (HANDLE)wnd_proc_fn);
-        if (!bSet) {
-            jw32_dbg_msg("SetProp() failed!");
-            jw32_dbg_val(GetLastError(), "0x%x");
-            return FALSE; /* abort window creation */
-        }
-
-        cs->lpCreateParams = lpRealParam; /* XXX: can i really do this? */
-        /* return FALSE when failed, to abort window creation */
-        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, FALSE, FALSE);
-    }
-
-    case WM_NCDESTROY: {
-        JanetFunction *wnd_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
-        /* return zero when failed, to indicate we did the clean-up */
-        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, 0, FALSE);
-    }
-
-    default: {
-        JanetFunction *wnd_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_WND_PROC_FN_PROP_NAME);
-        /* XXX: -1 means "abort" in WM_CREATE, but other messages may not
-           understand this value */
-        /* and we call DefWindowProc() when we can't find wnd_proc */
-        return maybe_call_wnd_proc_fn(wnd_proc_fn, hWnd, uMsg, wParam, lParam, -1, TRUE);
-    }
-    }
-}
-
-INT_PTR CALLBACK jw32_dlg_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    jw32_dbg_msg("###########################");
-    jw32_dbg_val((uint64_t)hWnd, "0x%" PRIx64);
-    jw32_dbg_val(uMsg, "0x%" PRIx32);
-    jw32_dbg_val(wParam, "0x%" PRIx64);
-    jw32_dbg_val(lParam, "0x%lld");
-
-    switch (uMsg) {
-    case WM_INITDIALOG: {
-        const Janet *param_tuple = (Janet *)lParam;
-        LPARAM lpRealParam = jw32_unwrap_lparam(param_tuple[1]);
-        BOOL bSet;
-
-        Janet dlg_proc = param_tuple[0];
-        JanetFunction *dlg_proc_fn = janet_unwrap_function(dlg_proc);
-
-        jw32_dbg_jval(dlg_proc);
-
-        bSet = SetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME, (HANDLE)dlg_proc_fn);
-        if (!bSet) {
-            jw32_dbg_msg("SetProp() failed!");
-            jw32_dbg_val(GetLastError(), "0x%x");
-            if (!EndDialog(hWnd, -1)) {
-                jw32_dbg_msg("EndDialog() failed!");
-                jw32_dbg_val(GetLastError(), "0x%x");
-            }
-            return TRUE; /* set default keyboard focus */
-        }
-
-        /* set default keyboard focus even if we failed */
-        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lpRealParam, TRUE);
-    }
-
-    case WM_NCDESTROY: {
-        JanetFunction *dlg_proc_fn = (JanetFunction *)RemoveProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
-        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
-    }
-
-    default: {
-        JanetFunction *dlg_proc_fn = (JanetFunction *)GetProp(hWnd, JW32_DLG_PROC_FN_PROP_NAME);
-        return maybe_call_dlg_proc_fn(dlg_proc_fn, hWnd, uMsg, wParam, lParam, FALSE);
-    }
-    }
 }
 
 
@@ -2133,6 +2361,18 @@ static const JanetReg cfuns[] = {
         "Builds a MSG struct.",
     },
     {
+        "SetWinEventHook",
+        cfun_SetWinEventHook,
+        "(" MOD_NAME "/SetWinEventHook eventMin eventMax hmodWinEventProc pfnWinEventProc idProcess idThread dwFlags)\n\n"
+        "Sets an event hook function for a range of events.",
+    },
+    {
+        "UnhookWinEvent",
+        cfun_UnhookWinEvent,
+        "(" MOD_NAME "/UnhookWinEvent hWinEventHook)\n\n"
+        "Removes an event hook function.",
+    },
+    {
         "GetMessage",
         cfun_GetMessage,
         "(" MOD_NAME "/GetMessage lpMsg hWnd wMsgFilterMin wMsgFilterMax)\n\n"
@@ -2338,6 +2578,7 @@ static void init_global_states(JanetTable *env)
     local_class_wnd_proc_registry = janet_array(0);
     global_class_wnd_proc_registry = janet_array(0);
     atom_class_name_map = janet_table(0);
+    win_event_hook_registry = janet_table(0);
 
     janet_def(env, "local_class_wnd_proc_registry", janet_wrap_array(local_class_wnd_proc_registry),
               "Where all the local WndProcs reside.");
@@ -2345,6 +2586,8 @@ static void init_global_states(JanetTable *env)
               "Where all the global WndProcs reside.");
     janet_def(env, "atom_class_name_map", janet_wrap_table(atom_class_name_map),
               "atom -> class name");
+    janet_def(env, "win_event_hook_registry", janet_wrap_table(win_event_hook_registry),
+              "HWINEVENTHOOK -> win event hook proc");
 }
 
 
@@ -2367,6 +2610,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_mf(env);
     define_consts_hwnd(env);
     define_consts_icon(env);
+    define_consts_winevent(env);
+    define_consts_event(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
