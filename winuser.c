@@ -1125,7 +1125,9 @@ static int call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wPar
 
 static LRESULT maybe_call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lFailRet, BOOL bCallDefProc)
 {
+#ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_val((uint64_t)fn, "0x%" PRIx64);
+#endif
 
     if (fn) {
         Janet ret;
@@ -1148,7 +1150,9 @@ static LRESULT maybe_call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, W
 
 static INT_PTR maybe_call_dlg_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, INT_PTR nFailRet)
 {
+#ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_val((uint64_t)fn, "0x%" PRIx64);
+#endif
 
     if (fn) {
         Janet ret;
