@@ -33,6 +33,17 @@ static Janet cfun_CoInitializeEx(int32_t argc, Janet *argv)
     return jw32_wrap_hresult(hrRet);
 }
 
+static Janet cfun_CoUninitialize(int32_t argc, Janet *argv)
+{
+    janet_fixarity(argc, 0);
+
+    (void)argc;
+    (void)argv;
+
+    CoUninitialize();
+    return janet_wrap_nil();
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -40,6 +51,12 @@ static const JanetReg cfuns[] = {
         cfun_CoInitializeEx,
         "(" MOD_NAME "/CoInitializeEx pvReserved dwCoInit)\n\n"
         "Initializes the COM library."
+    },
+    {
+        "CoUninitialize",
+        cfun_CoUninitialize,
+        "(" MOD_NAME "/CoUninitialize)\n\n"
+        "Uninitializes the COM library."
     },
     {NULL, NULL, NULL},
 };
