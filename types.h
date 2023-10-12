@@ -217,4 +217,10 @@ static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
 #define jw32_get_dword_ptr(argv, n) ((DWORD_PTR)jw32_get_ulong_ptr(argv, n))
 
 
+/* HRESULT: 32 bit signed */
+#define jw32_wrap_hresult(x) jw32_wrap_long(x)
+#difene jw32_unwrap_hresult(x) ((HRESULT)jw32_unwrap_long(x))
+#define jw32_get_hresult(x) ((HRESULT)jw32_get_long(argv, n))
+
+
 #endif  /* __JW32_TYPES_H */

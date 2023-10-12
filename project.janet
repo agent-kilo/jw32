@@ -44,6 +44,13 @@
  :headers [;common-headers]
  :cflags [;cflags ;debug-flags]
  :ldflags ["kernel32.lib"])
+ 
+(declare-native
+ :name "jw32/combaseapi"
+ :source ["combaseapi.c"]
+ :headers [;common-headers]
+ :cflags [;cflags ;debug-flags]
+ :ldflags ["ole32.lib"])
 
 (declare-native
  :name "jw32/util"

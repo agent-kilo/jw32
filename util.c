@@ -31,6 +31,24 @@ static Janet cfun_HIWORD(int32_t argc, Janet *argv)
     return jw32_wrap_word(HIWORD(dwordptr));
 }
 
+static Janet cfun_SUCCEEDED(int32_t argc, Janet *argv)
+{
+    HRESULT code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0); /* may also be an SCODE */
+    return janet_wrap_boolean(SUCCEEDED(code));
+}
+
+static Janet cfun_FAILED(int32_t argc, Janet *argv)
+{
+    HRESULT code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0); /* may also be an SCODE */
+    return janet_wrap_boolean(FAILED(code));
+}
+
 
 static const JanetReg cfuns[] = {
     {
@@ -50,6 +68,18 @@ static const JanetReg cfuns[] = {
         cfun_HIWORD,
         "(" MOD_NAME "/HIWORD dwordptr)\n\n"
         "Retrieves HIWORD.",
+    },
+    {
+        "SUCCEEDED",
+        cfun_SUCCEEDED,
+        "(" MOD_NAME "/SUCCEEDED hr)\n\n"
+        "Check if an HRESULT or SCODE represents success.",
+    },
+    {
+        "FAILED",
+        cfun_FAILED,
+        "(" MOD_NAME "/FAILED hr)\n\n"
+        "Check if an HRESULT or SCODE represents failure.",
     },
     {NULL, NULL, NULL},
 };
