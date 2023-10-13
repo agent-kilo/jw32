@@ -55,7 +55,7 @@
 (declare-native
  :name "jw32/uiautomation"
  :source ["uiautomation.c"]
- :headers ["jw32_com.h" ;common-headers]
+ :headers ["jw32_com.h" "debug.h" ;common-headers]
  :cflags [;cflags ;debug-flags]
  :ldflags [])
 

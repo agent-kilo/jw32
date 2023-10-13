@@ -6,6 +6,9 @@
 
 #define JW32_COM_OBJ_REF_NAME "__obj_ref"
 
+#define IUNKNOWN_MOD_NAME "jw32/combaseapi"
+#define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
+
 
 /* REFCLSID: pointer to class UUID struct */
 #define jw32_wrap_refclsid(x) jw32_wrap_lpvoid((void *)x)
@@ -42,6 +45,30 @@ static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
     }
 
     return janet_unwrap_pointer(maybe_ref);
+}
+
+static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
+{
+    Janet argv[] = {
+        janet_wrap_string(janet_cstring(IUNKNOWN_MOD_NAME)),
+    };
+    /* (import* ...) may fail by raising a signal. */
+    Janet cur_env = jw32_call_core_fn("import*", 1, argv);
+    JanetTable *cur_env_tb = janet_unwrap_table(cur_env);
+
+    Janet iunknown_proto;
+    JanetBindingType b_type = janet_resolve(cur_env_tb,
+                                            janet_csymbol(IUNKNOWN_PROTO_NAME),
+                                            &iunknown_proto);
+    if (JANET_BINDING_NONE == b_type) {
+        janet_panicf("could not import variable %s", IUNKNOWN_PROTO_NAME);
+    }
+    if (!janet_checktype(iunknown_proto, JANET_TABLE)) {
+        janet_panicf("expected %s to be a table, got %v",
+                     IUNKNOWN_PROTO_NAME, iunknown_proto);
+    }
+
+    return janet_unwrap_table(iunknown_proto);
 }
 
 #endif /* __JW32_COM_H */

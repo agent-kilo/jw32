@@ -1093,24 +1093,6 @@ static void define_consts_objid(JanetTable *env)
  *
  *******************************************************************/
 
-static inline int call_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out)
-{
-  JanetFiber *fiber = NULL;
-  int ret, lock;
-
-  /* XXX: if i call any function (cfuns or janet functions) inside fn,
-     there would be memory violations without this lock, i don't know why */
-  lock = janet_gclock();
-  if (janet_pcall(fn, argc, argv, out, &fiber) == JANET_SIGNAL_OK) {
-      ret = 1;
-  } else {
-      janet_stacktrace(fiber, *out);
-      ret = 0;
-  }
-  janet_gcunlock(lock);
-  return ret;
-}
-
 static int call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Janet *out)
 {
     Janet argv[4] = {
@@ -1120,7 +1102,7 @@ static int call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wPar
         jw32_wrap_lparam(lParam),
     };
 
-    return call_fn(fn, 4, argv, out);
+    return jw32_pcall_fn(fn, 4, argv, out);
 }
 
 static LRESULT maybe_call_wnd_proc_fn(JanetFunction *fn, HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lFailRet, BOOL bCallDefProc)
@@ -1434,7 +1416,7 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     argv[5] = jw32_wrap_dword(idEventThread);
     argv[6] = jw32_wrap_dword(dwmsEventTime);
 
-    if (!call_fn(win_event_proc_fn, 7, argv, &ret)) {
+    if (!jw32_pcall_fn(win_event_proc_fn, 7, argv, &ret)) {
         jw32_dbg_jval(ret);
     }
 }

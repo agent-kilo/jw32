@@ -24,7 +24,7 @@
 
 #define jw32_dbg_jval(val)                                              \
     do {                                                                \
-        janet_eprintf("-- %s:%s:%d: " #val " = %v\n", __FILE__, __func__, __LINE__, (val)); \
+        janet_eprintf("-- %s:%s:%d: " #val " = %p\n", __FILE__, __func__, __LINE__, (val)); \
         fflush(stderr);                                                 \
     } while (0)
 

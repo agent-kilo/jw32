@@ -24,4 +24,33 @@ static inline int32_t lower_power_of_two(int32_t n)
     return 0;
 }
 
+static inline int jw32_pcall_fn(JanetFunction *fn, int argc, const Janet *argv, Janet *out)
+{
+  JanetFiber *fiber = NULL;
+  int ret, lock;
+
+  /* XXX: if i call any function (cfuns or janet functions) inside fn,
+     there would be memory violations without this lock, i don't know why */
+  lock = janet_gclock();
+  if (janet_pcall(fn, argc, argv, out, &fiber) == JANET_SIGNAL_OK) {
+      ret = 1;
+  } else {
+      janet_stacktrace(fiber, *out);
+      ret = 0;
+  }
+  janet_gcunlock(lock);
+  return ret;
+}
+
+static inline Janet jw32_call_core_fn(const char *name, int argc, const Janet *argv)
+{
+    Janet fn = janet_resolve_core(name);
+    if (!janet_checktype(fn, JANET_FUNCTION)) {
+        janet_panicf("core function %s not found", name);
+    }
+
+    JanetFunction *rfn = janet_unwrap_function(fn);
+    return janet_call(rfn, argc, argv);
+}
+
 #endif /* __JW32_H */
