@@ -155,6 +155,12 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 #define jw32_get_long(argv, n) ((LONG)jw32_get_int(argv, n))
 
 
+/* ULONG: 32 bit unsigned */
+#define jw32_wrap_ulong(x)   jw32_wrap_uint(x)
+#define jw32_unwrap_ulong(x) ((ULONG)jw32_unwrap_uint(x))
+#define jw32_get_ulong(argv, n) ((ULONG)jw32_get_uint(argv, n))
+
+
 /* BOOL: 32 bit signed */
 #define jw32_wrap_bool(x)   jw32_wrap_int(x)
 #define jw32_unwrap_bool(x) ((BOOL)jw32_unwrap_int(x))
