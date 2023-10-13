@@ -48,9 +48,16 @@
 (declare-native
  :name "jw32/combaseapi"
  :source ["combaseapi.c"]
- :headers [;common-headers]
+ :headers ["jw32_com.h" ;common-headers]
  :cflags [;cflags ;debug-flags]
  :ldflags ["ole32.lib"])
+
+(declare-native
+ :name "jw32/uiautomation"
+ :source ["uiautomation.c"]
+ :headers ["jw32_com.h" ;common-headers]
+ :cflags [;cflags ;debug-flags]
+ :ldflags [])
 
 (declare-native
  :name "jw32/util"
