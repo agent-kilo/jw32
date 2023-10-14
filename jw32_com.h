@@ -71,7 +71,7 @@ static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
     return janet_unwrap_table(iunknown_proto);
 }
 
-static inline JanetTable *jw32_com_make_proto(JanetMethod *methods)
+static inline JanetTable *jw32_com_make_proto(const JanetMethod *methods)
 {
     JanetTable *proto = janet_table(0);
 

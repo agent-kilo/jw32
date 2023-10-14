@@ -24,8 +24,11 @@ static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
     IUIAutomationElement *root = NULL;
     Janet ret_tuple[2];
 
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRootElement(self, &root);
-    ret_tuple[0] = hrRet;
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
     /* TODO: return an object? */
     ret_tuple[1] = jw32_wrap_lpvoid(root);
 
@@ -34,7 +37,7 @@ static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
 
 static const JanetMethod iuiautomation_methods[] = {
     {"GetRootElement", iuiautomation_GetRootElement},
-    {NULL, NULL, NULL},
+    {NULL, NULL},
 };
 
 
