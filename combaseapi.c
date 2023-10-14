@@ -4,9 +4,6 @@
 #define MOD_NAME "combaseapi"
 
 
-JanetTable *iunknown_proto;
-
-
 static void define_consts_coinit(JanetTable *env)
 {
 #define __def(const_name)                                        \
@@ -72,13 +69,7 @@ static const JanetMethod iunknown_methods[] = {
 
 static void init_table_protos(JanetTable *env)
 {
-    iunknown_proto = janet_table(0);
-    for (int i = 0; iunknown_methods[i].name != NULL; i++) {
-        janet_table_put(iunknown_proto,
-                        jw32_cstr_to_keyword(iunknown_methods[i].name),
-                        janet_wrap_cfunction((void *)iunknown_methods[i].cfun));
-    }
-
+    JanetTable *iunknown_proto = jw32_com_make_proto(iunknown_methods);
     janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
               "Prototype for COM IUnknown interface.");
 }

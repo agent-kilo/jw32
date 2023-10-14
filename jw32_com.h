@@ -71,4 +71,17 @@ static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
     return janet_unwrap_table(iunknown_proto);
 }
 
+static inline JanetTable *jw32_com_make_proto(JanetMethod *methods)
+{
+    JanetTable *proto = janet_table(0);
+
+    for (int i = 0; NULL != methods[i].name; i++) {
+	janet_table_put(proto,
+			janet_ckeywordv(methods[i].name),
+			janet_wrap_cfunction((void *)methods[i].cfun));
+    }
+
+    return proto;
+}
+
 #endif /* __JW32_COM_H */
