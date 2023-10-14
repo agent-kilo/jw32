@@ -5,6 +5,7 @@
 #include <objbase.h>
 
 #define JW32_COM_OBJ_REF_NAME "__obj_ref"
+#define JW32_COM_IID_NAME "__iid"
 
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
@@ -45,6 +46,16 @@ static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
     }
 
     return janet_unwrap_pointer(maybe_ref);
+}
+
+static inline REFIID jw32_com_normalize_iid(JanetTable *proto)
+{
+    Janet maybe_iid = janet_table_get(proto, janet_ckeywordv(JW32_COM_IID_NAME));
+    if (!janet_checktype(maybe_iid, JANET_POINTER)) {
+        janet_panicf("invalid interface ID: %v", maybe_iid);
+    }
+
+    return (REFIID)janet_unwrap_pointer(maybe_iid);
 }
 
 static inline JanetTable *jw32_com_resolve_iunknown_proto(void)

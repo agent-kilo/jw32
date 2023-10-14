@@ -11,8 +11,6 @@ static void define_uuids(JanetTable *env)
     /* UIAutomation */
     janet_def(env, "CLSID_CUIAutomation", jw32_wrap_refclsid(&CLSID_CUIAutomation),
               "Class ID for CUIAutomation.");
-    janet_def(env, "IID_IUIAutomation", jw32_wrap_refiid(&IID_IUIAutomation),
-              "Interface ID for IUIAutomation.");
 }
 
 
@@ -40,18 +38,27 @@ static const JanetMethod iuiautomation_methods[] = {
     {NULL, NULL},
 };
 
-
-JANET_MODULE_ENTRY(JanetTable *env)
+static void init_table_protos(JanetTable *env)
 {
-    define_uuids(env);
-
     JanetTable *iunknown_proto = jw32_com_resolve_iunknown_proto();
     JanetTable *iuiautomation_proto = jw32_com_make_proto(iuiautomation_methods);
 
     iuiautomation_proto->proto = iunknown_proto;
 
+    janet_table_put(iuiautomation_proto,
+                    janet_ckeywordv(JW32_COM_IID_NAME),
+                    jw32_wrap_refiid(&IID_IUIAutomation));
+
     janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
 	      "Prototype for COM IUnknown interface.");
     janet_def(env, "IUIAutomation", janet_wrap_table(iuiautomation_proto),
 	      "Prototype for COM IUIAutomation interface.");
+}
+
+
+JANET_MODULE_ENTRY(JanetTable *env)
+{
+    define_uuids(env);
+
+    init_table_protos(env);
 }

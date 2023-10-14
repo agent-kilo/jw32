@@ -116,11 +116,24 @@ static Janet cfun_CoCreateInstance(int32_t argc, Janet *argv)
     REFCLSID rclsid = jw32_get_refclsid(argv, 0);
     LPUNKNOWN pUnkOuter = jw32_get_lpunknown(argv, 1);
     DWORD dwClsContext = jw32_get_dword(argv, 2);
-    REFIID riid = jw32_get_refiid(argv, 3);
+    JanetTable *if_proto = janet_gettable(argv, 3);
+
+    REFIID riid = jw32_com_normalize_iid(if_proto);
 
     hrRet = CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, &pv);
+
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    ret_tuple[1] = jw32_wrap_lpvoid(pv);
+    if (SUCCEEDED(hrRet)) {
+        JanetTable *if_obj = janet_table(0);
+        janet_table_put(if_obj,
+                        janet_ckeywordv(JW32_COM_OBJ_REF_NAME),
+                        janet_wrap_pointer(pv));
+        if_obj->proto = if_proto;
+        ret_tuple[1] = janet_wrap_table(if_obj);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
