@@ -49,7 +49,7 @@ static Janet iunknown_QueryInterface(int32_t argc, Janet *argv)
     void *pvObject = NULL;
     Janet ret_tuple[2];
 
-    janet_fixarity(argc, 1);
+    janet_fixarity(argc, 2);
 
     IUnknown *self = (IUnknown *)jw32_com_get_obj_ref(argv, 0);
     REFIID riid = jw32_get_refiid(argv, 1);
@@ -57,6 +57,7 @@ static Janet iunknown_QueryInterface(int32_t argc, Janet *argv)
     hrRet = self->lpVtbl->QueryInterface(self, riid, &pvObject);
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
     ret_tuple[1] = jw32_wrap_lpvoid(pvObject);
+    /* TODO: return an object? */
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
