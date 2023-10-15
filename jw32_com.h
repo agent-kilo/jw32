@@ -125,4 +125,22 @@ static inline Janet jw32_com_maybe_make_object(HRESULT hr, LPVOID pv, JanetTable
     return janet_wrap_nil();
 }
 
+static inline JanetString jw32_com_bstr_to_string(BSTR from)
+{
+    int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
+
+    if (count <= 0) {
+        janet_panicf("WideCharToMultiByte failed: 0x%lx", GetLastError());
+    } else {
+        /* janet_string_begin() adds one more byte for the trailing zero,
+           and count includes the trailing zero, so */
+        uint8_t *to = janet_string_begin(count - 1);
+        int count_again = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, (LPSTR)to, count, NULL, NULL);
+        if (count_again != count) {
+            janet_panicf("calculated buffer len is %d, but %d bytes are copied", count, count_again);
+        }
+        return janet_string_end(to);
+    }
+}
+
 #endif /* __JW32_COM_H */

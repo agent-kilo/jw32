@@ -109,8 +109,32 @@ static Janet IUIAutomationElement_get_CurrentControlType(int32_t argc, Janet *ar
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet IUIAutomationElement_get_CurrentName(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    BSTR retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CurrentName(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"get_CurrentControlType", IUIAutomationElement_get_CurrentControlType},
+    {"get_CurrentName", IUIAutomationElement_get_CurrentName},
     {NULL, NULL},
 };
 
