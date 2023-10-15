@@ -6,6 +6,9 @@
 #define MOD_NAME "uiautomation"
 
 
+JanetTable *iuiautomationelement_proto;
+
+
 static void define_uuids(JanetTable *env)
 {
     /* UIAutomation */
@@ -27,8 +30,7 @@ static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRootElement(self, &root);
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    /* TODO: return an object? */
-    ret_tuple[1] = jw32_wrap_lpvoid(root);
+    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, root, iuiautomationelement_proto);
 
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
@@ -38,10 +40,17 @@ static const JanetMethod iuiautomation_methods[] = {
     {NULL, NULL},
 };
 
+
+static const JanetMethod iuiautomationelement_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
 static void init_table_protos(JanetTable *env)
 {
     JanetTable *iunknown_proto = jw32_com_resolve_iunknown_proto();
-    /* XXX: do we need this to keep the prototype from being gc-ed? does the table
+    /* TODO: do we need this to keep the prototype from being gc-ed? does the table
        mark its proto when doing gc_mark? */
     janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
               "Prototype for COM IUnknown interface.");
@@ -52,6 +61,14 @@ static void init_table_protos(JanetTable *env)
                                                              &IID_IUIAutomation);
     janet_def(env, "IUIAutomation", janet_wrap_table(iuiautomation_proto),
               "Prototype for COM IUIAutomation interface.");
+
+    /* make it global so that IUIAutomation methods can find it */
+    iuiautomationelement_proto = jw32_com_make_if_proto("IUIAutomationElement",
+                                                        iuiautomationelement_methods,
+                                                        iunknown_proto,
+                                                        NULL);
+    janet_def(env, "IUIAutomationElement", janet_wrap_table(iuiautomationelement_proto),
+              "Prototype for COM IUIAutomationElement interface.");
 }
 
 

@@ -103,4 +103,23 @@ static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMe
     return proto;
 }
 
+static inline Janet jw32_com_make_object(LPVOID pv, JanetTable *if_proto)
+{
+    JanetTable *if_obj = janet_table(0);
+    janet_table_put(if_obj,
+                    janet_ckeywordv(JW32_COM_OBJ_REF_NAME),
+                    janet_wrap_pointer(pv));
+    if_obj->proto = if_proto;
+    return janet_wrap_table(if_obj);
+}
+
+static inline Janet jw32_com_maybe_make_object(HRESULT hr, LPVOID pv, JanetTable *if_proto)
+{
+    if (SUCCEEDED(hr)) {
+        return make_object(pv, if_proto);
+    }
+
+    return janet_wrap_nil();
+}
+
 #endif /* __JW32_COM_H */

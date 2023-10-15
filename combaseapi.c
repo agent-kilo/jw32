@@ -88,12 +88,15 @@ static Janet iunknown_QueryInterface(int32_t argc, Janet *argv)
     janet_fixarity(argc, 2);
 
     IUnknown *self = (IUnknown *)jw32_com_get_obj_ref(argv, 0);
-    REFIID riid = jw32_get_refiid(argv, 1);
+    JanetTable *if_proto = janet_gettable(argv, 1);
+
+    REFIID riid = jw32_com_normalize_iid(if_proto);
 
     hrRet = self->lpVtbl->QueryInterface(self, riid, &pvObject);
+
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    ret_tuple[1] = jw32_wrap_lpvoid(pvObject);
-    /* TODO: return an object? */
+    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, pvObject, if_proto);
+
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
@@ -159,16 +162,7 @@ static Janet cfun_CoCreateInstance(int32_t argc, Janet *argv)
     hrRet = CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, &pv);
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        JanetTable *if_obj = janet_table(0);
-        janet_table_put(if_obj,
-                        janet_ckeywordv(JW32_COM_OBJ_REF_NAME),
-                        janet_wrap_pointer(pv));
-        if_obj->proto = if_proto;
-        ret_tuple[1] = janet_wrap_table(if_obj);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
+    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, pv, if_proto);
 
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
