@@ -8,6 +8,7 @@
 #define JW32_COM_IID_NAME "__iid"
 #define JW32_COM_IF_NAME_NAME "__if_name"
 
+/* XXX: this only works when the modules are properly installed */
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
 
