@@ -16,6 +16,42 @@ static void define_consts_coinit(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_clsctx(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),     \
+              "Constant for COM object execution contexts.")
+    __def(CLSCTX_INPROC_SERVER);
+    __def(CLSCTX_INPROC_HANDLER);
+    __def(CLSCTX_LOCAL_SERVER);
+    __def(CLSCTX_INPROC_SERVER16);
+    __def(CLSCTX_REMOTE_SERVER);
+    __def(CLSCTX_INPROC_HANDLER16);
+    __def(CLSCTX_RESERVED1);
+    __def(CLSCTX_RESERVED2);
+    __def(CLSCTX_RESERVED3);
+    __def(CLSCTX_RESERVED4);
+    __def(CLSCTX_NO_CODE_DOWNLOAD);
+    __def(CLSCTX_RESERVED5);
+    __def(CLSCTX_NO_CUSTOM_MARSHAL);
+    __def(CLSCTX_ENABLE_CODE_DOWNLOAD);
+    __def(CLSCTX_NO_FAILURE_LOG);
+    __def(CLSCTX_DISABLE_AAA);
+    __def(CLSCTX_ENABLE_AAA);
+    __def(CLSCTX_FROM_DEFAULT_CONTEXT);
+    __def(CLSCTX_ACTIVATE_X86_SERVER);
+    __def(CLSCTX_ACTIVATE_32_BIT_SERVER);
+    __def(CLSCTX_ACTIVATE_64_BIT_SERVER);
+    __def(CLSCTX_ENABLE_CLOAKING);
+    __def(CLSCTX_APPCONTAINER);
+    __def(CLSCTX_ACTIVATE_AAA_AS_IU);
+    __def(CLSCTX_RESERVED6);
+    __def(CLSCTX_ACTIVATE_ARM32_SERVER);
+    __def(CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION);
+    __def(CLSCTX_PS_DLL);
+#undef __def
+}
+
 
 static Janet iunknown_AddRef(int32_t argc, Janet *argv)
 {
@@ -164,6 +200,7 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_coinit(env);
+    define_consts_clsctx(env);
 
     init_table_protos(env);
 
