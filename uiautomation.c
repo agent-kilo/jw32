@@ -6,7 +6,7 @@
 #define MOD_NAME "uiautomation"
 
 
-JanetTable *iuiautomationelement_proto;
+JanetTable *IUIAutomationElement_proto;
 
 
 static void define_uuids(JanetTable *env)
@@ -66,7 +66,7 @@ static void define_consts_uia_controltypeid(JanetTable *env)
 }
 
 
-static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
+static Janet IUIAutomation_GetRootElement(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
 
@@ -79,18 +79,18 @@ static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRootElement(self, &root);
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, root, iuiautomationelement_proto);
+    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, root, IUIAutomationElement_proto);
 
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
-static const JanetMethod iuiautomation_methods[] = {
-    {"GetRootElement", iuiautomation_GetRootElement},
+static const JanetMethod IUIAutomation_methods[] = {
+    {"GetRootElement", IUIAutomation_GetRootElement},
     {NULL, NULL},
 };
 
 
-static Janet iuiautomationelement_get_CurrentControlType(int32_t argc, Janet *argv)
+static Janet IUIAutomationElement_get_CurrentControlType(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
 
@@ -109,33 +109,33 @@ static Janet iuiautomationelement_get_CurrentControlType(int32_t argc, Janet *ar
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
-static const JanetMethod iuiautomationelement_methods[] = {
-    {"get_CurrentControlType", iuiautomationelement_get_CurrentControlType},
+static const JanetMethod IUIAutomationElement_methods[] = {
+    {"get_CurrentControlType", IUIAutomationElement_get_CurrentControlType},
     {NULL, NULL},
 };
 
 
 static void init_table_protos(JanetTable *env)
 {
-    JanetTable *iunknown_proto = jw32_com_resolve_iunknown_proto();
+    JanetTable *IUnknown_proto = jw32_com_resolve_iunknown_proto();
     /* TODO: do we need this to keep the prototype from being gc-ed? does the table
        mark its proto when doing gc_mark? */
-    janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
+    janet_def(env, "IUnknown", janet_wrap_table(IUnknown_proto),
               "Prototype for COM IUnknown interface.");
 
-    JanetTable *iuiautomation_proto = jw32_com_make_if_proto("IUIAutomation",
-                                                             iuiautomation_methods,
-                                                             iunknown_proto,
+    JanetTable *IUIAutomation_proto = jw32_com_make_if_proto("IUIAutomation",
+                                                             IUIAutomation_methods,
+                                                             IUnknown_proto,
                                                              &IID_IUIAutomation);
-    janet_def(env, "IUIAutomation", janet_wrap_table(iuiautomation_proto),
+    janet_def(env, "IUIAutomation", janet_wrap_table(IUIAutomation_proto),
               "Prototype for COM IUIAutomation interface.");
 
     /* make it global so that IUIAutomation methods can find it */
-    iuiautomationelement_proto = jw32_com_make_if_proto("IUIAutomationElement",
-                                                        iuiautomationelement_methods,
-                                                        iunknown_proto,
+    IUIAutomationElement_proto = jw32_com_make_if_proto("IUIAutomationElement",
+                                                        IUIAutomationElement_methods,
+                                                        IUnknown_proto,
                                                         &IID_IUIAutomationElement);
-    janet_def(env, "IUIAutomationElement", janet_wrap_table(iuiautomationelement_proto),
+    janet_def(env, "IUIAutomationElement", janet_wrap_table(IUIAutomationElement_proto),
               "Prototype for COM IUIAutomationElement interface.");
 }
 
