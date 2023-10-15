@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity type="win32" name="TheRelevantDepartment.jw32" version="0.0.1.0"/>
+  <application>
+    <windowsSettings>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+    </windowsSettings>
+  </application>
+</assembly>
+<!--
+    put this inside an exe using mt.exe:
+    mt.exe -manifest path\to\this\file -outputresource:path\to\exe\file;#1
+-->
