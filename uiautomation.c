@@ -41,18 +41,17 @@ static const JanetMethod iuiautomation_methods[] = {
 static void init_table_protos(JanetTable *env)
 {
     JanetTable *iunknown_proto = jw32_com_resolve_iunknown_proto();
-    JanetTable *iuiautomation_proto = jw32_com_make_proto(iuiautomation_methods);
-
-    iuiautomation_proto->proto = iunknown_proto;
-
-    janet_table_put(iuiautomation_proto,
-                    janet_ckeywordv(JW32_COM_IID_NAME),
-                    jw32_wrap_refiid(&IID_IUIAutomation));
-
+    /* XXX: do we need this to keep the prototype from being gc-ed? does the table
+       mark its proto when doing gc_mark? */
     janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
-	      "Prototype for COM IUnknown interface.");
+              "Prototype for COM IUnknown interface.");
+
+    JanetTable *iuiautomation_proto = jw32_com_make_if_proto("IUIAutomation",
+                                                             iuiautomation_methods,
+                                                             iunknown_proto,
+                                                             &IID_IUIAutomation);
     janet_def(env, "IUIAutomation", janet_wrap_table(iuiautomation_proto),
-	      "Prototype for COM IUIAutomation interface.");
+              "Prototype for COM IUIAutomation interface.");
 }
 
 

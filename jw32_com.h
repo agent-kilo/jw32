@@ -6,6 +6,7 @@
 
 #define JW32_COM_OBJ_REF_NAME "__obj_ref"
 #define JW32_COM_IID_NAME "__iid"
+#define JW32_COM_IF_NAME_NAME "__if_name"
 
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
@@ -82,15 +83,22 @@ static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
     return janet_unwrap_table(iunknown_proto);
 }
 
-static inline JanetTable *jw32_com_make_proto(const JanetMethod *methods)
+static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMethod *methods, JanetTable *parent, REFIID riid)
 {
     JanetTable *proto = janet_table(0);
 
     for (int i = 0; NULL != methods[i].name; i++) {
-	janet_table_put(proto,
-			janet_ckeywordv(methods[i].name),
-			janet_wrap_cfunction((void *)methods[i].cfun));
+        janet_table_put(proto,
+                        janet_ckeywordv(methods[i].name),
+                        janet_wrap_cfunction((void *)methods[i].cfun));
     }
+
+    if (riid) {
+        janet_table_put(proto, janet_ckeywordv(JW32_COM_IID_NAME), jw32_wrap_refiid(riid));
+    }
+    janet_table_put(proto, janet_ckeywordv(JW32_COM_IF_NAME_NAME), janet_cstring(name));
+
+    proto->proto = parent;
 
     return proto;
 }

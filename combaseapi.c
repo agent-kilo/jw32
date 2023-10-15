@@ -106,7 +106,7 @@ static const JanetMethod iunknown_methods[] = {
 
 static void init_table_protos(JanetTable *env)
 {
-    JanetTable *iunknown_proto = jw32_com_make_proto(iunknown_methods);
+    JanetTable *iunknown_proto = jw32_com_make_if_proto("IUnknown", iunknown_methods, NULL, NULL);
     janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
               "Prototype for COM IUnknown interface.");
 }
