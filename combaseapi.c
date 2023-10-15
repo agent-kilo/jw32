@@ -52,7 +52,7 @@ static void define_consts_clsctx(JanetTable *env)
 }
 
 
-static Janet iunknown_AddRef(int32_t argc, Janet *argv)
+static Janet IUnknown_AddRef(int32_t argc, Janet *argv)
 {
     IUnknown *self;
 
@@ -65,7 +65,7 @@ static Janet iunknown_AddRef(int32_t argc, Janet *argv)
     return jw32_wrap_ulong(uRet);
 }
 
-static Janet iunknown_Release(int32_t argc, Janet *argv)
+static Janet IUnknown_Release(int32_t argc, Janet *argv)
 {
     IUnknown *self;
 
@@ -78,7 +78,7 @@ static Janet iunknown_Release(int32_t argc, Janet *argv)
     return jw32_wrap_ulong(uRet);
 }
 
-static Janet iunknown_QueryInterface(int32_t argc, Janet *argv)
+static Janet IUnknown_QueryInterface(int32_t argc, Janet *argv)
 {
     HRESULT hrRet;
     void *pvObject = NULL;
@@ -99,17 +99,17 @@ static Janet iunknown_QueryInterface(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
-static const JanetMethod iunknown_methods[] = {
-    {"AddRef", iunknown_AddRef},
-    {"Release", iunknown_Release},
-    {"QueryInterface", iunknown_QueryInterface},
+static const JanetMethod IUnknown_methods[] = {
+    {"AddRef", IUnknown_AddRef},
+    {"Release", IUnknown_Release},
+    {"QueryInterface", IUnknown_QueryInterface},
     {NULL, NULL},
 };
 
 static void init_table_protos(JanetTable *env)
 {
-    JanetTable *iunknown_proto = jw32_com_make_if_proto("IUnknown", iunknown_methods, NULL, NULL);
-    janet_def(env, "IUnknown", janet_wrap_table(iunknown_proto),
+    JanetTable *IUnknown_proto = jw32_com_make_if_proto("IUnknown", IUnknown_methods, NULL, NULL);
+    janet_def(env, "IUnknown", janet_wrap_table(IUnknown_proto),
               "Prototype for COM IUnknown interface.");
 }
 
