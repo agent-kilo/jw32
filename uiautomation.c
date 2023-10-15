@@ -16,6 +16,55 @@ static void define_uuids(JanetTable *env)
               "Class ID for CUIAutomation.");
 }
 
+static void define_consts_uia_controltypeid(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation control types.")
+    __def(UIA_ButtonControlTypeId);
+    __def(UIA_CalendarControlTypeId);
+    __def(UIA_CheckBoxControlTypeId);
+    __def(UIA_ComboBoxControlTypeId);
+    __def(UIA_EditControlTypeId);
+    __def(UIA_HyperlinkControlTypeId);
+    __def(UIA_ImageControlTypeId);
+    __def(UIA_ListItemControlTypeId);
+    __def(UIA_ListControlTypeId);
+    __def(UIA_MenuControlTypeId);
+    __def(UIA_MenuBarControlTypeId);
+    __def(UIA_MenuItemControlTypeId);
+    __def(UIA_ProgressBarControlTypeId);
+    __def(UIA_RadioButtonControlTypeId);
+    __def(UIA_ScrollBarControlTypeId);
+    __def(UIA_SliderControlTypeId);
+    __def(UIA_SpinnerControlTypeId);
+    __def(UIA_StatusBarControlTypeId);
+    __def(UIA_TabControlTypeId);
+    __def(UIA_TabItemControlTypeId);
+    __def(UIA_TextControlTypeId);
+    __def(UIA_ToolBarControlTypeId);
+    __def(UIA_ToolTipControlTypeId);
+    __def(UIA_TreeControlTypeId);
+    __def(UIA_TreeItemControlTypeId);
+    __def(UIA_CustomControlTypeId);
+    __def(UIA_GroupControlTypeId);
+    __def(UIA_ThumbControlTypeId);
+    __def(UIA_DataGridControlTypeId);
+    __def(UIA_DataItemControlTypeId);
+    __def(UIA_DocumentControlTypeId);
+    __def(UIA_SplitButtonControlTypeId);
+    __def(UIA_WindowControlTypeId);
+    __def(UIA_PaneControlTypeId);
+    __def(UIA_HeaderControlTypeId);
+    __def(UIA_HeaderItemControlTypeId);
+    __def(UIA_TableControlTypeId);
+    __def(UIA_TitleBarControlTypeId);
+    __def(UIA_SeparatorControlTypeId);
+    __def(UIA_SemanticZoomControlTypeId);
+    __def(UIA_AppBarControlTypeId);
+#undef __def
+}
+
 
 static Janet iuiautomation_GetRootElement(int32_t argc, Janet *argv)
 {
@@ -41,8 +90,27 @@ static const JanetMethod iuiautomation_methods[] = {
 };
 
 
+static Janet iuiautomationelement_get_CurrentControlType(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    CONTROLTYPEID retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CurrentControlType(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    ret_tuple[1] = jw32_wrap_int(retVal);
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static const JanetMethod iuiautomationelement_methods[] = {
-    /* TODO */
+    {"get_CurrentControlType", iuiautomationelement_get_CurrentControlType},
     {NULL, NULL},
 };
 
@@ -75,6 +143,7 @@ static void init_table_protos(JanetTable *env)
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_uuids(env);
+    define_consts_uia_controltypeid(env);
 
     init_table_protos(env);
 }
