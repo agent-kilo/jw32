@@ -47,7 +47,6 @@ static void define_consts_clsctx(JanetTable *env)
     __def(CLSCTX_ACTIVATE_AAA_AS_IU);
     __def(CLSCTX_RESERVED6);
     __def(CLSCTX_ACTIVATE_ARM32_SERVER);
-    __def(CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION);
     __def(CLSCTX_PS_DLL);
 #undef __def
 }

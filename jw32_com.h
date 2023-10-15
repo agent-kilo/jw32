@@ -96,7 +96,9 @@ static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMe
     if (riid) {
         janet_table_put(proto, janet_ckeywordv(JW32_COM_IID_NAME), jw32_wrap_refiid(riid));
     }
-    janet_table_put(proto, janet_ckeywordv(JW32_COM_IF_NAME_NAME), janet_cstring(name));
+    janet_table_put(proto,
+                    janet_ckeywordv(JW32_COM_IF_NAME_NAME),
+                    janet_wrap_string(janet_cstring(name)));
 
     proto->proto = parent;
 
@@ -116,7 +118,7 @@ static inline Janet jw32_com_make_object(LPVOID pv, JanetTable *if_proto)
 static inline Janet jw32_com_maybe_make_object(HRESULT hr, LPVOID pv, JanetTable *if_proto)
 {
     if (SUCCEEDED(hr)) {
-        return make_object(pv, if_proto);
+        return jw32_com_make_object(pv, if_proto);
     }
 
     return janet_wrap_nil();

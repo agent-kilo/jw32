@@ -66,7 +66,7 @@ static void init_table_protos(JanetTable *env)
     iuiautomationelement_proto = jw32_com_make_if_proto("IUIAutomationElement",
                                                         iuiautomationelement_methods,
                                                         iunknown_proto,
-                                                        NULL);
+                                                        &IID_IUIAutomationElement);
     janet_def(env, "IUIAutomationElement", janet_wrap_table(iuiautomationelement_proto),
               "Prototype for COM IUIAutomationElement interface.");
 }
