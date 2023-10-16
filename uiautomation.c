@@ -339,6 +339,40 @@ static Janet IUIAutomation_GetRootElement(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, root, IUIAutomationElement_proto));
 }
 
+static Janet IUIAutomation_GetRootElementBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *root = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 1);
+    hrRet = self->lpVtbl->GetRootElementBuildCache(self, cacheRequest, &root);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, root, IUIAutomationElement_proto));
+}
+
+static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->GetFocusedElement(self, &element);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, element, IUIAutomationElement_proto));
+}
+
 static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -357,6 +391,7 @@ static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
 
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
+    {"GetFocusedElement", IUIAutomation_GetFocusedElement},
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {NULL, NULL},
 };
