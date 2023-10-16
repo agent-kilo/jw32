@@ -14,6 +14,7 @@ JanetTable *IUIAutomationCondition_proto;
 JanetTable *IUIAutomationAndCondition_proto;
 JanetTable *IUIAutomationBoolCondition_proto;
 JanetTable *IUIAutomationNotCondition_proto;
+JanetTable *IUIAutomationOrCondition_proto;
 JanetTable *IUIAutomationPropertyCondition_proto;
 
 
@@ -660,6 +661,17 @@ static const JanetMethod IUIAutomationNotCondition_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationOrCondition
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationOrCondition_methods[] = {
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * IUIAutomationPropertyCondition
  *
  *******************************************************************/
@@ -708,6 +720,9 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationNotCondition,
                 IUIAutomationCondition_proto,
                 "Prototype for COM IUIAutomationNotCondition interface.");
+    __def_proto(IUIAutomationOrCondition,
+                IUIAutomationCondition_proto,
+                "Prototype for COM IUIAutomationOrCondition interface.");
     __def_proto(IUIAutomationPropertyCondition,
                 IUIAutomationCondition_proto,
                 "Prototype for COM IUIAutomationPropertyCondition interface.");
