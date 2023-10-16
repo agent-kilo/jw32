@@ -394,11 +394,28 @@ static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, cacheRequest, IUIAutomationCacheRequest_proto));
 }
 
+static Janet IUIAutomation_CreateTrueCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->CreateTrueCondition(self, &newCondition);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
+}
+
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
     {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
+    {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
     {NULL, NULL},
 };
 
