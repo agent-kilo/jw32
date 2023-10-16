@@ -9,6 +9,7 @@
 /* make these global so that IUIAutomation methods can find them */
 JanetTable *IUIAutomation_proto;
 JanetTable *IUIAutomationElement_proto;
+JanetTable *IUIAutomationElementArray_proto;
 JanetTable *IUIAutomationCacheRequest_proto;
 JanetTable *IUIAutomationCondition_proto;
 JanetTable *IUIAutomationAndCondition_proto;
@@ -465,9 +466,76 @@ static Janet IUIAutomationElement_get_CurrentName(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet IUIAutomationElement_FindAll(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    enum TreeScope scope;
+    IUIAutomationCondition *condition;
+
+    HRESULT hrRet;
+    IUIAutomationElementArray *found;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    condition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    hrRet = self->lpVtbl->FindAll(self, scope, condition, &found);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, found, IUIAutomationElementArray_proto));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"get_CurrentControlType", IUIAutomationElement_get_CurrentControlType},
     {"get_CurrentName", IUIAutomationElement_get_CurrentName},
+    {"FindAll", IUIAutomationElement_FindAll},
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomationElement
+ *
+ *******************************************************************/
+
+static Janet IUIAutomationElementArray_get_Length(int32_t argc, Janet *argv)
+{
+    IUIAutomationElementArray *self;
+
+    HRESULT hrRet;
+    int length = 0;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElementArray *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_Length(self, &length);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_int(length));
+}
+
+static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
+{
+    IUIAutomationElementArray *self;
+    int index;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationElementArray *)jw32_com_get_obj_ref(argv, 0);
+    index = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->GetElement(self, index, &element);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, element, IUIAutomationElement_proto));
+}
+
+static const JanetMethod IUIAutomationElementArray_methods[] = {
+    {"get_Length", IUIAutomationElementArray_get_Length},
+    {"GetElement", IUIAutomationElementArray_GetElement},
     {NULL, NULL},
 };
 
@@ -720,6 +788,9 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationElement,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationElement interface.");
+    __def_proto(IUIAutomationElementArray,
+                IUnknown_proto,
+                "Prototype for COM IUIAutomationElementArray interface.");
 
     __def_proto(IUIAutomationCacheRequest,
                 IUnknown_proto,
