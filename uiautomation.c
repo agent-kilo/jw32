@@ -391,6 +391,7 @@ static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
 
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
+    {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {NULL, NULL},
