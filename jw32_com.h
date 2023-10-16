@@ -31,6 +31,7 @@
 #define jw32_get_lpunknown(argv, n) ((LPUNKNOWN)jw32_get_lpvoid(argv, n))
 
 
+/* TODO: check interface name? */
 static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
 {
     JanetTable *tbl = janet_gettable(argv, n);

@@ -301,6 +301,21 @@ static void define_consts_uia_patternid(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_treescope(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation caching scopes.")
+    __def(TreeScope_None);
+    __def(TreeScope_Element);
+    __def(TreeScope_Children);
+    __def(TreeScope_Descendants);
+    __def(TreeScope_Parent);
+    __def(TreeScope_Ancestors);
+    __def(TreeScope_Subtree);
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -487,8 +502,62 @@ static Janet IUIAutomationCacheRequest_get_TreeFilter(int32_t argc, Janet *argv)
 
 static Janet IUIAutomationCacheRequest_get_TreeScope(int32_t argc, Janet *argv)
 {
-    /* TODO */
-    return janet_wrap_nil();
+    IUIAutomationCacheRequest *self;
+
+    HRESULT hrRet;
+    enum TreeScope scope;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_TreeScope(self, &scope);
+    
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_int(scope));
+}
+
+static Janet IUIAutomationCacheRequest_put_AutomationElementMode(int32_t argc, Janet *argv)
+{
+    IUIAutomationCacheRequest *self;
+    enum AutomationElementMode mode;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
+    mode = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->put_AutomationElementMode(self, mode);
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomationCacheRequest_put_TreeFilter(int32_t argc, Janet *argv)
+{
+    IUIAutomationCacheRequest *self;
+    IUIAutomationCondition *filter;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
+    filter = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
+    hrRet = self->lpVtbl->put_TreeFilter(self, filter);
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomationCacheRequest_put_TreeScope(int32_t argc, Janet *argv)
+{
+    IUIAutomationCacheRequest *self;
+    enum TreeScope scope;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->put_TreeScope(self, scope);
+    return jw32_wrap_hresult(hrRet);
 }
 
 static const JanetMethod IUIAutomationCacheRequest_methods[] = {
@@ -498,6 +567,9 @@ static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"get_AutomationElementMode", IUIAutomationCacheRequest_get_AutomationElementMode},
     {"get_TreeFilter", IUIAutomationCacheRequest_get_TreeFilter},
     {"get_TreeScope", IUIAutomationCacheRequest_get_TreeScope},
+    {"put_AutomationElementMode", IUIAutomationCacheRequest_put_AutomationElementMode},
+    {"put_TreeFilter", IUIAutomationCacheRequest_put_TreeFilter},
+    {"put_TreeScope", IUIAutomationCacheRequest_put_TreeScope},
     {NULL, NULL},
 };
 
@@ -553,6 +625,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_uia_controltypeid(env);
     define_consts_uia_propertyid(env);
     define_consts_uia_patternid(env);
+    define_consts_treescope(env);
 
     init_table_protos(env);
 }
