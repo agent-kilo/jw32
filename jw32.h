@@ -8,6 +8,14 @@
 /* minimum buffer size for ad-hoc buffers, to store names, paths and such */
 #define JW32_BUFFER_INIT_CAPACITY 128
 
+#define JW32_RETURN_TUPLE_2(e0, e1)                             \
+    do {                                                        \
+        Janet __ret_tuple[2];                                   \
+        __ret_tuple[0] = e0;                                    \
+        __ret_tuple[1] = e1;                                    \
+        return janet_wrap_tuple(janet_tuple_n(__ret_tuple, 2)); \
+    } while (0)
+
 static inline int32_t lower_power_of_two(int32_t n)
 {
     if (!n) {
