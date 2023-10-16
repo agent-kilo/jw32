@@ -522,10 +522,6 @@ static const JanetMethod IUIAutomationCondition_methods[] = {
 static void init_table_protos(JanetTable *env)
 {
     JanetTable *IUnknown_proto = jw32_com_resolve_iunknown_proto();
-    /* TODO: do we need this to keep the prototype from being gc-ed? does the table
-       mark its proto when doing gc_mark? */
-    janet_def(env, "IUnknown", janet_wrap_table(IUnknown_proto),
-              "Prototype for COM IUnknown interface.");
 
 #define __def_proto(name, parent, doc)                                  \
     do {                                                                \
