@@ -11,6 +11,10 @@ JanetTable *IUIAutomation_proto;
 JanetTable *IUIAutomationElement_proto;
 JanetTable *IUIAutomationCacheRequest_proto;
 JanetTable *IUIAutomationCondition_proto;
+JanetTable *IUIAutomationAndCondition_proto;
+JanetTable *IUIAutomationBoolCondition_proto;
+JanetTable *IUIAutomationNotCondition_proto;
+JanetTable *IUIAutomationPropertyCondition_proto;
 
 
 /*******************************************************************
@@ -623,6 +627,50 @@ static const JanetMethod IUIAutomationCondition_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationAndCondition
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationAndCondition_methods[] = {
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomationBoolCondition
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationBoolCondition_methods[] = {
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomationNotCondition
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationNotCondition_methods[] = {
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomationPropertyCondition
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationPropertyCondition_methods[] = {
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * MODULE ENTRY & OTHER STUFF
  *
  *******************************************************************/
@@ -643,12 +691,26 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationElement,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationElement interface.");
+
     __def_proto(IUIAutomationCacheRequest,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationCacheRequest interface.");
+
     __def_proto(IUIAutomationCondition,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationCondition interface.");
+    __def_proto(IUIAutomationAndCondition,
+                IUIAutomationCondition_proto,
+                "Prototype for COM IUIAutomationAndCondition interface.");
+    __def_proto(IUIAutomationBoolCondition,
+                IUIAutomationCondition_proto,
+                "Prototype for COM IUIAutomationBoolCondition interface.");
+    __def_proto(IUIAutomationNotCondition,
+                IUIAutomationCondition_proto,
+                "Prototype for COM IUIAutomationNotCondition interface.");
+    __def_proto(IUIAutomationPropertyCondition,
+                IUIAutomationCondition_proto,
+                "Prototype for COM IUIAutomationPropertyCondition interface.");
 
 #undef __def_proto
 
