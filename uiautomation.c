@@ -664,16 +664,10 @@ static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, clonedRequest, IUIAutomationCacheRequest_proto));
 }
 
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationCacheRequest, AutomationElementMode,
-                                       enum AutomationElementMode, int)
-JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(IUIAutomationCacheRequest, AutomationElementMode,
-                                       enum AutomationElementMode, int)
-
-JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
-JW32_COM_DEFINE_OBJ_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
-
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
-JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
+JW32_COM_DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, AutomationElementMode,
+                                enum AutomationElementMode, int)
+JW32_COM_DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
+JW32_COM_DEFINE_OBJ_PROPERTY(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
 
 static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"AddPattern", IUIAutomationCacheRequest_AddPattern},
@@ -685,11 +679,11 @@ static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"put_AutomationElementMode",
      JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, AutomationElementMode)},
 
-    {"get_TreeFilter", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter)},
-    {"put_TreeFilter", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter)},
-
     {"get_TreeScope", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeScope)},
     {"put_TreeScope", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeScope)},
+
+    {"get_TreeFilter", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter)},
+    {"put_TreeFilter", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter)},
 
     {NULL, NULL},
 };

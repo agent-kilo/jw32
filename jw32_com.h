@@ -203,4 +203,12 @@ static inline JanetString jw32_com_bstr_to_string(BSTR from)
         return jw32_wrap_hresult(hrRet);                                \
     }
 
+#define JW32_COM_DEFINE_OBJ_PROPERTY(__if, __prop, __prop_if)    \
+    JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(__if, __prop, __prop_if) \
+    JW32_COM_DEFINE_OBJ_PROPERTY_SETTER(__if, __prop, __prop_if)
+
+#define JW32_COM_DEFINE_SIMPLE_PROPERTY(__if, __prop, __prop_type, __prop_jw32_type) \
+    JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \
+    JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(__if, __prop, __prop_type, __prop_jw32_type)
+
 #endif /* __JW32_COM_H */
