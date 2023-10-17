@@ -427,6 +427,36 @@ static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
 }
 
+static Janet IUIAutomation_get_ContentViewCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *condition;
+
+    janet_fixarity(argc, 1);
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_ContentViewCondition(self, &condition);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, condition, IUIAutomationCondition_proto));
+}
+
+static Janet IUIAutomation_get_ControlViewCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *condition;
+
+    janet_fixarity(argc, 1);
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_ControlViewCondition(self, &condition);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, condition, IUIAutomationCondition_proto));
+}
+
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
     {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
@@ -434,6 +464,8 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
+    {"get_ContentViewCondition", IUIAutomation_get_ContentViewCondition},
+    {"get_ControlViewCondition", IUIAutomation_get_ControlViewCondition},
     {NULL, NULL},
 };
 
@@ -580,7 +612,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
 
 /*******************************************************************
  *
- * IUIAutomationElement
+ * IUIAutomationElementArray
  *
  *******************************************************************/
 
