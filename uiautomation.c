@@ -538,6 +538,8 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
 }
 
 JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
 
 static Janet JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
 {
