@@ -211,8 +211,14 @@ static inline JanetString jw32_com_bstr_to_string(BSTR from)
     JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \
     JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(__if, __prop, __prop_type, __prop_jw32_type)
 
-#define JW32_COM_PROPERTY_METHODS(__if, __prop)               \
-    {"get_" #__prop, JW32_COM_PROPERTY_GETTER(__if, __prop)}, \
+#define JW32_COM_PROPERTY_GETTER_METHOD(__if, __prop)           \
+    {"get_" #__prop, JW32_COM_PROPERTY_GETTER(__if, __prop)}
+
+#define JW32_COM_PROPERTY_SETTER_METHOD(__if, __prop)           \
     {"put_" #__prop, JW32_COM_PROPERTY_SETTER(__if, __prop)}
+
+#define JW32_COM_PROPERTY_METHODS(__if, __prop)    \
+    JW32_COM_PROPERTY_GETTER_METHOD(__if, __prop), \
+    JW32_COM_PROPERTY_SETTER_METHOD(__if, __prop)
 
 #endif /* __JW32_COM_H */

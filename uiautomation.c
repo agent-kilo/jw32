@@ -460,9 +460,9 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
     {"CreateAndCondition", IUIAutomation_CreateAndCondition},
 
-    {"get_ContentViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ContentViewCondition)},
-    {"get_ControlViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ControlViewCondition)},
-    {"get_RawViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, RawViewCondition)},
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, RawViewCondition),
 
     {NULL, NULL},
 };
@@ -591,8 +591,8 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
 
-    {"get_CurrentControlType", JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType)},
-    {"get_CurrentName", JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentName)},
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
 
     {NULL, NULL},
 };
@@ -627,7 +627,7 @@ JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElementArray, Length, int, i
 static const JanetMethod IUIAutomationElementArray_methods[] = {
     {"GetElement", IUIAutomationElementArray_GetElement},
 
-    {"get_Length", JW32_COM_PROPERTY_GETTER(IUIAutomationElementArray, Length)},
+    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElementArray, Length),
 
     {NULL, NULL},
 };
