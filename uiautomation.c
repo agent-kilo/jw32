@@ -449,7 +449,7 @@ static Janet IUIAutomationElement_get_CurrentControlType(int32_t argc, Janet *ar
     IUIAutomationElement *self;
 
     HRESULT hrRet;
-    CONTROLTYPEID retVal;
+    CONTROLTYPEID retVal = 0;
 
     janet_fixarity(argc, 1);
 
@@ -465,7 +465,7 @@ static Janet IUIAutomationElement_get_CurrentName(int32_t argc, Janet *argv)
     IUIAutomationElement *self;
 
     HRESULT hrRet;
-    BSTR retVal;
+    BSTR retVal = NULL;
     Janet ret_tuple[2];
 
     janet_fixarity(argc, 1);
@@ -490,7 +490,7 @@ static Janet IUIAutomationElement_FindAll(int32_t argc, Janet *argv)
     IUIAutomationCondition *condition;
 
     HRESULT hrRet;
-    IUIAutomationElementArray *found;
+    IUIAutomationElementArray *found = NULL;
 
     janet_fixarity(argc, 3);
 
@@ -503,6 +503,27 @@ static Janet IUIAutomationElement_FindAll(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, found, IUIAutomationElementArray_proto));
 }
 
+static Janet IUIAutomationElement_FindAllBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    enum TreeScope scope;
+    IUIAutomationCondition *condition;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElementArray *found = NULL;
+
+    janet_fixarity(argc, 4);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    condition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    hrRet = self->lpVtbl->FindAllBuildCache(self, scope, condition, cacheRequest, &found);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, found, IUIAutomationElementArray_proto));
+}
+
 static Janet IUIAutomationElement_FindFirst(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -510,7 +531,7 @@ static Janet IUIAutomationElement_FindFirst(int32_t argc, Janet *argv)
     IUIAutomationCondition *condition;
 
     HRESULT hrRet;
-    IUIAutomationElement *found;
+    IUIAutomationElement *found = NULL;
 
     janet_fixarity(argc, 3);
 
@@ -559,7 +580,7 @@ static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
     int index;
 
     HRESULT hrRet;
-    IUIAutomationElement *element;
+    IUIAutomationElement *element = NULL;
 
     janet_fixarity(argc, 2);
 
@@ -621,7 +642,7 @@ static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
     IUIAutomationCacheRequest *self;
     
     HRESULT hrRet;
-    IUIAutomationCacheRequest *clonedRequest;
+    IUIAutomationCacheRequest *clonedRequest = NULL;
 
     janet_fixarity(argc, 1);
 
@@ -637,7 +658,7 @@ static Janet IUIAutomationCacheRequest_get_AutomationElementMode(int32_t argc, J
     IUIAutomationCacheRequest *self;
     
     HRESULT hrRet;
-    enum AutomationElementMode mode;
+    enum AutomationElementMode mode = 0;
 
     janet_fixarity(argc, 1);
 
@@ -653,7 +674,7 @@ static Janet IUIAutomationCacheRequest_get_TreeFilter(int32_t argc, Janet *argv)
     IUIAutomationCacheRequest *self;
 
     HRESULT hrRet;
-    IUIAutomationCondition *filter;
+    IUIAutomationCondition *filter = NULL;
 
     janet_fixarity(argc, 1);
 
@@ -669,7 +690,7 @@ static Janet IUIAutomationCacheRequest_get_TreeScope(int32_t argc, Janet *argv)
     IUIAutomationCacheRequest *self;
 
     HRESULT hrRet;
-    enum TreeScope scope;
+    enum TreeScope scope = 0;
 
     janet_fixarity(argc, 1);
 
