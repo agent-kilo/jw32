@@ -427,6 +427,26 @@ static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
 }
 
+static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCondition *condition1;
+    IUIAutomationCondition *condition2;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition = NULL;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    condition1 = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
+    condition2 = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    hrRet = self->lpVtbl->CreateAndCondition(self, condition1, condition2, &newCondition);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
+}
+
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
@@ -438,6 +458,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
+    {"CreateAndCondition", IUIAutomation_CreateAndCondition},
 
     {"get_ContentViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ContentViewCondition)},
     {"get_ControlViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ControlViewCondition)},
@@ -676,16 +697,9 @@ static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"AddProperty", IUIAutomationCacheRequest_AddProperty},
     {"Clone", IUIAutomationCacheRequest_Clone},
 
-    {"get_AutomationElementMode",
-     JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, AutomationElementMode)},
-    {"put_AutomationElementMode",
-     JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, AutomationElementMode)},
-
-    {"get_TreeScope", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeScope)},
-    {"put_TreeScope", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeScope)},
-
-    {"get_TreeFilter", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter)},
-    {"put_TreeFilter", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter)},
+    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, AutomationElementMode),
+    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, TreeScope),
+    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, TreeFilter),
 
     {NULL, NULL},
 };
