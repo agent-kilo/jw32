@@ -57,7 +57,7 @@
  :source ["uiautomation.c"]
  :headers ["jw32_com.h" "debug.h" ;common-headers]
  :cflags [;cflags ;debug-flags]
- :ldflags [])
+ :ldflags ["oleaut32.lib"])
 
 (declare-native
  :name "jw32/util"

@@ -476,6 +476,7 @@ static Janet IUIAutomationElement_get_CurrentName(int32_t argc, Janet *argv)
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
     if (SUCCEEDED(hrRet)) {
         ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+        SysFreeString(retVal);
     } else {
         ret_tuple[1] = janet_wrap_nil();
     }
@@ -518,6 +519,7 @@ static Janet IUIAutomationElement_FindAllBuildCache(int32_t argc, Janet *argv)
     self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
     scope = jw32_get_int(argv, 1);
     condition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
     hrRet = self->lpVtbl->FindAllBuildCache(self, scope, condition, cacheRequest, &found);
 
     JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
@@ -544,11 +546,34 @@ static Janet IUIAutomationElement_FindFirst(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, found, IUIAutomationElement_proto));
 }
 
+static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    enum TreeScope scope;
+    IUIAutomationCondition *condition;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *found = NULL;
+
+    janet_fixarity(argc, 4);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    condition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
+    hrRet = self->lpVtbl->FindFirst(self, scope, condition, &found);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        jw32_com_maybe_make_object(hrRet, found, IUIAutomationElement_proto));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"get_CurrentControlType", IUIAutomationElement_get_CurrentControlType},
     {"get_CurrentName", IUIAutomationElement_get_CurrentName},
     {"FindAll", IUIAutomationElement_FindAll},
-    {"FindFirst", IUIAutomationElement_FindFirst},
+    {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
+    {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
     {NULL, NULL},
 };
 

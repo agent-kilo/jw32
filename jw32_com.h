@@ -131,6 +131,7 @@ static inline JanetString jw32_com_bstr_to_string(BSTR from)
     int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
 
     if (count <= 0) {
+        /* XXX: free the BSTR when panicked? */
         janet_panicf("WideCharToMultiByte failed: 0x%lx", GetLastError());
     } else {
         /* janet_string_begin() adds one more byte for the trailing zero,
