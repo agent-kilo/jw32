@@ -427,35 +427,9 @@ static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
 }
 
-static Janet IUIAutomation_get_ContentViewCondition(int32_t argc, Janet *argv)
-{
-    IUIAutomation *self;
-
-    HRESULT hrRet;
-    IUIAutomationCondition *condition;
-
-    janet_fixarity(argc, 1);
-    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_ContentViewCondition(self, &condition);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        jw32_com_maybe_make_object(hrRet, condition, IUIAutomationCondition_proto));
-}
-
-static Janet IUIAutomation_get_ControlViewCondition(int32_t argc, Janet *argv)
-{
-    IUIAutomation *self;
-
-    HRESULT hrRet;
-    IUIAutomationCondition *condition;
-
-    janet_fixarity(argc, 1);
-    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_ControlViewCondition(self, &condition);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        jw32_com_maybe_make_object(hrRet, condition, IUIAutomationCondition_proto));
-}
+JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
+JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
+JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
 
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
@@ -464,8 +438,11 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
-    {"get_ContentViewCondition", IUIAutomation_get_ContentViewCondition},
-    {"get_ControlViewCondition", IUIAutomation_get_ControlViewCondition},
+
+    {"get_ContentViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ContentViewCondition)},
+    {"get_ControlViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, ControlViewCondition)},
+    {"get_RawViewCondition", JW32_COM_PROPERTY_GETTER(IUIAutomation, RawViewCondition)},
+
     {NULL, NULL},
 };
 
@@ -475,46 +452,6 @@ static const JanetMethod IUIAutomation_methods[] = {
  * IUIAutomationElement
  *
  *******************************************************************/
-
-static Janet IUIAutomationElement_get_CurrentControlType(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    CONTROLTYPEID retVal = 0;
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CurrentControlType(self, &retVal);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        jw32_wrap_int(retVal));
-}
-
-static Janet IUIAutomationElement_get_CurrentName(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CurrentName(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
 
 static Janet IUIAutomationElement_FindAll(int32_t argc, Janet *argv)
 {
@@ -600,12 +537,40 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, found, IUIAutomationElement_proto));
 }
 
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
+
+static Janet JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    BSTR retVal = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CurrentName(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+        SysFreeString(retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
-    {"get_CurrentControlType", IUIAutomationElement_get_CurrentControlType},
-    {"get_CurrentName", IUIAutomationElement_get_CurrentName},
     {"FindAll", IUIAutomationElement_FindAll},
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
+
+    {"get_CurrentControlType", JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType)},
+    {"get_CurrentName", JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentName)},
+
     {NULL, NULL},
 };
 
@@ -615,21 +580,6 @@ static const JanetMethod IUIAutomationElement_methods[] = {
  * IUIAutomationElementArray
  *
  *******************************************************************/
-
-static Janet IUIAutomationElementArray_get_Length(int32_t argc, Janet *argv)
-{
-    IUIAutomationElementArray *self;
-
-    HRESULT hrRet;
-    int length = 0;
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElementArray *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_Length(self, &length);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_int(length));
-}
 
 static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
 {
@@ -649,9 +599,13 @@ static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, element, IUIAutomationElement_proto));
 }
 
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElementArray, Length, int, int)
+
 static const JanetMethod IUIAutomationElementArray_methods[] = {
-    {"get_Length", IUIAutomationElementArray_get_Length},
     {"GetElement", IUIAutomationElementArray_GetElement},
+
+    {"get_Length", JW32_COM_PROPERTY_GETTER(IUIAutomationElementArray, Length)},
+
     {NULL, NULL},
 };
 
@@ -710,108 +664,33 @@ static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, clonedRequest, IUIAutomationCacheRequest_proto));
 }
 
-static Janet IUIAutomationCacheRequest_get_AutomationElementMode(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-    
-    HRESULT hrRet;
-    enum AutomationElementMode mode = 0;
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationCacheRequest, AutomationElementMode,
+                                       enum AutomationElementMode, int)
+JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(IUIAutomationCacheRequest, AutomationElementMode,
+                                       enum AutomationElementMode, int)
 
-    janet_fixarity(argc, 1);
+JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
+JW32_COM_DEFINE_OBJ_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
 
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_AutomationElementMode(self, &mode);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        jw32_wrap_int(mode));
-}
-
-static Janet IUIAutomationCacheRequest_get_TreeFilter(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-
-    HRESULT hrRet;
-    IUIAutomationCondition *filter = NULL;
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_TreeFilter(self, &filter);
-
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        jw32_com_maybe_make_object(hrRet, filter, IUIAutomationCondition_proto));
-}
-
-static Janet IUIAutomationCacheRequest_get_TreeScope(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-
-    HRESULT hrRet;
-    enum TreeScope scope = 0;
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_TreeScope(self, &scope);
-    
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_int(scope));
-}
-
-static Janet IUIAutomationCacheRequest_put_AutomationElementMode(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-    enum AutomationElementMode mode;
-
-    HRESULT hrRet;
-
-    janet_fixarity(argc, 2);
-
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    mode = jw32_get_int(argv, 1);
-    hrRet = self->lpVtbl->put_AutomationElementMode(self, mode);
-    return jw32_wrap_hresult(hrRet);
-}
-
-static Janet IUIAutomationCacheRequest_put_TreeFilter(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-    IUIAutomationCondition *filter;
-
-    HRESULT hrRet;
-
-    janet_fixarity(argc, 2);
-
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    filter = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
-    hrRet = self->lpVtbl->put_TreeFilter(self, filter);
-    return jw32_wrap_hresult(hrRet);
-}
-
-static Janet IUIAutomationCacheRequest_put_TreeScope(int32_t argc, Janet *argv)
-{
-    IUIAutomationCacheRequest *self;
-    enum TreeScope scope;
-
-    HRESULT hrRet;
-
-    janet_fixarity(argc, 2);
-
-    self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
-    scope = jw32_get_int(argv, 1);
-    hrRet = self->lpVtbl->put_TreeScope(self, scope);
-    return jw32_wrap_hresult(hrRet);
-}
+JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
+JW32_COM_DEFINE_SIMPLE_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
 
 static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"AddPattern", IUIAutomationCacheRequest_AddPattern},
     {"AddProperty", IUIAutomationCacheRequest_AddProperty},
     {"Clone", IUIAutomationCacheRequest_Clone},
-    {"get_AutomationElementMode", IUIAutomationCacheRequest_get_AutomationElementMode},
-    {"get_TreeFilter", IUIAutomationCacheRequest_get_TreeFilter},
-    {"get_TreeScope", IUIAutomationCacheRequest_get_TreeScope},
-    {"put_AutomationElementMode", IUIAutomationCacheRequest_put_AutomationElementMode},
-    {"put_TreeFilter", IUIAutomationCacheRequest_put_TreeFilter},
-    {"put_TreeScope", IUIAutomationCacheRequest_put_TreeScope},
+
+    {"get_AutomationElementMode",
+     JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, AutomationElementMode)},
+    {"put_AutomationElementMode",
+     JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, AutomationElementMode)},
+
+    {"get_TreeFilter", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeFilter)},
+    {"put_TreeFilter", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeFilter)},
+
+    {"get_TreeScope", JW32_COM_PROPERTY_GETTER(IUIAutomationCacheRequest, TreeScope)},
+    {"put_TreeScope", JW32_COM_PROPERTY_SETTER(IUIAutomationCacheRequest, TreeScope)},
+
     {NULL, NULL},
 };
 
