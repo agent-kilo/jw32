@@ -103,12 +103,16 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
     EVENTID eventId)
 {
     /* TODO */
-    jw32_dbg_val(eventId, "%d");
     BSTR name = NULL;
-    if (SUCCEEDED(sender->lpVtbl->get_CurrentName(sender, &name))) {
+    HRESULT hr = sender->lpVtbl->get_CurrentName(sender, &name);
+    if (SUCCEEDED(hr)) {
         jw32_dbg_val(name, "\"%ls\"");
         SysFreeString(name);
+    } else {
+        jw32_dbg_val(HRESULT_FACILITY(hr), "0x%x");
+        jw32_dbg_val(HRESULT_CODE(hr), "0x%x");
     }
+    jw32_dbg_val(eventId, "%d");
     return S_OK;
 }
 
