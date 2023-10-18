@@ -34,6 +34,10 @@
 /* TODO: check interface name? */
 static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
 {
+    if (janet_checktype(argv[n], JANET_NIL)) {
+        return NULL;
+    }
+
     JanetTable *tbl = janet_gettable(argv, n);
     /* XXX: this is slow? */
     Janet maybe_ref = janet_table_get(tbl, jw32_cstr_to_keyword(JW32_COM_OBJ_REF_NAME));

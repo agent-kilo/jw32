@@ -162,6 +162,24 @@ static Janet cfun_FAILED(int32_t argc, Janet *argv)
     return janet_wrap_boolean(FAILED(code));
 }
 
+static Janet cfun_HRESULT_CODE(int32_t argc, Janet *argv)
+{
+    HRESULT code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0);
+    return jw32_wrap_int(HRESULT_CODE(code));
+}
+
+static Janet cfun_SCODE_CODE(int32_t argc, Janet *argv)
+{
+    SCODE code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0);
+    return jw32_wrap_int(SCODE_CODE(code));
+}
+
 static Janet cfun_SetLastError(int32_t argc, Janet *argv)
 {
     DWORD dwErrCode;
@@ -217,6 +235,18 @@ static const JanetReg cfuns[] = {
         cfun_FAILED,
         "(" MOD_NAME "/FAILED hr)\n\n"
         "Check if an HRESULT or SCODE represents failure.",
+    },
+    {
+        "HRESULT_CODE",
+        cfun_HRESULT_CODE,
+        "(" MOD_NAME "/HRESULT_CODE hr)\n\n"
+        "Extracts the code portion of the specified HRESULT.",
+    },
+    {
+        "SCODE_CODE",
+        cfun_SCODE_CODE,
+        "(" MOD_NAME "/SCODE_CODE sc)\n\n"
+        "Extracts the code portion of the specified SCODE.",
     },
     {
         "SetLastError",

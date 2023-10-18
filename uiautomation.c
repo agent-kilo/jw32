@@ -21,6 +21,194 @@ JanetTable *IUIAutomationPropertyCondition_proto;
 
 /*******************************************************************
  *
+ * EVENT HANDLERS
+ *
+ *******************************************************************/
+
+struct Jw32UIAEventHandler;
+typedef struct Jw32UIAEventHandler Jw32UIAEventHandler;
+
+/* XXX: not the actual type, just a place-holder type for all the
+   Handle*Event() methods */
+typedef void (STDMETHODCALLTYPE *Jw32UIAEventHandlerFunc)(void);
+
+typedef struct Jw32UIAEventHandlerVtbl
+{
+    BEGIN_INTERFACE
+
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)( 
+        __RPC__in Jw32UIAEventHandler *self,
+        __RPC__in REFIID riid,
+        _COM_Outptr_ void **ppvObject);
+
+    ULONG (STDMETHODCALLTYPE *AddRef)( 
+        __RPC__in Jw32UIAEventHandler *self);
+
+    ULONG (STDMETHODCALLTYPE *Release)( 
+        __RPC__in Jw32UIAEventHandler *self);
+        
+    Jw32UIAEventHandlerFunc HandleEvent;
+
+    END_INTERFACE
+} Jw32UIAEventHandlerVtbl;
+
+/* the only thing that's different is the callback function pointer
+   in the virtual table, so we are re-using the same struct for
+   everything else. */
+struct Jw32UIAEventHandler {
+    CONST_VTBL Jw32UIAEventHandlerVtbl *lpVtbl;
+    const IID *_riid;
+    LONG _refCount;
+    JanetFunction *callback;
+};
+
+static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_AddRef(Jw32UIAEventHandler *self)
+{
+    ULONG ret;
+    janet_gcroot(janet_wrap_function(self->callback));
+    ret = InterlockedIncrement(&(self->_refCount));
+    jw32_dbg_val(ret, "%lu");
+    return ret;
+}
+
+static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_Release(Jw32UIAEventHandler *self)
+{
+    ULONG ret = InterlockedDecrement(&(self->_refCount));
+    janet_gcunroot(janet_wrap_function(self->callback));
+    jw32_dbg_val(ret, "%lu");
+    if (0 == ret) {
+        GlobalFree(self);
+    }
+    return ret;
+}
+
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_QueryInterface(
+    Jw32UIAEventHandler *self,
+    REFIID riid,
+    void **ppInterface)
+{
+    if (!IsEqualIID(riid, &IID_IUnknown) && !IsEqualIID(riid, self->_riid)) {
+        *ppInterface = NULL;
+        return E_NOINTERFACE;
+    }
+
+    self->lpVtbl->AddRef(self);
+    *ppInterface = (void *)self;
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender,
+    EVENTID eventId)
+{
+    /* TODO */
+    jw32_dbg_val(eventId, "%d");
+    BSTR name = NULL;
+    if (SUCCEEDED(sender->lpVtbl->get_CurrentName(sender, &name))) {
+        jw32_dbg_val(name, "\"%ls\"");
+        SysFreeString(name);
+    }
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender)
+{
+    /* TODO */
+    jw32_dbg_val((uint64_t)sender, "0x%" PRIx64);
+
+    BSTR name = NULL;
+    if (SUCCEEDED(sender->lpVtbl->get_CurrentName(sender, &name))) {
+        jw32_dbg_val(name, "\"%ls\"");
+        SysFreeString(name);
+    }
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender,
+    PROPERTYID propertyId,
+    VARIANT newValue)
+{
+    /* TODO */
+    jw32_dbg_val(propertyId, "%d");
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender,
+    enum StructureChangeType changeType,
+    SAFEARRAY *runtimeId)
+{
+    /* TODO */
+    BSTR name = NULL;
+    HRESULT hr = sender->lpVtbl->get_CurrentName(sender, &name);
+    if (SUCCEEDED(hr)) {
+        jw32_dbg_val(name, "\"%ls\"");
+        SysFreeString(name);
+    } else {
+        jw32_dbg_val(HRESULT_FACILITY(hr), "0x%x");
+        jw32_dbg_val(HRESULT_CODE(hr), "0x%x");
+    }
+    jw32_dbg_val(changeType, "%d");
+    return S_OK;
+}
+
+
+#define __COMMON_METHODS                \
+    Jw32UIAEventHandler_QueryInterface, \
+    Jw32UIAEventHandler_AddRef,         \
+    Jw32UIAEventHandler_Release
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIAEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleAutomationEvent,
+};
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIAFocusChangedEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleFocusChangedEvent,
+};
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIAPropertyChangedEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandlePropertyChangedEvent,
+};
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIAStructureChangedEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleStructureChangedEvent,
+};
+
+#undef __COMMON_METHODS
+
+
+static Jw32UIAEventHandler *create_uia_event_handler(
+    REFIID riid,
+    CONST_VTBL Jw32UIAEventHandlerVtbl *pVtbl,
+    JanetFunction *callback)
+{
+    Jw32UIAEventHandler *handler = GlobalAlloc(GPTR, sizeof(Jw32UIAEventHandler));
+
+    if (!handler) {
+        return NULL;
+    }
+
+    handler->_riid = riid,
+    handler->lpVtbl = pVtbl;
+    handler->callback = callback;
+
+    handler->lpVtbl->AddRef(handler);
+
+    return handler;
+}
+
+/*******************************************************************
+ *
  * CONSTANT DEFINITIONS
  *
  *******************************************************************/
@@ -307,6 +495,51 @@ static void define_consts_uia_patternid(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_uia_eventid(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation event types.")
+    __def(UIA_ToolTipOpenedEventId);
+    __def(UIA_ToolTipClosedEventId);
+    __def(UIA_StructureChangedEventId);
+    __def(UIA_MenuOpenedEventId);
+    __def(UIA_AutomationPropertyChangedEventId);
+    __def(UIA_AutomationFocusChangedEventId);
+    __def(UIA_AsyncContentLoadedEventId);
+    __def(UIA_MenuClosedEventId);
+    __def(UIA_LayoutInvalidatedEventId);
+    __def(UIA_Invoke_InvokedEventId);
+    __def(UIA_SelectionItem_ElementAddedToSelectionEventId);
+    __def(UIA_SelectionItem_ElementRemovedFromSelectionEventId);
+    __def(UIA_SelectionItem_ElementSelectedEventId);
+    __def(UIA_Selection_InvalidatedEventId);
+    __def(UIA_Text_TextSelectionChangedEventId);
+    __def(UIA_Text_TextChangedEventId);
+    __def(UIA_Window_WindowOpenedEventId);
+    __def(UIA_Window_WindowClosedEventId);
+    __def(UIA_MenuModeStartEventId);
+    __def(UIA_MenuModeEndEventId);
+    __def(UIA_InputReachedTargetEventId);
+    __def(UIA_InputReachedOtherElementEventId);
+    __def(UIA_InputDiscardedEventId);
+    __def(UIA_SystemAlertEventId);
+    __def(UIA_LiveRegionChangedEventId);
+    __def(UIA_HostedFragmentRootsInvalidatedEventId);
+    __def(UIA_Drag_DragStartEventId);
+    __def(UIA_Drag_DragCancelEventId);
+    __def(UIA_Drag_DragCompleteEventId);
+    __def(UIA_DropTarget_DragEnterEventId);
+    __def(UIA_DropTarget_DragLeaveEventId);
+    __def(UIA_DropTarget_DroppedEventId);
+    __def(UIA_TextEdit_TextChangedEventId);
+    __def(UIA_TextEdit_ConversionTargetChangedEventId);
+    __def(UIA_ChangesEventId);
+    __def(UIA_NotificationEventId);
+    __def(UIA_ActiveTextPositionChangedEventId);
+#undef __def
+}
+
 static void define_consts_treescope(JanetTable *env)
 {
 #define __def(const_name)                                        \
@@ -447,6 +680,167 @@ static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
                         jw32_com_maybe_make_object(hrRet, newCondition, IUIAutomationCondition_proto));
 }
 
+static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    EVENTID eventId;
+    IUIAutomationElement *element;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 6);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    eventId = jw32_get_int(argv, 1);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 2);
+    scope = jw32_get_int(argv, 3);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 4);
+    callback = janet_getfunction(argv, 5);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationEventHandler,
+                                       &UIAEventHandler_Vtbl,
+                                       callback);
+    if (!handler) {
+        return jw32_wrap_hresult(E_OUTOFMEMORY);
+    }
+
+    hrRet = self->lpVtbl->AddAutomationEventHandler(self,
+                                                    eventId,
+                                                    element,
+                                                    scope,
+                                                    cacheRequest,
+                                                    (IUIAutomationEventHandler *)handler);
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 1);
+    callback = janet_getfunction(argv, 2);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationFocusChangedEventHandler,
+                                       &UIAFocusChangedEventHandler_Vtbl,
+                                       callback);
+    if (!handler) {
+        return jw32_wrap_hresult(E_OUTOFMEMORY);
+    }
+
+    hrRet = self->lpVtbl->AddFocusChangedEventHandler(self,
+                                                      cacheRequest,
+                                                      (IUIAutomationFocusChangedEventHandler *)handler);
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *element;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+    JanetView properties;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+    SAFEARRAY *propertyArray;
+
+    janet_fixarity(argc, 6);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    scope = jw32_get_int(argv, 2);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
+    callback = janet_getfunction(argv, 4);
+    properties = janet_getindexed(argv, 5);
+
+    propertyArray = SafeArrayCreateVector(VT_INT, 0, properties.len);
+    if (!propertyArray) {
+        return jw32_wrap_hresult(E_OUTOFMEMORY);
+    }
+    for (LONG i = 0; i < properties.len; i++) {
+        Janet item = properties.items[i];
+        if (!janet_checkint(item)) {
+            SafeArrayDestroy(propertyArray);
+            janet_panicf("bad property #%d: expected an integer, got %v", i, item);
+        }
+        enum PROPERTYID pid = jw32_unwrap_int(item);
+        HRESULT hr = SafeArrayPutElement(propertyArray, &i, &pid);
+        jw32_dbg_val(hr, "%d");
+    }
+
+    handler = create_uia_event_handler(&IID_IUIAutomationPropertyChangedEventHandler,
+                                       &UIAPropertyChangedEventHandler_Vtbl,
+                                       callback);
+    if (!handler) {
+        SafeArrayDestroy(propertyArray);
+        return jw32_wrap_hresult(E_OUTOFMEMORY);
+    }
+
+    hrRet = self->lpVtbl->AddPropertyChangedEventHandler(self,
+                                                         element,
+                                                         scope,
+                                                         cacheRequest,
+                                                         (IUIAutomationPropertyChangedEventHandler *)handler,
+                                                         propertyArray);
+
+    SafeArrayDestroy(propertyArray);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *element;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 5);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    scope = jw32_get_int(argv, 2);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
+    callback = janet_getfunction(argv, 4);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationStructureChangedEventHandler,
+                                       &UIAStructureChangedEventHandler_Vtbl,
+                                       callback);
+    if (!handler) {
+        return jw32_wrap_hresult(E_OUTOFMEMORY);
+    }
+
+    hrRet = self->lpVtbl->AddStructureChangedEventHandler(self,
+                                                          element,
+                                                          scope,
+                                                          cacheRequest,
+                                                          (IUIAutomationStructureChangedEventHandler *)handler);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
 JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
@@ -459,6 +853,10 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
     {"CreateAndCondition", IUIAutomation_CreateAndCondition},
+    {"AddAutomationEventHandler", IUIAutomation_AddAutomationEventHandler},
+    {"AddFocusChangedEventHandler", IUIAutomation_AddFocusChangedEventHandler},
+    {"AddPropertyChangedEventHandler", IUIAutomation_AddPropertyChangedEventHandler},
+    {"AddStructureChangedEventHandler", IUIAutomation_AddStructureChangedEventHandler},
 
     JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
     JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
@@ -831,6 +1229,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_uia_controltypeid(env);
     define_consts_uia_propertyid(env);
     define_consts_uia_patternid(env);
+    define_consts_uia_eventid(env);
     define_consts_treescope(env);
 
     init_table_protos(env);
