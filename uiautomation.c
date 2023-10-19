@@ -104,7 +104,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
 {
     /* TODO */
     BSTR name = NULL;
-    HRESULT hr = sender->lpVtbl->get_CurrentName(sender, &name);
+    HRESULT hr = sender->lpVtbl->get_CachedName(sender, &name);
     if (SUCCEEDED(hr)) {
         jw32_dbg_val(name, "\"%ls\"");
         SysFreeString(name);
@@ -124,7 +124,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
     jw32_dbg_val((uint64_t)sender, "0x%" PRIx64);
 
     BSTR name = NULL;
-    if (SUCCEEDED(sender->lpVtbl->get_CurrentName(sender, &name))) {
+    if (SUCCEEDED(sender->lpVtbl->get_CachedName(sender, &name))) {
         jw32_dbg_val(name, "\"%ls\"");
         SysFreeString(name);
     }
@@ -138,6 +138,11 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
     VARIANT newValue)
 {
     /* TODO */
+    BSTR name = NULL;
+    if (SUCCEEDED(sender->lpVtbl->get_CachedName(sender, &name))) {
+        jw32_dbg_val(name, "\"%ls\"");
+        SysFreeString(name);
+    }
     jw32_dbg_val(propertyId, "%d");
     return S_OK;
 }
@@ -150,7 +155,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
 {
     /* TODO */
     BSTR name = NULL;
-    HRESULT hr = sender->lpVtbl->get_CurrentName(sender, &name);
+    HRESULT hr = sender->lpVtbl->get_CachedName(sender, &name);
     if (SUCCEEDED(hr)) {
         jw32_dbg_val(name, "\"%ls\"");
         SysFreeString(name);
@@ -222,6 +227,8 @@ static void define_uuids(JanetTable *env)
     /* UIAutomation */
     janet_def(env, "CLSID_CUIAutomation", jw32_wrap_refclsid(&CLSID_CUIAutomation),
               "Class ID for CUIAutomation.");
+    janet_def(env, "CLSID_CUIAutomation8", jw32_wrap_refclsid(&CLSID_CUIAutomation8),
+              "Class ID for CUIAutomation8.");
 }
 
 static void define_consts_uia_controltypeid(JanetTable *env)
