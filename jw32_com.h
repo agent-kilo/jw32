@@ -4,6 +4,7 @@
 #include "jw32.h"
 #include <objbase.h>
 
+
 #define JW32_COM_OBJ_REF_NAME "__obj_ref"
 #define JW32_COM_IID_NAME "__iid"
 #define JW32_COM_IF_NAME_NAME "__if_name"

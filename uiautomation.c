@@ -6,6 +6,15 @@
 #define MOD_NAME "uiautomation"
 
 
+struct Jw32UIAEventHandlerThreadState {
+    int vm_initialized;
+};
+typedef struct Jw32UIAEventHandlerThreadState Jw32UIAEventHandlerThreadState;
+
+JANET_THREAD_LOCAL Jw32UIAEventHandlerThreadState uia_thread_state = {
+    0,
+};
+
 /* make these global so that IUIAutomation methods can find them */
 JanetTable *IUIAutomation_proto;
 JanetTable *IUIAutomationElement_proto;
@@ -27,6 +36,19 @@ JanetTable *IUIAutomationPropertyCondition_proto;
 
 struct Jw32UIAEventHandler;
 typedef struct Jw32UIAEventHandler Jw32UIAEventHandler;
+
+static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
+{
+    if (uia_thread_state.vm_initialized) {
+        return;
+    }
+
+    janet_init();
+    /* TODO: pass abstract type registry, cfun registry & the actual
+       janet callback function by marshaling.
+       see cfun_ev_thread() & janet_go_thread_subr() */
+    uia_thread_state.vm_initialized = 1;
+}
 
 /* XXX: not the actual type, just a place-holder type for all the
    Handle*Event() methods */
@@ -65,7 +87,6 @@ struct Jw32UIAEventHandler {
 static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_AddRef(Jw32UIAEventHandler *self)
 {
     ULONG ret;
-    janet_gcroot(janet_wrap_function(self->callback));
     ret = InterlockedIncrement(&(self->_refCount));
     jw32_dbg_val(ret, "%lu");
     return ret;
@@ -74,9 +95,9 @@ static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_AddRef(Jw32UIAEventHandler *s
 static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_Release(Jw32UIAEventHandler *self)
 {
     ULONG ret = InterlockedDecrement(&(self->_refCount));
-    janet_gcunroot(janet_wrap_function(self->callback));
     jw32_dbg_val(ret, "%lu");
     if (0 == ret) {
+        janet_gcunroot(janet_wrap_function(self->callback));
         GlobalFree(self);
     }
     return ret;
@@ -102,33 +123,43 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
     IUIAutomationElement *sender,
     EVENTID eventId)
 {
-    /* TODO */
-    BSTR name = NULL;
-    HRESULT hr = sender->lpVtbl->get_CachedName(sender, &name);
-    if (SUCCEEDED(hr)) {
-        jw32_dbg_val(name, "\"%ls\"");
-        SysFreeString(name);
+    init_event_handler_thread_vm(self);
+
+    JanetFunction *callback = self->callback;
+    Janet argv[] = {
+        jw32_com_make_object(sender, IUIAutomationElement_proto),
+        jw32_wrap_int(eventId),
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(callback, 2, argv, &ret)) {
+        return jw32_unwrap_hresult(ret);
     } else {
-        jw32_dbg_val(HRESULT_FACILITY(hr), "0x%x");
-        jw32_dbg_val(HRESULT_CODE(hr), "0x%x");
+        /* XXX: i'm not sure this is the right code.... */
+        return E_UNEXPECTED;
     }
-    jw32_dbg_val(eventId, "%d");
-    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
     Jw32UIAEventHandler *self,
     IUIAutomationElement *sender)
 {
-    /* TODO */
-    jw32_dbg_val((uint64_t)sender, "0x%" PRIx64);
+    init_event_handler_thread_vm(self);
 
-    BSTR name = NULL;
-    if (SUCCEEDED(sender->lpVtbl->get_CachedName(sender, &name))) {
-        jw32_dbg_val(name, "\"%ls\"");
-        SysFreeString(name);
+    JanetFunction *callback = self->callback;
+    Janet argv[] = {
+        jw32_com_make_object(sender, IUIAutomationElement_proto),
+    };
+    Janet ret;
+
+    jw32_dbg_val(GetCurrentThreadId(), "0x%x");
+
+    HRESULT hrRet = E_UNEXPECTED;
+    if (jw32_pcall_fn(callback, 1, argv, &ret)) {
+        hrRet = jw32_unwrap_hresult(ret);
     }
-    return S_OK;
+
+    return hrRet;
 }
 
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
@@ -137,14 +168,22 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
     PROPERTYID propertyId,
     VARIANT newValue)
 {
-    /* TODO */
-    BSTR name = NULL;
-    if (SUCCEEDED(sender->lpVtbl->get_CachedName(sender, &name))) {
-        jw32_dbg_val(name, "\"%ls\"");
-        SysFreeString(name);
+    init_event_handler_thread_vm(self);
+
+    JanetFunction *callback = self->callback;
+    Janet argv[] = {
+        jw32_com_make_object(sender, IUIAutomationElement_proto),
+        jw32_wrap_int(propertyId),
+        /* TODO: VARIANT type */
+        janet_wrap_nil(),
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(callback, 3, argv, &ret)) {
+        return jw32_unwrap_hresult(ret);
+    } else {
+        return E_UNEXPECTED;
     }
-    jw32_dbg_val(propertyId, "%d");
-    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent(
@@ -153,18 +192,22 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
     enum StructureChangeType changeType,
     SAFEARRAY *runtimeId)
 {
-    /* TODO */
-    BSTR name = NULL;
-    HRESULT hr = sender->lpVtbl->get_CachedName(sender, &name);
-    if (SUCCEEDED(hr)) {
-        jw32_dbg_val(name, "\"%ls\"");
-        SysFreeString(name);
+    init_event_handler_thread_vm(self);
+
+    JanetFunction *callback = self->callback;
+    Janet argv[] = {
+        jw32_com_make_object(sender, IUIAutomationElement_proto),
+        jw32_wrap_int(changeType),
+        /* TODO: SAFEARRAY type */
+        janet_wrap_nil(),
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(callback, 3, argv, &ret)) {
+        return jw32_unwrap_hresult(ret);
     } else {
-        jw32_dbg_val(HRESULT_FACILITY(hr), "0x%x");
-        jw32_dbg_val(HRESULT_CODE(hr), "0x%x");
+        return E_UNEXPECTED;
     }
-    jw32_dbg_val(changeType, "%d");
-    return S_OK;
 }
 
 
@@ -209,6 +252,7 @@ static Jw32UIAEventHandler *create_uia_event_handler(
 
     handler->_riid = riid,
     handler->lpVtbl = pVtbl;
+    /* TODO: marshaling */
     handler->callback = callback;
 
     handler->lpVtbl->AddRef(handler);
@@ -726,6 +770,14 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
                                                     scope,
                                                     cacheRequest,
                                                     (IUIAutomationEventHandler *)handler);
+    /* XXX: janet_gcunroot() is called in handler->lpVtbl->Release(), in case
+       events arrive after Remove*EventHandler() is called. this means the last
+       Release() call should be in the same thread that created the handler
+       object, or janet_gcunroot() will access the wrong global VM states. */
+    if (SUCCEEDED(hrRet)) {
+        janet_gcroot(janet_wrap_function(callback));
+    }
+
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -755,6 +807,10 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
     hrRet = self->lpVtbl->AddFocusChangedEventHandler(self,
                                                       cacheRequest,
                                                       (IUIAutomationFocusChangedEventHandler *)handler);
+    if (SUCCEEDED(hrRet)) {
+        janet_gcroot(janet_wrap_function(callback));
+    }
+
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -813,6 +869,10 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
 
     SafeArrayDestroy(propertyArray);
 
+    if (SUCCEEDED(hrRet)) {
+        janet_gcroot(janet_wrap_function(callback));
+    }
+
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -848,6 +908,9 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
                                                           scope,
                                                           cacheRequest,
                                                           (IUIAutomationStructureChangedEventHandler *)handler);
+    if (SUCCEEDED(hrRet)) {
+        janet_gcroot(janet_wrap_function(callback));
+    }
 
     return jw32_wrap_hresult(hrRet);
 }
@@ -1236,6 +1299,9 @@ static void init_table_protos(JanetTable *env)
 
 JANET_MODULE_ENTRY(JanetTable *env)
 {
+    /* we are loading this module in the "main" thread */
+    uia_thread_state.vm_initialized = 1;
+
     define_uuids(env);
     define_consts_uia_controltypeid(env);
     define_consts_uia_propertyid(env);
