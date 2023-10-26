@@ -177,8 +177,6 @@ static JanetTable *unmarshal_handler_env(Jw32UIAEventHandler *handler)
 
 static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
 {
-    (void)handler;
-
     jw32_dbg_val(GetCurrentThreadId(), "0x%x");
     jw32_dbg_val(uia_thread_state.vm_initialized, "%d");
 
