@@ -70,7 +70,6 @@ struct Jw32UIAEventHandler {
     CONST_VTBL Jw32UIAEventHandlerVtbl *lpVtbl;
     const IID *_riid;
     LONG _refCount;
-    JanetFunction *callback;
     JanetBuffer *marshaled_cb;
     JanetBuffer *marshaled_env;
 };
@@ -148,7 +147,12 @@ static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_Release(Jw32UIAEventHandler *
     ULONG ret = InterlockedDecrement(&(self->_refCount));
     jw32_dbg_val(ret, "%lu");
     if (0 == ret) {
-        janet_gcunroot(janet_wrap_function(self->callback));
+        janet_buffer_deinit(self->marshaled_cb);
+        janet_free(self->marshaled_cb);
+
+        janet_buffer_deinit(self->marshaled_env);
+        janet_free(self->marshaled_env);
+
         GlobalFree(self);
     }
     return ret;
@@ -309,7 +313,6 @@ static Jw32UIAEventHandler *create_uia_event_handler(
 
     handler->_riid = riid,
     handler->lpVtbl = pVtbl;
-    handler->callback = callback;
 
     JanetBuffer *marshaled_cb = janet_malloc(sizeof(JanetBuffer));
     if (!marshaled_cb) {
@@ -849,14 +852,6 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
                                                     scope,
                                                     cacheRequest,
                                                     (IUIAutomationEventHandler *)handler);
-    /* XXX: janet_gcunroot() is called in handler->lpVtbl->Release(), in case
-       events arrive after Remove*EventHandler() is called. this means the last
-       Release() call should be in the same thread that created the handler
-       object, or janet_gcunroot() will access the wrong global VM states. */
-    if (SUCCEEDED(hrRet)) {
-        janet_gcroot(janet_wrap_function(callback));
-    }
-
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -887,10 +882,6 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
     hrRet = self->lpVtbl->AddFocusChangedEventHandler(self,
                                                       cacheRequest,
                                                       (IUIAutomationFocusChangedEventHandler *)handler);
-    if (SUCCEEDED(hrRet)) {
-        janet_gcroot(janet_wrap_function(callback));
-    }
-
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -947,13 +938,7 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
                                                          cacheRequest,
                                                          (IUIAutomationPropertyChangedEventHandler *)handler,
                                                          propertyArray);
-
     SafeArrayDestroy(propertyArray);
-
-    if (SUCCEEDED(hrRet)) {
-        janet_gcroot(janet_wrap_function(callback));
-    }
-
     return jw32_wrap_hresult(hrRet);
 }
 
@@ -990,10 +975,6 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
                                                           scope,
                                                           cacheRequest,
                                                           (IUIAutomationStructureChangedEventHandler *)handler);
-    if (SUCCEEDED(hrRet)) {
-        janet_gcroot(janet_wrap_function(callback));
-    }
-
     return jw32_wrap_hresult(hrRet);
 }
 
