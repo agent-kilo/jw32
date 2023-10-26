@@ -171,6 +171,15 @@ static Janet cfun_HRESULT_CODE(int32_t argc, Janet *argv)
     return jw32_wrap_int(HRESULT_CODE(code));
 }
 
+static Janet cfun_HRESULT_FACILITY(int32_t argc, Janet *argv)
+{
+    HRESULT code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0);
+    return jw32_wrap_int(HRESULT_FACILITY(code));
+}
+
 static Janet cfun_SCODE_CODE(int32_t argc, Janet *argv)
 {
     SCODE code;
@@ -178,6 +187,15 @@ static Janet cfun_SCODE_CODE(int32_t argc, Janet *argv)
     janet_fixarity(argc, 1);
     code = jw32_get_hresult(argv, 0);
     return jw32_wrap_int(SCODE_CODE(code));
+}
+
+static Janet cfun_SCODE_FACILITY(int32_t argc, Janet *argv)
+{
+    SCODE code;
+
+    janet_fixarity(argc, 1);
+    code = jw32_get_hresult(argv, 0);
+    return jw32_wrap_int(SCODE_FACILITY(code));
 }
 
 static Janet cfun_SetLastError(int32_t argc, Janet *argv)
@@ -243,10 +261,22 @@ static const JanetReg cfuns[] = {
         "Extracts the code portion of the specified HRESULT.",
     },
     {
+        "HRESULT_FACILITY",
+        cfun_HRESULT_FACILITY,
+        "(" MOD_NAME "/HRESULT_FACILITY hr)\n\n"
+        "Extracts the facility portion of the specified HRESULT.",
+    },
+    {
         "SCODE_CODE",
         cfun_SCODE_CODE,
         "(" MOD_NAME "/SCODE_CODE sc)\n\n"
         "Extracts the code portion of the specified SCODE.",
+    },
+    {
+        "SCODE_FACILITY",
+        cfun_SCODE_FACILITY,
+        "(" MOD_NAME "/SCODE_FACILITY sc)\n\n"
+        "Extracts the facility portion of the specified SCODE.",
     },
     {
         "SetLastError",
