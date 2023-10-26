@@ -33,6 +33,26 @@
                             jw32_wrap_##__prop_jw32_type##(out));       \
     }
 
+#define DEFINE_BSTR_PROPERTY_GETTER(__if, __prop)                       \
+    static Janet PROPERTY_GETTER(__if, __prop)(int32_t argc, Janet *argv) \
+    {                                                                   \
+        __if *self;                                                     \
+        HRESULT hrRet;                                                  \
+        BSTR retVal = NULL;                                             \
+        Janet ret_tuple[2];                                             \
+        janet_fixarity(argc, 1);                                        \
+        self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
+        hrRet = self->lpVtbl->get_##__prop##(self, &retVal);            \
+        ret_tuple[0] = jw32_wrap_hresult(hrRet);                        \
+        if (SUCCEEDED(hrRet)) {                                         \
+            ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal)); \
+            SysFreeString(retVal);                                      \
+        } else {                                                        \
+            ret_tuple[1] = janet_wrap_nil();                            \
+        }                                                               \
+        return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));           \
+    }
+
 #define PROPERTY_SETTER(__if, __prop) __##__if##_put_##__prop##__
 
 #define DEFINE_OBJ_PROPERTY_SETTER(__if, __prop, __prop_if)    \
@@ -1203,149 +1223,14 @@ DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsControlElement, BOOL
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsContentElement, BOOL, bool)
 
-static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentName)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedName)
 
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CurrentName(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
-
-static Janet PROPERTY_GETTER(IUIAutomationElement, CachedName)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CachedName(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
-
-static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CurrentAcceleratorKey(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
-
-static Janet PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CachedAcceleratorKey(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
-
-static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentAccessKey)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CurrentAccessKey(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
-
-static Janet PROPERTY_GETTER(IUIAutomationElement, CachedAccessKey)(int32_t argc, Janet *argv)
-{
-    IUIAutomationElement *self;
-
-    HRESULT hrRet;
-    BSTR retVal = NULL;
-    Janet ret_tuple[2];
-
-    janet_fixarity(argc, 1);
-
-    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
-    hrRet = self->lpVtbl->get_CachedAccessKey(self, &retVal);
-
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
-        SysFreeString(retVal);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
-}
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAccessKey)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAccessKey)
 
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
