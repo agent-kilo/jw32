@@ -137,15 +137,6 @@ static inline Janet jw32_com_make_object_in_env(LPVOID pv, const char *proto_nam
     return jw32_com_make_object(pv, janet_unwrap_table(proto));
 }
 
-static inline Janet jw32_com_maybe_make_object(HRESULT hr, LPVOID pv, JanetTable *if_proto)
-{
-    if (SUCCEEDED(hr)) {
-        return jw32_com_make_object(pv, if_proto);
-    }
-
-    return janet_wrap_nil();
-}
-
 static inline JanetString jw32_com_bstr_to_string(BSTR from)
 {
     int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
@@ -179,7 +170,7 @@ static inline JanetString jw32_com_bstr_to_string(BSTR from)
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &out);               \
         JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),                   \
-                            jw32_com_maybe_make_object(hrRet, out, ##__prop_if##_proto)); \
+                            maybe_make_object(hrRet, out, #__prop_if)); \
     }
 
 #define JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \

@@ -94,7 +94,11 @@ static Janet IUnknown_QueryInterface(int32_t argc, Janet *argv)
     hrRet = self->lpVtbl->QueryInterface(self, riid, &pvObject);
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, pvObject, if_proto);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_com_make_object(pvObject, if_proto);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
 
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
@@ -161,7 +165,11 @@ static Janet cfun_CoCreateInstance(int32_t argc, Janet *argv)
     hrRet = CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, &pv);
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    ret_tuple[1] = jw32_com_maybe_make_object(hrRet, pv, if_proto);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_com_make_object(pv, if_proto);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
 
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
