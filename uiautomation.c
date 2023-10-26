@@ -1092,6 +1092,24 @@ static const JanetMethod IUIAutomation_methods[] = {
  *
  *******************************************************************/
 
+static Janet IUIAutomationElement_BuildUpdatedCache(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *updatedElement = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 1);
+    hrRet = self->lpVtbl->BuildUpdatedCache(self, cacheRequest, &updatedElement);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        maybe_make_object(hrRet, updatedElement, "IUIAutomationElement"));
+}
+
 static Janet IUIAutomationElement_FindAll(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -1177,8 +1195,13 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
 }
 
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedControlType, CONTROLTYPEID, int)
+
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsControlElement, BOOL, bool)
+
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsContentElement, BOOL, bool)
 
 static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
 {
@@ -1204,13 +1227,47 @@ static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Ja
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet PROPERTY_GETTER(IUIAutomationElement, CachedName)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    BSTR retVal = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CachedName(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+        SysFreeString(retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
+    {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
     {"FindAll", IUIAutomationElement_FindAll},
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
 
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsContentElement),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsContentElement),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsControlElement),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsControlElement),
+
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedControlType),
+
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedName),
 
     {NULL, NULL},
 };
