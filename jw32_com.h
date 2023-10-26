@@ -122,6 +122,21 @@ static inline Janet jw32_com_make_object(LPVOID pv, JanetTable *if_proto)
     return janet_wrap_table(if_obj);
 }
 
+static inline Janet jw32_com_make_object_in_env(LPVOID pv, const char *proto_name, JanetTable *env)
+{
+    Janet proto;
+    JanetBindingType b_type = janet_resolve(env, janet_csymbol(proto_name), &proto);
+
+    if (JANET_BINDING_NONE == b_type) {
+        janet_panicf("could not resolve variable %s", proto_name);
+    }
+    if (!janet_checktype(proto, JANET_TABLE)) {
+        janet_panicf("expected %s to be a table, got %v", proto_name, proto);
+    }
+
+    return jw32_com_make_object(pv, janet_unwrap_table(proto));
+}
+
 static inline Janet jw32_com_maybe_make_object(HRESULT hr, LPVOID pv, JanetTable *if_proto)
 {
     if (SUCCEEDED(hr)) {
