@@ -1299,6 +1299,54 @@ static Janet PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)(int32_t
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentAccessKey)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    BSTR retVal = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CurrentAccessKey(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+        SysFreeString(retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet PROPERTY_GETTER(IUIAutomationElement, CachedAccessKey)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    BSTR retVal = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CachedAccessKey(self, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal));
+        SysFreeString(retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
     {"FindAll", IUIAutomationElement_FindAll},
@@ -1319,6 +1367,9 @@ static const JanetMethod IUIAutomationElement_methods[] = {
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAcceleratorKey),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAccessKey),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAccessKey),
 
     {NULL, NULL},
 };
