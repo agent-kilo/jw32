@@ -5,6 +5,80 @@
 
 #define MOD_NAME "uiautomation"
 
+#define PROPERTY_GETTER(__if, __prop) __##__if##_get_##__prop##__
+
+#define DEFINE_OBJ_PROPERTY_GETTER(__if, __prop, __prop_if)    \
+    static Janet PROPERTY_GETTER(__if, __prop)(int32_t argc, Janet *argv) \
+    {                                                                   \
+        __if *self;                                                     \
+        HRESULT hrRet;                                                  \
+        __prop_if *out = NULL;                                          \
+        janet_fixarity(argc, 1);                                        \
+        self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
+        hrRet = self->lpVtbl->get_##__prop##(self, &out);               \
+        JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),                   \
+                            maybe_make_object(hrRet, out, #__prop_if)); \
+    }
+
+#define DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \
+    static Janet PROPERTY_GETTER(__if, __prop)(int32_t argc, Janet *argv) \
+    {                                                                   \
+        __if *self;                                                     \
+        HRESULT hrRet;                                                  \
+        __prop_type out = 0;                                            \
+        janet_fixarity(argc, 1);                                        \
+        self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
+        hrRet = self->lpVtbl->get_##__prop##(self, &out);               \
+        JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),                   \
+                            jw32_wrap_##__prop_jw32_type##(out));       \
+    }
+
+#define PROPERTY_SETTER(__if, __prop) __##__if##_put_##__prop##__
+
+#define DEFINE_OBJ_PROPERTY_SETTER(__if, __prop, __prop_if)    \
+    static Janet PROPERTY_SETTER(__if, __prop)(int32_t argc, Janet *argv) \
+    {                                                                   \
+        __if *self;                                                     \
+        __prop_if *val;                                                 \
+        HRESULT hrRet;                                                  \
+        janet_fixarity(argc, 2);                                        \
+        self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
+        val = (__prop_if *)jw32_com_get_obj_ref(argv, 1);               \
+        hrRet = self->lpVtbl->put_##__prop##(self, val);                \
+        return jw32_wrap_hresult(hrRet);                                \
+    }
+
+#define DEFINE_SIMPLE_PROPERTY_SETTER(__if, __prop, __prop_type, __prop_jw32_type) \
+    static Janet PROPERTY_SETTER(__if, __prop)(int32_t argc, Janet *argv) \
+    {                                                                   \
+        __if *self;                                                     \
+        __prop_type val;                                                \
+        HRESULT hrRet;                                                  \
+        janet_fixarity(argc, 2);                                        \
+        self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
+        val = (__prop_type)jw32_get_##__prop_jw32_type##(argv, 1);      \
+        hrRet = self->lpVtbl->put_##__prop##(self, val);                \
+        return jw32_wrap_hresult(hrRet);                                \
+    }
+
+#define DEFINE_OBJ_PROPERTY(__if, __prop, __prop_if)    \
+    DEFINE_OBJ_PROPERTY_GETTER(__if, __prop, __prop_if) \
+    DEFINE_OBJ_PROPERTY_SETTER(__if, __prop, __prop_if)
+
+#define DEFINE_SIMPLE_PROPERTY(__if, __prop, __prop_type, __prop_jw32_type) \
+    DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \
+    DEFINE_SIMPLE_PROPERTY_SETTER(__if, __prop, __prop_type, __prop_jw32_type)
+
+#define PROPERTY_GETTER_METHOD(__if, __prop)           \
+    {"get_" #__prop, PROPERTY_GETTER(__if, __prop)}
+
+#define PROPERTY_SETTER_METHOD(__if, __prop)           \
+    {"put_" #__prop, PROPERTY_SETTER(__if, __prop)}
+
+#define PROPERTY_METHODS(__if, __prop)    \
+    PROPERTY_GETTER_METHOD(__if, __prop), \
+    PROPERTY_SETTER_METHOD(__if, __prop)
+
 
 struct Jw32UIAEventHandlerThreadState {
     int vm_initialized;
@@ -989,9 +1063,9 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
     return jw32_wrap_hresult(hrRet);
 }
 
-JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
-JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
-JW32_COM_DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
 
 static const JanetMethod IUIAutomation_methods[] = {
     {"GetRootElement", IUIAutomation_GetRootElement},
@@ -1006,9 +1080,9 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"AddPropertyChangedEventHandler", IUIAutomation_AddPropertyChangedEventHandler},
     {"AddStructureChangedEventHandler", IUIAutomation_AddStructureChangedEventHandler},
 
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomation, RawViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, RawViewCondition),
 
     {NULL, NULL},
 };
@@ -1104,11 +1178,11 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, found, "IUIAutomationElement"));
 }
 
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
 
-static Janet JW32_COM_PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
+static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentName)(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
 
@@ -1137,8 +1211,8 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
 
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
 
     {NULL, NULL},
 };
@@ -1168,12 +1242,12 @@ static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, element, "IUIAutomationElement"));
 }
 
-JW32_COM_DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElementArray, Length, int, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElementArray, Length, int, int)
 
 static const JanetMethod IUIAutomationElementArray_methods[] = {
     {"GetElement", IUIAutomationElementArray_GetElement},
 
-    JW32_COM_PROPERTY_GETTER_METHOD(IUIAutomationElementArray, Length),
+    PROPERTY_GETTER_METHOD(IUIAutomationElementArray, Length),
 
     {NULL, NULL},
 };
@@ -1233,19 +1307,19 @@ static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, clonedRequest, "IUIAutomationCacheRequest"));
 }
 
-JW32_COM_DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, AutomationElementMode,
+DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, AutomationElementMode,
                                 enum AutomationElementMode, int)
-JW32_COM_DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
-JW32_COM_DEFINE_OBJ_PROPERTY(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
+DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
+DEFINE_OBJ_PROPERTY(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
 
 static const JanetMethod IUIAutomationCacheRequest_methods[] = {
     {"AddPattern", IUIAutomationCacheRequest_AddPattern},
     {"AddProperty", IUIAutomationCacheRequest_AddProperty},
     {"Clone", IUIAutomationCacheRequest_Clone},
 
-    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, AutomationElementMode),
-    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, TreeScope),
-    JW32_COM_PROPERTY_METHODS(IUIAutomationCacheRequest, TreeFilter),
+    PROPERTY_METHODS(IUIAutomationCacheRequest, AutomationElementMode),
+    PROPERTY_METHODS(IUIAutomationCacheRequest, TreeScope),
+    PROPERTY_METHODS(IUIAutomationCacheRequest, TreeFilter),
 
     {NULL, NULL},
 };
