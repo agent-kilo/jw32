@@ -1214,6 +1214,56 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, found, "IUIAutomationElement"));
 }
 
+/* TODO: the api returns NULL arrays when there are no cached children */
+static Janet IUIAutomationElement_GetCachedChildren(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    IUIAutomationElementArray *children = NULL;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->GetCachedChildren(self, &children);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        maybe_make_object(hrRet, children, "IUIAutomationElementArray"));
+}
+
+static Janet IUIAutomationElement_GetCachedParent(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    IUIAutomationElement *parent = NULL;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->GetCachedParent(self, &parent);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        maybe_make_object(hrRet, parent, "IUIAutomationElement"));
+}
+
+static Janet IUIAutomationElement_GetCachedPattern(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PATTERNID patternId;
+
+    HRESULT hrRet;
+    IUnknown *patternObject = NULL;
+
+    janet_fixarity(argc, 2);
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    patternId = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->GetCachedPattern(self, patternId, &patternObject);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        maybe_make_object(hrRet, patternObject, "IUnknown"));
+}
+
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 
@@ -1357,6 +1407,9 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirst", IUIAutomationElement_FindFirst},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
+    {"GetCachedChildren", IUIAutomationElement_GetCachedChildren},
+    {"GetCachedParent", IUIAutomationElement_GetCachedParent},
+    {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAcceleratorKey),
