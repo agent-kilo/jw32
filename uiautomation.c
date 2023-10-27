@@ -1214,18 +1214,6 @@ static Janet IUIAutomationElement_FindFirstBuildCache(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, found, "IUIAutomationElement"));
 }
 
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedControlType, CONTROLTYPEID, int)
-
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsControlElement, BOOL, bool)
-
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
-DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsContentElement, BOOL, bool)
-
-DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentName)
-DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedName)
-
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 
@@ -1241,29 +1229,133 @@ DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAriaRole)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAutomationId)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAutomationId)
 
+static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentBoundingRectangle)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    HRESULT hrRet;
+    RECT out = {0, 0, 0, 0};
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CurrentBoundingRectangle(self, &out);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_table(jw32_rect_to_table(&out));
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet PROPERTY_GETTER(IUIAutomationElement, CachedBoundingRectangle)(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    HRESULT hrRet;
+    RECT out = {0, 0, 0, 0};
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->get_CachedBoundingRectangle(self, &out);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = janet_wrap_table(jw32_rect_to_table(&out));
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentClassName)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedClassName)
 
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CurrentControllerFor, IUIAutomationElementArray)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CachedControllerFor, IUIAutomationElementArray)
 
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentControlType, CONTROLTYPEID, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedControlType, CONTROLTYPEID, int)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentCulture, int, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedCulture, int, int)
+
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CurrentDescribedBy, IUIAutomationElementArray)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CachedDescribedBy, IUIAutomationElementArray)
+
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CurrentFlowsTo, IUIAutomationElementArray)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CachedFlowsTo, IUIAutomationElementArray)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentFrameworkId)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedFrameworkId)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentHasKeyboardFocus, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedHasKeyboardFocus, BOOL, bool)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentHelpText)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedHelpText)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsContentElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsContentElement, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsControlElement, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsControlElement, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsDataValidForForm, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsDataValidForForm, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsEnabled, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsEnabled, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsKeyboardFocusable, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsKeyboardFocusable, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsOffscreen, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsOffscreen, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsPassword, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsPassword, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentIsRequiredForForm, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedIsRequiredForForm, BOOL, bool)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentItemStatus)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedItemStatus)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentItemType)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedItemType)
+
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CurrentLabeledBy, IUIAutomationElement)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CachedLabeledBy, IUIAutomationElement)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentLocalizedControlType)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedLocalizedControlType)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentName)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedName)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentNativeWindowHandle, UIA_HWND, handle)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedNativeWindowHandle, UIA_HWND, handle)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentOrientation, enum OrientationType, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedOrientation, enum OrientationType, int)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CurrentProcessId, int, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElement, CachedProcessId, int, int)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentProviderDescription)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedProviderDescription)
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
     {"FindAll", IUIAutomationElement_FindAll},
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
-
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsContentElement),
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsContentElement),
-
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsControlElement),
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsControlElement),
-
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedControlType),
-
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
-    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedName),
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAcceleratorKey),
@@ -1280,11 +1372,86 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAutomationId),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAutomationId),
 
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentBoundingRectangle),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedBoundingRectangle),
+
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentClassName),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedClassName),
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControllerFor),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedControllerFor),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControlType),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedControlType),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentCulture),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedCulture),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentDescribedBy),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedDescribedBy),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentFlowsTo),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedFlowsTo),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentFrameworkId),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedFrameworkId),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentHasKeyboardFocus),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedHasKeyboardFocus),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentHelpText),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedHelpText),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsContentElement),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsContentElement),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsControlElement),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsControlElement),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsDataValidForForm),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsDataValidForForm),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsEnabled),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsEnabled),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsKeyboardFocusable),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsKeyboardFocusable),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsOffscreen),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsOffscreen),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsPassword),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsPassword),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentIsRequiredForForm),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedIsRequiredForForm),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentItemStatus),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedItemStatus),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentItemType),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedItemType),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentLabeledBy),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedLabeledBy),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentLocalizedControlType),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedLocalizedControlType),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentName),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedName),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentNativeWindowHandle),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedNativeWindowHandle),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentOrientation),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedOrientation),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentProcessId),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedProcessId),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentProviderDescription),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedProviderDescription),
 
     {NULL, NULL},
 };

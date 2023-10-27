@@ -229,4 +229,15 @@ static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
 #define jw32_get_hresult(argv, n) ((HRESULT)jw32_get_long(argv, n))
 
 
+static inline JanetTable *jw32_rect_to_table(const RECT *rect)
+{
+    JanetTable *rect_tb = janet_table(4);
+    janet_table_put(rect_tb, janet_ckeywordv("left"), jw32_wrap_long(rect->left));
+    janet_table_put(rect_tb, janet_ckeywordv("top"), jw32_wrap_long(rect->top));
+    janet_table_put(rect_tb, janet_ckeywordv("right"), jw32_wrap_long(rect->right));
+    janet_table_put(rect_tb, janet_ckeywordv("bottom"), jw32_wrap_long(rect->bottom));
+    return rect_tb;
+}
+
+
 #endif  /* __JW32_TYPES_H */
