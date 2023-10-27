@@ -123,6 +123,7 @@ JanetTable *IUIAutomationNotCondition_proto;
 JanetTable *IUIAutomationOrCondition_proto;
 JanetTable *IUIAutomationPropertyCondition_proto;
 JanetTable *IUIAutomationTransformPattern_proto;
+JanetTable *IUIAutomationWindowPattern_proto;
 
 
 static inline Janet maybe_make_object(HRESULT hr, LPVOID pv, const char *proto_name)
@@ -1800,6 +1801,18 @@ static const JanetMethod IUIAutomationTransformPattern_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationWindowPattern
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationWindowPattern_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * MODULE ENTRY & OTHER STUFF
  *
  *******************************************************************/
@@ -1854,6 +1867,9 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationTransformPattern,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationTransformPattern interface.");
+    __def_proto(IUIAutomationWindowPattern,
+                IUnknown_proto,
+                "Prototype for COM IUIAutomationWindowPattern interface.");
 
 #undef __def_proto
 
