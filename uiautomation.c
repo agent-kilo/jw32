@@ -1341,6 +1341,26 @@ static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet IUIAutomationElement_GetClickablePoint(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    POINT clickable = {0, 0};
+    BOOL gotClickable = 0;
+    Janet ret_tuple[3];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->GetClickablePoint(self, &clickable, &gotClickable);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    ret_tuple[1] = janet_wrap_tuple(jw32_point_to_tuple(&clickable));
+    ret_tuple[2] = jw32_wrap_bool(gotClickable);
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 3));
+}
+
 static Janet IUIAutomationElement_SetFocus(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -1503,6 +1523,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
     {"GetCurrentPatternAs", IUIAutomationElement_GetCurrentPatternAs},
     {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
+    {"GetClickablePoint", IUIAutomationElement_GetClickablePoint},
     {"SetFocus", IUIAutomationElement_SetFocus},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),

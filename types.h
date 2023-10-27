@@ -244,5 +244,15 @@ static inline JanetTable *jw32_rect_to_table(const RECT *rect)
     return rect_tb;
 }
 
+static inline JanetTuple jw32_point_to_tuple(const POINT *point)
+{
+    Janet tuple[2] = {
+        jw32_wrap_long(point->x),
+        jw32_wrap_long(point->y),
+    };
+
+    return janet_tuple_n(tuple, 2);
+}
+
 
 #endif  /* __JW32_TYPES_H */
