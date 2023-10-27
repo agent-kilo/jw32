@@ -229,6 +229,11 @@ static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
 #define jw32_get_hresult(argv, n) ((HRESULT)jw32_get_long(argv, n))
 
 
+/* double: 64 bit floating point */
+#define jw32_wrap_double(x) janet_wrap_number(x)
+#define jw32_unwrap_double(x) (janet_unwrap_number(x))
+#define jw32_get_double(argv, n) (janet_getnumber(argv, n))
+
 static inline JanetTable *jw32_rect_to_table(const RECT *rect)
 {
     JanetTable *rect_tb = janet_table(4);

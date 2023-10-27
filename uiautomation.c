@@ -122,6 +122,7 @@ JanetTable *IUIAutomationBoolCondition_proto;
 JanetTable *IUIAutomationNotCondition_proto;
 JanetTable *IUIAutomationOrCondition_proto;
 JanetTable *IUIAutomationPropertyCondition_proto;
+JanetTable *IUIAutomationTransformPattern_proto;
 
 
 static inline Janet maybe_make_object(HRESULT hr, LPVOID pv, const char *proto_name)
@@ -1686,6 +1687,89 @@ static const JanetMethod IUIAutomationPropertyCondition_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationTransformPattern
+ *
+ *******************************************************************/
+
+static Janet IUIAutomationTransformPattern_Move(int32_t argc, Janet *argv)
+{
+    IUIAutomationTransformPattern *self;
+    double x, y;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomationTransformPattern *)jw32_com_get_obj_ref(argv, 0);
+    x = jw32_get_double(argv, 1);
+    y = jw32_get_double(argv, 2);
+    hrRet = self->lpVtbl->Move(self, x, y);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomationTransformPattern_Resize(int32_t argc, Janet *argv)
+{
+    IUIAutomationTransformPattern *self;
+    double width, height;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomationTransformPattern *)jw32_com_get_obj_ref(argv, 0);
+    width = jw32_get_double(argv, 1);
+    height = jw32_get_double(argv, 2);
+    hrRet = self->lpVtbl->Resize(self, width, height);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
+static Janet IUIAutomationTransformPattern_Rotate(int32_t argc, Janet *argv)
+{
+    IUIAutomationTransformPattern *self;
+    double degrees;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationTransformPattern *)jw32_com_get_obj_ref(argv, 0);
+    degrees = jw32_get_double(argv, 1);
+    hrRet = self->lpVtbl->Rotate(self, degrees);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CurrentCanMove, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CachedCanMove, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CurrentCanResize, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CachedCanResize, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CurrentCanRotate, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CachedCanRotate, BOOL, bool)
+
+static const JanetMethod IUIAutomationTransformPattern_methods[] = {
+    {"Move", IUIAutomationTransformPattern_Move},
+    {"Resize", IUIAutomationTransformPattern_Resize},
+    {"Rotate", IUIAutomationTransformPattern_Rotate},
+
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CurrentCanMove),
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CachedCanMove),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CurrentCanResize),
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CachedCanResize),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CurrentCanRotate),
+    PROPERTY_GETTER_METHOD(IUIAutomationTransformPattern, CachedCanRotate),
+
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * MODULE ENTRY & OTHER STUFF
  *
  *******************************************************************/
@@ -1736,6 +1820,10 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationPropertyCondition,
                 IUIAutomationCondition_proto,
                 "Prototype for COM IUIAutomationPropertyCondition interface.");
+
+    __def_proto(IUIAutomationTransformPattern,
+                IUnknown_proto,
+                "Prototype for COM IUIAutomationTransformPattern interface.");
 
 #undef __def_proto
 
