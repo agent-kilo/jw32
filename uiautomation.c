@@ -1232,6 +1232,21 @@ DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAccessKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAccessKey)
 
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAriaProperties)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAriaProperties)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAriaRole)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAriaRole)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAutomationId)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAutomationId)
+
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentClassName)
+DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedClassName)
+
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CurrentControllerFor, IUIAutomationElementArray)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationElement, CachedControllerFor, IUIAutomationElementArray)
+
 static const JanetMethod IUIAutomationElement_methods[] = {
     {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
     {"FindAll", IUIAutomationElement_FindAll},
@@ -1255,6 +1270,21 @@ static const JanetMethod IUIAutomationElement_methods[] = {
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAccessKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAccessKey),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAriaProperties),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAriaProperties),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAriaRole),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAriaRole),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAutomationId),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAutomationId),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentClassName),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedClassName),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentControllerFor),
+    PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedControllerFor),
 
     {NULL, NULL},
 };
