@@ -1249,6 +1249,23 @@ static Janet IUIAutomationElement_GetCachedParent(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, parent, "IUIAutomationElement"));
 }
 
+static Janet IUIAutomationElement_GetCurrentPattern(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PATTERNID patternId;
+
+    HRESULT hrRet;
+    IUnknown *patternObject = NULL;
+
+    janet_fixarity(argc, 2);
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    patternId = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->GetCurrentPattern(self, patternId, &patternObject);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
+                        maybe_make_object(hrRet, patternObject, "IUnknown"));
+}
+
 static Janet IUIAutomationElement_GetCachedPattern(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -1264,6 +1281,35 @@ static Janet IUIAutomationElement_GetCachedPattern(int32_t argc, Janet *argv)
 
     JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
                         maybe_make_object(hrRet, patternObject, "IUnknown"));
+}
+
+static Janet IUIAutomationElement_GetCurrentPatternAs(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PATTERNID patternId;
+    JanetTable *if_proto;
+
+    HRESULT hrRet;
+    void *patternObject = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 3);
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    patternId = jw32_get_int(argv, 1);
+    if_proto = janet_gettable(argv, 2);
+
+    REFIID riid = jw32_com_normalize_iid(if_proto);
+
+    hrRet = self->lpVtbl->GetCurrentPatternAs(self, patternId, riid, &patternObject);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_com_make_object(patternObject, if_proto);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
 static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
@@ -1440,7 +1486,9 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
     {"GetCachedChildren", IUIAutomationElement_GetCachedChildren},
     {"GetCachedParent", IUIAutomationElement_GetCachedParent},
+    {"GetCurrentPattern", IUIAutomationElement_GetCurrentPattern},
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
+    {"GetCurrentPatternAs", IUIAutomationElement_GetCurrentPatternAs},
     {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
