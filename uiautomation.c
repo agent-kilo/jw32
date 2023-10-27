@@ -1265,6 +1265,35 @@ static Janet IUIAutomationElement_GetCachedPattern(int32_t argc, Janet *argv)
                         maybe_make_object(hrRet, patternObject, "IUnknown"));
 }
 
+static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PATTERNID patternId;
+    JanetTable *if_proto;
+
+    HRESULT hrRet;
+    void *patternObject = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 3);
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    patternId = jw32_get_int(argv, 1);
+    if_proto = janet_gettable(argv, 2);
+
+    REFIID riid = jw32_com_normalize_iid(if_proto);
+
+    hrRet = self->lpVtbl->GetCachedPatternAs(self, patternId, riid, &patternObject);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_com_make_object(patternObject, if_proto);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 
@@ -1411,6 +1440,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"GetCachedChildren", IUIAutomationElement_GetCachedChildren},
     {"GetCachedParent", IUIAutomationElement_GetCachedParent},
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
+    {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAcceleratorKey),
