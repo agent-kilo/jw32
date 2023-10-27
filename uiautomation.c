@@ -1355,6 +1355,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"BuildUpdatedCache", IUIAutomationElement_BuildUpdatedCache},
     {"FindAll", IUIAutomationElement_FindAll},
     {"FindAllBuildCache", IUIAutomationElement_FindAllBuildCache},
+    {"FindFirst", IUIAutomationElement_FindFirst},
     {"FindFirstBuildCache", IUIAutomationElement_FindFirstBuildCache},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
