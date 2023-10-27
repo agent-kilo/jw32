@@ -1341,6 +1341,19 @@ static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet IUIAutomationElement_SetFocus(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->SetFocus(self);
+
+    return jw32_wrap_hresult(hrRet);
+}
+
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentAcceleratorKey)
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CachedAcceleratorKey)
 
@@ -1490,6 +1503,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
     {"GetCurrentPatternAs", IUIAutomationElement_GetCurrentPatternAs},
     {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
+    {"SetFocus", IUIAutomationElement_SetFocus},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CachedAcceleratorKey),
