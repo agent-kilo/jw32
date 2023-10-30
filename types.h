@@ -275,7 +275,7 @@ static inline JanetString jw32_bstr_to_string(BSTR from)
     }
 }
 
-static inline Janet jw32_parse_safearray(SAFEARRAY *psa, VARTYPE vt)
+static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
 {
     if (psa->cDims != 1) {
         janet_panicf("SAFEARRAYs with more than one dimention are not supported");
@@ -300,6 +300,7 @@ static inline Janet jw32_parse_safearray(SAFEARRAY *psa, VARTYPE vt)
         return janet_wrap_array(jarr);                                  \
     } while(0)
 
+    /* TODO: other types */
     switch (vt & VT_TYPEMASK) {
     __CASE(I2, SHORT, integer);
     __CASE(I4, LONG, integer);
@@ -328,7 +329,11 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
     VARTYPE is_array = vt & VT_ARRAY;
 
     if (is_array) {
-        return jw32_parse_safearray(V_ARRAY(v), vt);
+        if (is_byref) {
+            return jw32_parse_variant_safearray(*V_ARRAYREF(v), vt);
+        } else {
+            return jw32_parse_variant_safearray(V_ARRAY(v), vt);
+        }
     }
 
 #define __maybe_ref(t) (is_byref ? (*V_##t##REF(v)) : (V_##t##(v)))
