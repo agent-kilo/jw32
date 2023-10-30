@@ -45,7 +45,7 @@
         hrRet = self->lpVtbl->get_##__prop##(self, &retVal);            \
         ret_tuple[0] = jw32_wrap_hresult(hrRet);                        \
         if (SUCCEEDED(hrRet)) {                                         \
-            ret_tuple[1] = janet_wrap_string(jw32_com_bstr_to_string(retVal)); \
+            ret_tuple[1] = janet_wrap_string(jw32_bstr_to_string(retVal)); \
             SysFreeString(retVal);                                      \
         } else {                                                        \
             ret_tuple[1] = janet_wrap_nil();                            \
@@ -285,6 +285,8 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
 {
     init_event_handler_thread_vm(self);
 
+    /* TODO: janet_try() */
+
     JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
     Janet argv[] = {
@@ -333,11 +335,16 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
 
     JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
+
+    jw32_dbg_val(V_VT(&newValue), "0x%hx");
+
+    Janet new_jval = jw32_parse_variant(&newValue);
+    /* TODO: wrap VT_UNKNOWN values in IUnknown */
+
     Janet argv[] = {
         jw32_com_make_object_in_env(sender, "IUIAutomationElement", env),
         jw32_wrap_int(propertyId),
-        /* TODO: VARIANT type */
-        janet_wrap_nil(),
+        new_jval,
     };
     Janet ret;
 
@@ -1523,7 +1530,10 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
     {"GetCurrentPatternAs", IUIAutomationElement_GetCurrentPatternAs},
     {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
+    /* TODO: Get*PropertyValue */
+    /* TODO: Get*PropertyValueEx */
     {"GetClickablePoint", IUIAutomationElement_GetClickablePoint},
+    /* TODO: GetRuntimeId */
     {"SetFocus", IUIAutomationElement_SetFocus},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),

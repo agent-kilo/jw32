@@ -254,5 +254,140 @@ static inline JanetTuple jw32_point_to_tuple(const POINT *point)
     return janet_tuple_n(tuple, 2);
 }
 
+static inline JanetString jw32_bstr_to_string(BSTR from)
+{
+    int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
+
+    if (count <= 0) {
+        /* XXX: free the BSTR when panicked? */
+        janet_panicf("WideCharToMultiByte failed: 0x%x", GetLastError());
+    } else {
+        /* janet_string_begin() adds one more byte for the trailing zero,
+           and count includes the trailing zero, so */
+        uint8_t *to = janet_string_begin(count - 1);
+        int count_again = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                              from, -1, (LPSTR)to, count,
+                                              NULL, NULL);
+        if (count_again != count) {
+            janet_panicf("calculated buffer len is %d, but %d bytes are copied", count, count_again);
+        }
+        return janet_string_end(to);
+    }
+}
+
+static inline Janet jw32_parse_safearray(SAFEARRAY *psa, VARTYPE vt)
+{
+    if (psa->cDims != 1) {
+        janet_panicf("SAFEARRAYs with more than one dimention are not supported");
+    }
+
+    LONG lLbound = psa->rgsabound[0].lLbound;
+    ULONG cElements = psa->rgsabound[0].cElements;
+    JanetArray *jarr = janet_array(cElements);
+
+#define __CASE(t, wt, jt)                                               \
+    case VT_##t##: {                                                    \
+        wt val;                                                         \
+        for (LONG i = lLbound; i < (LONG)(lLbound + cElements); i++) {  \
+            HRESULT hr = SafeArrayGetElement(psa, &i, &val);            \
+            if (SUCCEEDED(hr)) {                                        \
+                Janet jval = janet_wrap_##jt##(val);                    \
+                janet_array_push(jarr, jval);                           \
+            } else {                                                    \
+                janet_panicf("SafeArrayGetElement() failed: 0x%x", hr); \
+            }                                                           \
+        }                                                               \
+    }
+
+    switch (vt & VT_TYPEMASK) {
+    __CASE(I2, SHORT, integer)
+    __CASE(I4, LONG, integer)
+    __CASE(R4, FLOAT, number)
+    __CASE(R8, DOUBLE, number)
+    __CASE(DATE, DATE, number)
+    __CASE(BOOL, VARIANT_BOOL, integer)
+    __CASE(UNKNOWN, IUnknown *, pointer)
+    __CASE(I1, CHAR, integer)
+    __CASE(UI1, BYTE, integer)
+    __CASE(UI2, USHORT, integer)
+    __CASE(UI4, ULONG, u64)
+    __CASE(INT, INT, integer)
+    __CASE(UINT, UINT, u64)
+    default:
+        janet_panicf("unsupported SAFEARRAY variant type: 0x%x", vt);
+    }
+    
+#undef __CASE
+
+    return janet_wrap_array(jarr);              \
+}
+
+static inline Janet jw32_parse_variant(const VARIANT *v)
+{
+    VARTYPE vt = V_VT(v);
+    VARTYPE is_byref = vt & VT_BYREF;
+    VARTYPE is_array = vt & VT_ARRAY;
+
+    if (is_array) {
+        return jw32_parse_safearray(V_ARRAY(v), vt);
+    }
+
+#define __maybe_ref(t) (is_byref ? (*V_##t##REF(v)) : (V_##t##(v)))
+#define __CASE(t, jwt) \
+    case VT_##t##: return janet_wrap_##jwt##(__maybe_ref(t))
+
+    switch (vt & VT_TYPEMASK) {
+    case VT_EMPTY:
+    case VT_NULL:
+        return janet_wrap_nil();
+    __CASE(I2, integer);
+    __CASE(I4, integer);
+    __CASE(R4, number);
+    __CASE(R8, number);
+    case VT_CY:
+        CY *cy = is_byref ? V_CYREF(v) : (&V_CY(v));
+        return janet_wrap_s64(cy->int64);
+    __CASE(DATE, number);
+    case VT_BSTR:
+        if (is_byref) {
+            return janet_wrap_string(jw32_bstr_to_string(*V_BSTRREF(v)));
+        } else {
+            return janet_wrap_string(jw32_bstr_to_string(V_BSTR(v)));
+        }
+    __CASE(DISPATCH, pointer);
+    case VT_ERROR: /* ERROR is a macro defined by system, can't just say __CASE(ERROR, ...) */
+        return janet_wrap_integer(is_byref ? (*V_ERRORREF(v)) : V_ERROR(v));
+    __CASE(BOOL, integer);
+    case VT_VARIANT:
+        /* can only be a ref */
+        return jw32_parse_variant(V_VARIANTREF(v));
+    __CASE(UNKNOWN, pointer);
+    case VT_DECIMAL: {
+        DECIMAL *dec = is_byref ? V_DECIMALREF(v) : (&V_DECIMAL(v));
+        Janet ret_tuple[4] = {
+            janet_wrap_integer(dec->wReserved),
+            janet_wrap_integer(dec->signscale),
+            janet_wrap_u64(dec->Hi32),
+            janet_wrap_u64(dec->Lo64),
+        };
+        return janet_wrap_tuple(janet_tuple_n(ret_tuple, 4));
+    }
+    case VT_RECORD:
+        /* can only be a ref */
+        return janet_wrap_pointer(V_RECORD(v));
+    __CASE(I1, integer);
+    __CASE(UI1, integer);
+    __CASE(UI2, integer);
+    __CASE(UI4, u64);
+    __CASE(INT, integer);
+    __CASE(UINT, u64);
+    default:
+        janet_panicf("unsupported variant type: 0x%x", vt);
+    }
+
+#undef __CASE
+#undef __maybe_ref
+}
+
 
 #endif  /* __JW32_TYPES_H */
