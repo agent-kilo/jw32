@@ -286,7 +286,7 @@ static inline Janet jw32_parse_safearray(SAFEARRAY *psa, VARTYPE vt)
     JanetArray *jarr = janet_array(cElements);
 
 #define __CASE(t, wt, jt)                                               \
-    case VT_##t##: {                                                    \
+    case VT_##t##: do {                                                 \
         wt val;                                                         \
         for (LONG i = lLbound; i < (LONG)(lLbound + cElements); i++) {  \
             HRESULT hr = SafeArrayGetElement(psa, &i, &val);            \
@@ -297,29 +297,28 @@ static inline Janet jw32_parse_safearray(SAFEARRAY *psa, VARTYPE vt)
                 janet_panicf("SafeArrayGetElement() failed: 0x%x", hr); \
             }                                                           \
         }                                                               \
-    }
+        return janet_wrap_array(jarr);                                  \
+    } while(0)
 
     switch (vt & VT_TYPEMASK) {
-    __CASE(I2, SHORT, integer)
-    __CASE(I4, LONG, integer)
-    __CASE(R4, FLOAT, number)
-    __CASE(R8, DOUBLE, number)
-    __CASE(DATE, DATE, number)
-    __CASE(BOOL, VARIANT_BOOL, integer)
-    __CASE(UNKNOWN, IUnknown *, pointer)
-    __CASE(I1, CHAR, integer)
-    __CASE(UI1, BYTE, integer)
-    __CASE(UI2, USHORT, integer)
-    __CASE(UI4, ULONG, u64)
-    __CASE(INT, INT, integer)
-    __CASE(UINT, UINT, u64)
+    __CASE(I2, SHORT, integer);
+    __CASE(I4, LONG, integer);
+    __CASE(R4, FLOAT, number);
+    __CASE(R8, DOUBLE, number);
+    __CASE(DATE, DATE, number);
+    __CASE(BOOL, VARIANT_BOOL, integer);
+    __CASE(UNKNOWN, IUnknown *, pointer);
+    __CASE(I1, CHAR, integer);
+    __CASE(UI1, BYTE, integer);
+    __CASE(UI2, USHORT, integer);
+    __CASE(UI4, ULONG, u64);
+    __CASE(INT, INT, integer);
+    __CASE(UINT, UINT, u64);
     default:
         janet_panicf("unsupported SAFEARRAY variant type: 0x%x", vt);
     }
     
 #undef __CASE
-
-    return janet_wrap_array(jarr);              \
 }
 
 static inline Janet jw32_parse_variant(const VARIANT *v)
