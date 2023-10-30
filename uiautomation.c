@@ -211,8 +211,16 @@ static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
     /* TODO: pass abstract type registry & cfun registry by marshaling?
        see cfun_ev_thread() & janet_go_thread_subr() */
 
-    uia_thread_state.env = unmarshal_handler_env(handler);
-    uia_thread_state.vm_initialized = 1;
+    JanetTryState tstate;
+    JanetSignal signal = janet_try(&tstate);
+    if (JANET_SIGNAL_OK == signal) {
+        uia_thread_state.env = unmarshal_handler_env(handler);
+        uia_thread_state.vm_initialized = 1;
+    } else {
+        jw32_dbg_val(signal, "%d");
+        jw32_dbg_jval(tstate.payload);
+    }
+    janet_restore(&tstate);
 }
 
 static JanetSignal uia_call_event_handler_fn(JanetFunction *fn,
@@ -278,6 +286,20 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_QueryInterface(
     return S_OK;
 }
 
+#define __JANET_TRY()                            \
+    JanetTryState __tstate;                      \
+    JanetSignal __signal = janet_try(&__tstate); \
+    if (JANET_SIGNAL_OK == __signal) {
+
+#define __JANET_TRY_END(__code)                 \
+    } else {                                    \
+        jw32_dbg_val(__signal, "%d");           \
+        jw32_dbg_jval(__tstate.payload);        \
+        janet_restore(&__tstate);               \
+        return __code;                          \
+    }                                           \
+    janet_restore(&__tstate);
+
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
     Jw32UIAEventHandler *self,
     IUIAutomationElement *sender,
@@ -285,18 +307,21 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
 {
     init_event_handler_thread_vm(self);
 
-    /* TODO: janet_try() */
-
-    JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
-    Janet argv[] = {
-        jw32_com_make_object_in_env(sender, "IUIAutomationElement", env),
-        jw32_wrap_int(eventId),
-    };
+    JanetFunction *callback;
+    Janet argv[2];
     Janet ret;
-
     /* XXX: i'm not sure this is the right code.... */
     HRESULT hrRet = E_UNEXPECTED;
+
+    __JANET_TRY()
+
+    callback = unmarshal_handler_cb(self);
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+    argv[1] = jw32_wrap_int(eventId);
+
+    __JANET_TRY_END(hrRet)
+
     if (uia_call_event_handler_fn(callback, 2, argv, env, &ret)) {
         hrRet = jw32_unwrap_hresult(ret);
     }
@@ -310,14 +335,19 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
 {
     init_event_handler_thread_vm(self);
 
-    JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
-    Janet argv[] = {
-        jw32_com_make_object_in_env(sender, "IUIAutomationElement", env),
-    };
+    JanetFunction *callback;
+    Janet argv[1];
     Janet ret;
-
     HRESULT hrRet = E_UNEXPECTED;
+
+    __JANET_TRY()
+
+    callback = unmarshal_handler_cb(self);
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+
+    __JANET_TRY_END(hrRet)
+
     if (uia_call_event_handler_fn(callback, 1, argv, env, &ret)) {
         hrRet = jw32_unwrap_hresult(ret);
     }
@@ -333,22 +363,25 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
 {
     init_event_handler_thread_vm(self);
 
-    JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
+    JanetFunction *callback;
+    Janet argv[3];
+    Janet ret;
+    HRESULT hrRet = E_UNEXPECTED;
 
     jw32_dbg_val(V_VT(&newValue), "0x%hx");
 
+    __JANET_TRY()
+
     Janet new_jval = jw32_parse_variant(&newValue);
+    callback = unmarshal_handler_cb(self);
     /* TODO: wrap VT_UNKNOWN values in IUnknown */
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+    argv[1] = jw32_wrap_int(propertyId);
+    argv[2] = new_jval;
 
-    Janet argv[] = {
-        jw32_com_make_object_in_env(sender, "IUIAutomationElement", env),
-        jw32_wrap_int(propertyId),
-        new_jval,
-    };
-    Janet ret;
+    __JANET_TRY_END(hrRet)
 
-    HRESULT hrRet = E_UNEXPECTED;
     if (uia_call_event_handler_fn(callback, 3, argv, env, &ret)) {
         hrRet = jw32_unwrap_hresult(ret);
     }
@@ -364,23 +397,31 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
 {
     init_event_handler_thread_vm(self);
 
-    JanetFunction *callback = unmarshal_handler_cb(self);
     JanetTable *env = uia_thread_state.env;
-    Janet argv[] = {
-        jw32_com_make_object_in_env(sender, "IUIAutomationElement", env),
-        jw32_wrap_int(changeType),
-        /* TODO: SAFEARRAY type */
-        janet_wrap_nil(),
-    };
+    JanetFunction *callback;
+    Janet argv[3];
     Janet ret;
-
     HRESULT hrRet = E_UNEXPECTED;
+
+    __JANET_TRY()
+
+    callback = unmarshal_handler_cb(self);
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+    argv[1] = jw32_wrap_int(changeType);
+    /* TODO: SAFEARRAY type */
+    argv[2] = janet_wrap_nil();
+
+    __JANET_TRY_END(hrRet)
+
     if (uia_call_event_handler_fn(callback, 3, argv, env, &ret)) {
         hrRet = jw32_unwrap_hresult(ret);
     }
 
     return hrRet;
 }
+
+#undef __JANET_TRY
+#undef __JANET_TRY_END
 
 
 #define __COMMON_METHODS                \
