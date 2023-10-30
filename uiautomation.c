@@ -408,8 +408,9 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
     callback = unmarshal_handler_cb(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(changeType);
-    /* TODO: SAFEARRAY type */
-    argv[2] = janet_wrap_nil();
+    /* opaque pointer, don't need to access its content,
+       use IUIAutomation::CompareRuntimeIds() to compare */
+    argv[2] = janet_wrap_pointer(runtimeId);
 
     __JANET_TRY_END(hrRet)
 
@@ -1131,6 +1132,25 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
     return jw32_wrap_hresult(hrRet);
 }
 
+static Janet IUIAutomation_CompareRuntimeIds(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    SAFEARRAY *runtimeId1, *runtimeId2;
+
+    HRESULT hrRet;
+    BOOL areSame = 0;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    runtimeId1 = janet_getpointer(argv, 1);
+    runtimeId2 = janet_getpointer(argv, 2);
+
+    hrRet = self->lpVtbl->CompareRuntimeIds(self, runtimeId1, runtimeId2, &areSame);
+
+    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_bool(areSame));
+}
+
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
@@ -1147,6 +1167,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"AddFocusChangedEventHandler", IUIAutomation_AddFocusChangedEventHandler},
     {"AddPropertyChangedEventHandler", IUIAutomation_AddPropertyChangedEventHandler},
     {"AddStructureChangedEventHandler", IUIAutomation_AddStructureChangedEventHandler},
+    {"CompareRuntimeIds", IUIAutomation_CompareRuntimeIds},
 
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
     PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
@@ -1409,6 +1430,26 @@ static Janet IUIAutomationElement_GetClickablePoint(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 3));
 }
 
+static Janet IUIAutomationElement_GetRuntimeId(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+
+    HRESULT hrRet;
+    SAFEARRAY *runtimeId = NULL;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->GetRuntimeId(self, &runtimeId);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    /* opaque pointer, don't need to access its content,
+       use IUIAutomation::CompareRuntimeIds() to compare */
+    ret_tuple[1] = janet_wrap_pointer(runtimeId);
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static Janet IUIAutomationElement_SetFocus(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -1574,7 +1615,7 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     /* TODO: Get*PropertyValue */
     /* TODO: Get*PropertyValueEx */
     {"GetClickablePoint", IUIAutomationElement_GetClickablePoint},
-    /* TODO: GetRuntimeId */
+    {"GetRuntimeId", IUIAutomationElement_GetRuntimeId},
     {"SetFocus", IUIAutomationElement_SetFocus},
 
     PROPERTY_GETTER_METHOD(IUIAutomationElement, CurrentAcceleratorKey),
