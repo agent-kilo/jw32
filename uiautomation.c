@@ -1428,6 +1428,7 @@ static Janet IUIAutomationElement_GetCurrentPropertyValue(int32_t argc, Janet *a
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
     if (SUCCEEDED(hrRet)) {
+        jw32_dbg_val(V_VT(&retVal), "0x%x");
         ret_tuple[1] = jw32_parse_variant(&retVal);
     } else {
         ret_tuple[1] = janet_wrap_nil();
@@ -1454,6 +1455,7 @@ static Janet IUIAutomationElement_GetCachedPropertyValue(int32_t argc, Janet *ar
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
     if (SUCCEEDED(hrRet)) {
+        jw32_dbg_val(V_VT(&retVal), "0x%x");
         ret_tuple[1] = jw32_parse_variant(&retVal);
     } else {
         ret_tuple[1] = janet_wrap_nil();
@@ -1482,6 +1484,7 @@ static Janet IUIAutomationElement_GetCurrentPropertyValueEx(int32_t argc, Janet 
 
     ret_tuple[0] = jw32_wrap_hresult(hrRet);
     if (SUCCEEDED(hrRet)) {
+        jw32_dbg_val(V_VT(&retVal), "0x%x");
         ret_tuple[1] = jw32_parse_variant(&retVal);
     } else {
         ret_tuple[1] = janet_wrap_nil();
