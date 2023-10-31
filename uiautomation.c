@@ -16,8 +16,7 @@
         janet_fixarity(argc, 1);                                        \
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &out);               \
-        JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),                   \
-                            maybe_make_object(hrRet, out, #__prop_if)); \
+        JW32_HR_RETURN_OR_PANIC(hrRet, jw32_com_make_object_in_env(out, #__prop_if, uia_thread_state.env)); \
     }
 
 #define DEFINE_SIMPLE_PROPERTY_GETTER(__if, __prop, __prop_type, __prop_jw32_type) \
@@ -29,8 +28,7 @@
         janet_fixarity(argc, 1);                                        \
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &out);               \
-        JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),                   \
-                            jw32_wrap_##__prop_jw32_type##(out));       \
+        JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_##__prop_jw32_type##(out)); \
     }
 
 #define DEFINE_BSTR_PROPERTY_GETTER(__if, __prop)                       \
@@ -39,18 +37,16 @@
         __if *self;                                                     \
         HRESULT hrRet;                                                  \
         BSTR retVal = NULL;                                             \
-        Janet ret_tuple[2];                                             \
         janet_fixarity(argc, 1);                                        \
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &retVal);            \
-        ret_tuple[0] = jw32_wrap_hresult(hrRet);                        \
-        if (SUCCEEDED(hrRet)) {                                         \
-            ret_tuple[1] = janet_wrap_string(jw32_bstr_to_string(retVal)); \
+        if (S_OK == hrRet) {                                            \
+            Janet jstr = janet_wrap_string(jw32_bstr_to_string(retVal)); \
             SysFreeString(retVal);                                      \
+            return jstr;                                                \
         } else {                                                        \
-            ret_tuple[1] = janet_wrap_nil();                            \
+            janet_panicv(JW32_HRESULT_ERRORV(hrRet));                   \
         }                                                               \
-        return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));           \
     }
 
 #define PROPERTY_SETTER(__if, __prop) __##__if##_put_##__prop##__
@@ -65,7 +61,7 @@
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         val = (__prop_if *)jw32_com_get_obj_ref(argv, 1);               \
         hrRet = self->lpVtbl->put_##__prop##(self, val);                \
-        return jw32_wrap_hresult(hrRet);                                \
+        JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());               \
     }
 
 #define DEFINE_SIMPLE_PROPERTY_SETTER(__if, __prop, __prop_type, __prop_jw32_type) \
@@ -78,7 +74,7 @@
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         val = (__prop_type)jw32_get_##__prop_jw32_type##(argv, 1);      \
         hrRet = self->lpVtbl->put_##__prop##(self, val);                \
-        return jw32_wrap_hresult(hrRet);                                \
+        JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());               \
     }
 
 #define DEFINE_OBJ_PROPERTY(__if, __prop, __prop_if)    \
@@ -864,8 +860,12 @@ static Janet IUIAutomation_GetRootElement(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRootElement(self, &root);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, root, "IUIAutomationElement"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            root,
+            "IUIAutomationElement",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_GetRootElementBuildCache(int32_t argc, Janet *argv)
@@ -882,8 +882,12 @@ static Janet IUIAutomation_GetRootElementBuildCache(int32_t argc, Janet *argv)
     cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 1);
     hrRet = self->lpVtbl->GetRootElementBuildCache(self, cacheRequest, &root);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, root, "IUIAutomationElement"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            root,
+            "IUIAutomationElement",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
@@ -898,8 +902,12 @@ static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetFocusedElement(self, &element);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, element, "IUIAutomationElement"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
@@ -914,8 +922,12 @@ static Janet IUIAutomation_CreateCacheRequest(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->CreateCacheRequest(self, &cacheRequest);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, cacheRequest, "IUIAutomationCacheRequest"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            cacheRequest,
+            "IUIAutomationCacheRequest",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_CreateTrueCondition(int32_t argc, Janet *argv)
@@ -930,8 +942,12 @@ static Janet IUIAutomation_CreateTrueCondition(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->CreateTrueCondition(self, &newCondition);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, newCondition, "IUIAutomationCondition"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
@@ -946,8 +962,12 @@ static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->CreateFalseCondition(self, &newCondition);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, newCondition, "IUIAutomationCondition"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
@@ -966,8 +986,12 @@ static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
     condition2 = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
     hrRet = self->lpVtbl->CreateAndCondition(self, condition1, condition2, &newCondition);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, newCondition, "IUIAutomationCondition"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
@@ -1006,7 +1030,8 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
                                                     scope,
                                                     cacheRequest,
                                                     (IUIAutomationEventHandler *)handler);
-    return jw32_wrap_hresult(hrRet);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv)
@@ -1036,7 +1061,8 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
     hrRet = self->lpVtbl->AddFocusChangedEventHandler(self,
                                                       cacheRequest,
                                                       (IUIAutomationFocusChangedEventHandler *)handler);
-    return jw32_wrap_hresult(hrRet);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *argv)
@@ -1093,7 +1119,8 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
                                                          (IUIAutomationPropertyChangedEventHandler *)handler,
                                                          propertyArray);
     SafeArrayDestroy(propertyArray);
-    return jw32_wrap_hresult(hrRet);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *argv)
@@ -1129,7 +1156,8 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
                                                           scope,
                                                           cacheRequest,
                                                           (IUIAutomationStructureChangedEventHandler *)handler);
-    return jw32_wrap_hresult(hrRet);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomation_CompareRuntimeIds(int32_t argc, Janet *argv)
@@ -1148,7 +1176,7 @@ static Janet IUIAutomation_CompareRuntimeIds(int32_t argc, Janet *argv)
 
     hrRet = self->lpVtbl->CompareRuntimeIds(self, runtimeId1, runtimeId2, &areSame);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet), jw32_wrap_bool(areSame));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(areSame));
 }
 
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
