@@ -82,7 +82,6 @@ static Janet IUnknown_QueryInterface(int32_t argc, Janet *argv)
 {
     HRESULT hrRet;
     void *pvObject = NULL;
-    Janet ret_tuple[2];
 
     janet_fixarity(argc, 2);
 
@@ -93,14 +92,7 @@ static Janet IUnknown_QueryInterface(int32_t argc, Janet *argv)
 
     hrRet = self->lpVtbl->QueryInterface(self, riid, &pvObject);
 
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = jw32_com_make_object(pvObject, if_proto);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_com_make_object(pvObject, if_proto));
 }
 
 static const JanetMethod IUnknown_methods[] = {
@@ -131,7 +123,8 @@ static Janet cfun_CoInitializeEx(int32_t argc, Janet *argv)
     dwCoInit = jw32_get_dword(argv, 1);
 
     hrRet = CoInitializeEx(pvReserved, dwCoInit);
-    return jw32_wrap_hresult(hrRet);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet cfun_CoUninitialize(int32_t argc, Janet *argv)
@@ -149,7 +142,6 @@ static Janet cfun_CoCreateInstance(int32_t argc, Janet *argv)
 {
     LPVOID pv = NULL;
     HRESULT hrRet;
-    Janet ret_tuple[2];
 
     janet_fixarity(argc, 4);
 
@@ -164,14 +156,7 @@ static Janet cfun_CoCreateInstance(int32_t argc, Janet *argv)
 
     hrRet = CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, &pv);
 
-    ret_tuple[0] = jw32_wrap_hresult(hrRet);
-    if (SUCCEEDED(hrRet)) {
-        ret_tuple[1] = jw32_com_make_object(pv, if_proto);
-    } else {
-        ret_tuple[1] = janet_wrap_nil();
-    }
-
-    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_com_make_object(pv, if_proto));
 }
 
 
@@ -192,7 +177,7 @@ static const JanetReg cfuns[] = {
         "CoCreateInstance",
         cfun_CoCreateInstance,
         "(" MOD_NAME "/CoCreateInstance rclsid pUnkOuter dwClsContext riid)\n\n"
-        "Creates a COM object instance. Returns a tuple [HRESULT LPVOID]."
+        "Creates a COM object instance."
     },
     {NULL, NULL, NULL},
 };

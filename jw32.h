@@ -66,14 +66,29 @@ static inline Janet jw32_hresult_errorv(HRESULT hr,
                                         const char *cfun_name,
                                         int32_t line_no)
 {
-    JanetTable *obj = janet_table(1);
-    janet_table_put(obj, janet_ckeywordv("hresult"), jw32_wrap_hresult(hr));
-    janet_table_put(obj, janet_ckeywordv("file"), janet_cstringv(file_name));
-    janet_table_put(obj, janet_ckeywordv("cfun"), janet_cstringv(cfun_name));
-    janet_table_put(obj, janet_ckeywordv("line"), janet_wrap_integer(line_no));
-    return janet_wrap_table(obj);
+    if (0) {
+        /* for debugging */
+        JanetTable *obj = janet_table(4);
+        janet_table_put(obj, janet_ckeywordv("hresult"), jw32_wrap_hresult(hr));
+        janet_table_put(obj, janet_ckeywordv("file"), janet_cstringv(file_name));
+        janet_table_put(obj, janet_ckeywordv("cfun"), janet_cstringv(cfun_name));
+        janet_table_put(obj, janet_ckeywordv("line"), janet_wrap_integer(line_no));
+        return janet_wrap_table(obj);
+    } else {
+        /* for human "readability"" */
+        return jw32_wrap_hresult(hr);
+    }
 }
 
 #define JW32_HRESULT_ERRORV(hr) jw32_hresult_errorv(hr, __FILE__, __func__, __LINE__)
+
+#define JW32_HR_RETURN_OR_PANIC(hr, ret)           \
+    do {                                           \
+        if (S_OK == (hr)) {                        \
+            return (ret);                          \
+        } else {                                   \
+            janet_panicv(JW32_HRESULT_ERRORV(hr)); \
+        }                                          \
+    } while (0)
 
 #endif /* __JW32_H */
