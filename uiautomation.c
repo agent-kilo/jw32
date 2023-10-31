@@ -1086,7 +1086,7 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
                                        callback,
                                        uia_thread_state.env);
     if (!handler) {
-        return jw32_wrap_hresult(E_OUTOFMEMORY);
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
     }
 
     hrRet = self->lpVtbl->AddAutomationEventHandler(self,
@@ -1120,7 +1120,7 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
                                        callback,
                                        uia_thread_state.env);
     if (!handler) {
-        return jw32_wrap_hresult(E_OUTOFMEMORY);
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
     }
 
     hrRet = self->lpVtbl->AddFocusChangedEventHandler(self,
@@ -1213,7 +1213,7 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
                                        callback,
                                        uia_thread_state.env);
     if (!handler) {
-        return jw32_wrap_hresult(E_OUTOFMEMORY);
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
     }
 
     hrRet = self->lpVtbl->AddStructureChangedEventHandler(self,
