@@ -838,6 +838,28 @@ static void define_consts_treescope(JanetTable *env)
  *
  *******************************************************************/
 
+static Janet IUIAutomation_CheckNotSupported(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUnknown *unk; /* XXX: internal detail, may change at some point */
+    VARIANT value;
+
+    HRESULT hrRet;
+    BOOL isNotSupported = 0;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    unk = (IUnknown *)janet_getpointer(argv, 1);
+    VariantInit(&value);
+    V_VT(&value) = VT_UNKNOWN;
+    V_UNKNOWN(&value) = unk;
+
+    hrRet = self->lpVtbl->CheckNotSupported(self, value, &isNotSupported);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(isNotSupported));
+}
+
 static Janet IUIAutomation_GetRootElement(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1174,17 +1196,23 @@ DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCon
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
 
 static const JanetMethod IUIAutomation_methods[] = {
-    {"GetRootElement", IUIAutomation_GetRootElement},
-    {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
-    {"GetFocusedElement", IUIAutomation_GetFocusedElement},
-    {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
-    {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
-    {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
-    {"CreateAndCondition", IUIAutomation_CreateAndCondition},
     {"AddAutomationEventHandler", IUIAutomation_AddAutomationEventHandler},
     {"AddFocusChangedEventHandler", IUIAutomation_AddFocusChangedEventHandler},
     {"AddPropertyChangedEventHandler", IUIAutomation_AddPropertyChangedEventHandler},
     {"AddStructureChangedEventHandler", IUIAutomation_AddStructureChangedEventHandler},
+
+    {"CheckNotSupported", IUIAutomation_CheckNotSupported},
+
+    {"GetRootElement", IUIAutomation_GetRootElement},
+    {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
+    {"GetFocusedElement", IUIAutomation_GetFocusedElement},
+
+    {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
+
+    {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
+    {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
+    {"CreateAndCondition", IUIAutomation_CreateAndCondition},
+
     {"CompareRuntimeIds", IUIAutomation_CompareRuntimeIds},
 
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
@@ -1513,6 +1541,8 @@ static Janet IUIAutomationElement_GetCurrentPropertyValueEx(int32_t argc, Janet 
         jw32_dbg_val(V_VT(&retVal), "0x%x");
     }
 
+    /* XXX: a VARIANT of type VT_UNKNOWN can mean this kind of property is not supported.
+       see IUIAutomation_CheckNotSupported() */
     JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal));
 }
 
