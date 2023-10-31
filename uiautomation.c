@@ -1172,6 +1172,25 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
     JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
+static Janet IUIAutomation_CompareElements(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *el1, *el2;
+
+    HRESULT hrRet;
+    BOOL areSame = 0;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    el1 = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    el2 = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->CompareElements(self, el1, el2, &areSame);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(areSame));
+}
+
 static Janet IUIAutomation_CompareRuntimeIds(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1213,6 +1232,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
     {"CreateAndCondition", IUIAutomation_CreateAndCondition},
 
+    {"CompareElements", IUIAutomation_CompareElements},
     {"CompareRuntimeIds", IUIAutomation_CompareRuntimeIds},
 
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
