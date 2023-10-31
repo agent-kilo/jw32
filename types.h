@@ -164,7 +164,17 @@ static inline DWORD jw32_get_dword(const Janet *argv, int32_t n)
 /* BOOL: 32 bit signed */
 #define jw32_wrap_bool(x)   jw32_wrap_int(x)
 #define jw32_unwrap_bool(x) ((BOOL)jw32_unwrap_int(x))
-#define jw32_get_bool(argv, n) ((BOOL)jw32_get_int(argv, n))
+static inline BOOL jw32_get_bool(const Janet *argv, int32_t n)
+{
+    Janet x = argv[n];
+
+    switch (janet_type(x)) {
+    case JANET_BOOLEAN:
+        return janet_unwrap_boolean(x) ? TRUE : FALSE;
+    default:
+        return (BOOL)jw32_get_int(argv, n);
+    }
+}
 
 
 /* LRESULT: 64 bit (on x64 machines) or 32 bit (on x86 machines) signed */
