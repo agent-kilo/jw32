@@ -1072,7 +1072,7 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
             SafeArrayDestroy(propertyArray);
             janet_panicf("bad property #%d: expected an integer, got %v", i, item);
         }
-        enum PROPERTYID pid = jw32_unwrap_int(item);
+        PROPERTYID pid = jw32_unwrap_int(item);
         HRESULT hr = SafeArrayPutElement(propertyArray, &i, &pid);
         jw32_dbg_val(hr, "%d");
     }
@@ -1410,6 +1410,115 @@ static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet IUIAutomationElement_GetCurrentPropertyValue(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PROPERTYID propertyId;
+
+    HRESULT hrRet;
+    VARIANT retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    propertyId = jw32_get_int(argv, 1);
+
+    hrRet = self->lpVtbl->GetCurrentPropertyValue(self, propertyId, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_parse_variant(&retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet IUIAutomationElement_GetCachedPropertyValue(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PROPERTYID propertyId;
+
+    HRESULT hrRet;
+    VARIANT retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    propertyId = jw32_get_int(argv, 1);
+
+    hrRet = self->lpVtbl->GetCachedPropertyValue(self, propertyId, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_parse_variant(&retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet IUIAutomationElement_GetCurrentPropertyValueEx(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PROPERTYID propertyId;
+    BOOL ignoreDefaultValue;
+
+    HRESULT hrRet;
+    VARIANT retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    propertyId = jw32_get_int(argv, 1);
+    ignoreDefaultValue = jw32_get_bool(argv, 2);
+
+    hrRet = self->lpVtbl->GetCurrentPropertyValueEx(self, propertyId, ignoreDefaultValue, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        ret_tuple[1] = jw32_parse_variant(&retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet IUIAutomationElement_GetCachedPropertyValueEx(int32_t argc, Janet *argv)
+{
+    IUIAutomationElement *self;
+    PROPERTYID propertyId;
+    BOOL ignoreDefaultValue;
+
+    HRESULT hrRet;
+    VARIANT retVal;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
+    propertyId = jw32_get_int(argv, 1);
+    ignoreDefaultValue = jw32_get_bool(argv, 2);
+
+    hrRet = self->lpVtbl->GetCachedPropertyValueEx(self, propertyId, ignoreDefaultValue, &retVal);
+
+    ret_tuple[0] = jw32_wrap_hresult(hrRet);
+    if (SUCCEEDED(hrRet)) {
+        jw32_dbg_val(V_VT(&retVal), "0x%x");
+        ret_tuple[1] = jw32_parse_variant(&retVal);
+    } else {
+        ret_tuple[1] = janet_wrap_nil();
+    }
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 static Janet IUIAutomationElement_GetClickablePoint(int32_t argc, Janet *argv)
 {
     IUIAutomationElement *self;
@@ -1612,8 +1721,10 @@ static const JanetMethod IUIAutomationElement_methods[] = {
     {"GetCachedPattern", IUIAutomationElement_GetCachedPattern},
     {"GetCurrentPatternAs", IUIAutomationElement_GetCurrentPatternAs},
     {"GetCachedPatternAs", IUIAutomationElement_GetCachedPatternAs},
-    /* TODO: Get*PropertyValue */
-    /* TODO: Get*PropertyValueEx */
+    {"GetCurrentPropertyValue", IUIAutomationElement_GetCurrentPropertyValue},
+    {"GetCachedPropertyValue", IUIAutomationElement_GetCachedPropertyValue},
+    {"GetCurrentPropertyValueEx", IUIAutomationElement_GetCurrentPropertyValueEx},
+    {"GetCachedPropertyValueEx", IUIAutomationElement_GetCachedPropertyValueEx},
     {"GetClickablePoint", IUIAutomationElement_GetClickablePoint},
     {"GetRuntimeId", IUIAutomationElement_GetRuntimeId},
     {"SetFocus", IUIAutomationElement_SetFocus},
