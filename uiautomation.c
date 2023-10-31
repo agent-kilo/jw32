@@ -1867,8 +1867,12 @@ static Janet IUIAutomationElementArray_GetElement(int32_t argc, Janet *argv)
     index = jw32_get_int(argv, 1);
     hrRet = self->lpVtbl->GetElement(self, index, &element);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, element, "IUIAutomationElement"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
 }
 
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationElementArray, Length, int, int)
@@ -1901,7 +1905,7 @@ static Janet IUIAutomationCacheRequest_AddProperty(int32_t argc, Janet *argv)
     propertyId = jw32_get_int(argv, 1);
     hrRet = self->lpVtbl->AddProperty(self, propertyId);
 
-    return jw32_wrap_hresult(hrRet);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomationCacheRequest_AddPattern(int32_t argc, Janet *argv)
@@ -1917,7 +1921,7 @@ static Janet IUIAutomationCacheRequest_AddPattern(int32_t argc, Janet *argv)
     patternId = jw32_get_int(argv, 1);
     hrRet = self->lpVtbl->AddPattern(self, patternId);
 
-    return jw32_wrap_hresult(hrRet);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
@@ -1932,12 +1936,15 @@ static Janet IUIAutomationCacheRequest_Clone(int32_t argc, Janet *argv)
     self = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->Clone(self, &clonedRequest);
 
-    JW32_RETURN_TUPLE_2(jw32_wrap_hresult(hrRet),
-                        maybe_make_object(hrRet, clonedRequest, "IUIAutomationCacheRequest"));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            clonedRequest,
+            "IUIAutomationCacheRequest",
+            uia_thread_state.env));
 }
 
-DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, AutomationElementMode,
-                                enum AutomationElementMode, int)
+DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, AutomationElementMode, enum AutomationElementMode, int)
 DEFINE_SIMPLE_PROPERTY(IUIAutomationCacheRequest, TreeScope, enum TreeScope, int)
 DEFINE_OBJ_PROPERTY(IUIAutomationCacheRequest, TreeFilter, IUIAutomationCondition)
 
@@ -2040,7 +2047,7 @@ static Janet IUIAutomationTransformPattern_Move(int32_t argc, Janet *argv)
     y = jw32_get_double(argv, 2);
     hrRet = self->lpVtbl->Move(self, x, y);
 
-    return jw32_wrap_hresult(hrRet);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomationTransformPattern_Resize(int32_t argc, Janet *argv)
@@ -2057,7 +2064,7 @@ static Janet IUIAutomationTransformPattern_Resize(int32_t argc, Janet *argv)
     height = jw32_get_double(argv, 2);
     hrRet = self->lpVtbl->Resize(self, width, height);
 
-    return jw32_wrap_hresult(hrRet);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 static Janet IUIAutomationTransformPattern_Rotate(int32_t argc, Janet *argv)
@@ -2073,7 +2080,7 @@ static Janet IUIAutomationTransformPattern_Rotate(int32_t argc, Janet *argv)
     degrees = jw32_get_double(argv, 1);
     hrRet = self->lpVtbl->Rotate(self, degrees);
 
-    return jw32_wrap_hresult(hrRet);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationTransformPattern, CurrentCanMove, BOOL, bool)
