@@ -122,16 +122,6 @@ JanetTable *IUIAutomationTransformPattern_proto;
 JanetTable *IUIAutomationWindowPattern_proto;
 
 
-static inline Janet maybe_make_object(HRESULT hr, LPVOID pv, const char *proto_name)
-{
-    if (SUCCEEDED(hr)) {
-        return jw32_com_make_object_in_env(pv, proto_name, uia_thread_state.env);
-    }
-
-    return janet_wrap_nil();
-}
-
-
 /*******************************************************************
  *
  * EVENT HANDLERS
