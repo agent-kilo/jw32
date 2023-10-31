@@ -1096,7 +1096,11 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
                                                     cacheRequest,
                                                     (IUIAutomationEventHandler *)handler);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
 }
 
 static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv)
@@ -1127,7 +1131,11 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
                                                       cacheRequest,
                                                       (IUIAutomationFocusChangedEventHandler *)handler);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
 }
 
 static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *argv)
@@ -1183,9 +1191,14 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
                                                          cacheRequest,
                                                          (IUIAutomationPropertyChangedEventHandler *)handler,
                                                          propertyArray);
+
     SafeArrayDestroy(propertyArray);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
 }
 
 static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *argv)
@@ -1222,7 +1235,11 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
                                                           cacheRequest,
                                                           (IUIAutomationStructureChangedEventHandler *)handler);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
 }
 
 static Janet IUIAutomation_CompareElements(int32_t argc, Janet *argv)
