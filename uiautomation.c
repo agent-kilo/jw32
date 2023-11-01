@@ -140,7 +140,7 @@ static SAFEARRAY *make_condition_safearray(JanetView view)
         if (!janet_checktype(maybe_ref, JANET_POINTER)) {
         cleanup_and_panic:
             SafeArrayDestroy(psa);
-            janet_panicf("invalid object reference: %v", maybe_ref);
+            janet_panicf("invalid object reference in slot %d: %v", i, maybe_ref);
         }
         IUIAutomationCondition *cond = (IUIAutomationCondition *)janet_unwrap_pointer(maybe_ref);
         if (!cond) {
