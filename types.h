@@ -363,10 +363,13 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
         return janet_wrap_s64(cy->int64);
     __CASE(DATE, number);
     case VT_BSTR:
-        if (is_byref) {
-            return janet_wrap_string(jw32_bstr_to_string(*V_BSTRREF(v)));
+        BSTR bstr = is_byref ? (*V_BSTRREF(v)) : V_BSTR(v);
+        if (bstr) {
+            return janet_wrap_string(jw32_bstr_to_string(bstr));
         } else {
-            return janet_wrap_string(jw32_bstr_to_string(V_BSTR(v)));
+            /* XXX: some ui automation element properties (e.g. UIA_HelpTextPropertyId)
+               would set a BSTR VARIANT to NULL, fallback to empty string here. */
+            return janet_cstringv("");
         }
     __CASE(DISPATCH, pointer);
     case VT_ERROR: /* ERROR is a macro defined by system, can't just say __CASE(ERROR, ...) */
