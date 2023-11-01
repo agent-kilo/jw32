@@ -1403,20 +1403,18 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"AddStructureChangedEventHandler", IUIAutomation_AddStructureChangedEventHandler},
 
     {"CheckNotSupported", IUIAutomation_CheckNotSupported},
-
-    {"GetRootElement", IUIAutomation_GetRootElement},
-    {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
-    {"GetFocusedElement", IUIAutomation_GetFocusedElement},
-
-    {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
-
-    {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
-    {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
-    {"CreateAndCondition", IUIAutomation_CreateAndCondition},
-    {"CreateAndConditionFromArray", IUIAutomation_CreateAndConditionFromArray},
-
     {"CompareElements", IUIAutomation_CompareElements},
     {"CompareRuntimeIds", IUIAutomation_CompareRuntimeIds},
+
+    {"CreateAndCondition", IUIAutomation_CreateAndCondition},
+    {"CreateAndConditionFromArray", IUIAutomation_CreateAndConditionFromArray},
+    {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
+    {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
+    {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
+
+    {"GetFocusedElement", IUIAutomation_GetFocusedElement},
+    {"GetRootElement", IUIAutomation_GetRootElement},
+    {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
 
     {"RemoveAllEventHandlers", IUIAutomation_RemoveAllEventHandlers},
     {"RemoveAutomationEventHandler", IUIAutomation_RemoveAutomationEventHandler},
