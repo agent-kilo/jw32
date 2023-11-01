@@ -1300,6 +1300,96 @@ static Janet IUIAutomation_CompareRuntimeIds(int32_t argc, Janet *argv)
     JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(areSame));
 }
 
+static Janet IUIAutomation_RemoveAllEventHandlers(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->RemoveAllEventHandlers(self);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomation_RemoveAutomationEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    EVENTID eventId;
+    IUIAutomationElement *element;
+    IUIAutomationEventHandler *handler;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 4);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    eventId = jw32_get_int(argv, 1);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 2);
+    handler = (IUIAutomationEventHandler *)jw32_com_get_obj_ref(argv, 3);
+
+    hrRet = self->lpVtbl->RemoveAutomationEventHandler(self, eventId, element, handler);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomation_RemoveFocusChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationFocusChangedEventHandler *handler;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    handler = (IUIAutomationFocusChangedEventHandler *)jw32_com_get_obj_ref(argv, 1);
+
+    hrRet = self->lpVtbl->RemoveFocusChangedEventHandler(self, handler);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomation_RemovePropertyChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *element;
+    IUIAutomationPropertyChangedEventHandler *handler;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    handler = (IUIAutomationPropertyChangedEventHandler *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->RemovePropertyChangedEventHandler(self, element, handler);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomation_RemoveStructureChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *element;
+    IUIAutomationStructureChangedEventHandler *handler;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    handler = (IUIAutomationStructureChangedEventHandler *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->RemoveStructureChangedEventHandler(self, element, handler);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
@@ -1325,6 +1415,12 @@ static const JanetMethod IUIAutomation_methods[] = {
 
     {"CompareElements", IUIAutomation_CompareElements},
     {"CompareRuntimeIds", IUIAutomation_CompareRuntimeIds},
+
+    {"RemoveAllEventHandlers", IUIAutomation_RemoveAllEventHandlers},
+    {"RemoveAutomationEventHandler", IUIAutomation_RemoveAutomationEventHandler},
+    {"RemoveFocusChangedEventHandler", IUIAutomation_RemoveFocusChangedEventHandler},
+    {"RemovePropertyChangedEventHandler", IUIAutomation_RemovePropertyChangedEventHandler},
+    {"RemoveStructureChangedEventHandler", IUIAutomation_RemoveStructureChangedEventHandler},
 
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
     PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
