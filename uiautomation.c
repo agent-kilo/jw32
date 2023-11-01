@@ -122,6 +122,38 @@ JanetTable *IUIAutomationTransformPattern_proto;
 JanetTable *IUIAutomationWindowPattern_proto;
 
 
+static SAFEARRAY *make_condition_safearray(JanetView view)
+{
+    SAFEARRAY *psa = SafeArrayCreateVector(VT_UNKNOWN, 0, view.len);
+    if (!psa) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    for (LONG i = 0; i < view.len; i++) {
+        Janet item = view.items[i];
+        if (!janet_checktype(item, JANET_TABLE)) {
+            SafeArrayDestroy(psa);
+            janet_panicf("bad condition #%d: expected a table, got %v", i, item);
+        }
+        JanetTable *obj = janet_unwrap_table(item);
+        Janet maybe_ref = janet_table_get(obj, jw32_cstr_to_keyword(JW32_COM_OBJ_REF_NAME));
+        if (!janet_checktype(maybe_ref, JANET_POINTER)) {
+        cleanup_and_panic:
+            SafeArrayDestroy(psa);
+            janet_panicf("invalid object reference: %v", maybe_ref);
+        }
+        IUIAutomationCondition *cond = (IUIAutomationCondition *)janet_unwrap_pointer(maybe_ref);
+        if (!cond) {
+            goto cleanup_and_panic;
+        }
+        HRESULT hr = SafeArrayPutElement(psa, &i, cond);
+        jw32_dbg_val(hr, "%d");
+    }
+
+    return psa;
+}
+
+
 /*******************************************************************
  *
  * EVENT HANDLERS
@@ -982,6 +1014,81 @@ static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
             uia_thread_state.env));
 }
 
+static Janet IUIAutomation_CreateNotCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCondition *condition;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    condition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
+
+    hrRet = self->lpVtbl->CreateNotCondition(self, condition, &newCondition);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_CreateOrCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCondition *condition1;
+    IUIAutomationCondition *condition2;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition = NULL;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    condition1 = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
+    condition2 = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 2);
+    hrRet = self->lpVtbl->CreateOrCondition(self, condition1, condition2, &newCondition);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_CreateOrConditionFromArray(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    JanetView cond_view;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition = NULL;
+
+    SAFEARRAY *conditions;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    cond_view = janet_getindexed(argv, 1);
+    conditions = make_condition_safearray(cond_view);
+
+    hrRet = self->lpVtbl->CreateOrConditionFromArray(self, conditions, &newCondition);
+
+    SafeArrayDestroy(conditions);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
+}
+
 static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1020,32 +1127,7 @@ static Janet IUIAutomation_CreateAndConditionFromArray(int32_t argc, Janet *argv
 
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     cond_view = janet_getindexed(argv, 1);
-
-    conditions = SafeArrayCreateVector(VT_UNKNOWN, 0, cond_view.len);
-    if (!conditions) {
-        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
-    }
-
-    for (LONG i = 0; i < cond_view.len; i++) {
-        Janet item = cond_view.items[i];
-        if (!janet_checktype(item, JANET_TABLE)) {
-            SafeArrayDestroy(conditions);
-            janet_panicf("bad condition #%d: expected a table, got %v", i, item);
-        }
-        JanetTable *obj = janet_unwrap_table(item);
-        Janet maybe_ref = janet_table_get(obj, jw32_cstr_to_keyword(JW32_COM_OBJ_REF_NAME));
-        if (!janet_checktype(maybe_ref, JANET_POINTER)) {
-        cleanup_and_panic:
-            SafeArrayDestroy(conditions);
-            janet_panicf("invalid object reference: %v", maybe_ref);
-        }
-        IUIAutomationCondition *cond = (IUIAutomationCondition *)janet_unwrap_pointer(maybe_ref);
-        if (!cond) {
-            goto cleanup_and_panic;
-        }
-        HRESULT hr = SafeArrayPutElement(conditions, &i, cond);
-        jw32_dbg_val(hr, "%d");
-    }
+    conditions = make_condition_safearray(cond_view);
 
     hrRet = self->lpVtbl->CreateAndConditionFromArray(self, conditions, &newCondition);
 
@@ -1410,6 +1492,9 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateAndConditionFromArray", IUIAutomation_CreateAndConditionFromArray},
     {"CreateCacheRequest", IUIAutomation_CreateCacheRequest},
     {"CreateFalseCondition", IUIAutomation_CreateFalseCondition},
+    {"CreateNotCondition", IUIAutomation_CreateNotCondition},
+    {"CreateOrCondition", IUIAutomation_CreateOrCondition},
+    {"CreateOrConditionFromArray", IUIAutomation_CreateOrConditionFromArray},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
 
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
