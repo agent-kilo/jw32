@@ -1393,6 +1393,8 @@ static Janet IUIAutomation_RemoveStructureChangedEventHandler(int32_t argc, Jane
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomation, ReservedMixedAttributeValue, IUnknown *, handle)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomation, ReservedNotSupportedValue, IUnknown *, handle)
 
 static const JanetMethod IUIAutomation_methods[] = {
     {"AddAutomationEventHandler", IUIAutomation_AddAutomationEventHandler},
@@ -1425,6 +1427,8 @@ static const JanetMethod IUIAutomation_methods[] = {
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
     PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
     PROPERTY_GETTER_METHOD(IUIAutomation, RawViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ReservedMixedAttributeValue),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ReservedNotSupportedValue),
 
     {NULL, NULL},
 };
