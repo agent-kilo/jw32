@@ -1100,7 +1100,12 @@ static Janet IUIAutomation_AddAutomationEventHandler(int32_t argc, Janet *argv)
         handler->lpVtbl->Release(handler);
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv)
@@ -1135,7 +1140,12 @@ static Janet IUIAutomation_AddFocusChangedEventHandler(int32_t argc, Janet *argv
         handler->lpVtbl->Release(handler);
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *argv)
@@ -1198,7 +1208,12 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
         handler->lpVtbl->Release(handler);
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *argv)
@@ -1239,7 +1254,12 @@ static Janet IUIAutomation_AddStructureChangedEventHandler(int32_t argc, Janet *
         handler->lpVtbl->Release(handler);
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_pointer(handler));
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
 }
 
 static Janet IUIAutomation_CompareElements(int32_t argc, Janet *argv)
