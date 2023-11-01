@@ -136,7 +136,7 @@ static SAFEARRAY *make_condition_safearray(JanetView view)
             janet_panicf("bad condition #%d: expected a table, got %v", i, item);
         }
         JanetTable *obj = janet_unwrap_table(item);
-        Janet maybe_ref = janet_table_get(obj, jw32_cstr_to_keyword(JW32_COM_OBJ_REF_NAME));
+        Janet maybe_ref = janet_table_get(obj, janet_ckeywordv(JW32_COM_OBJ_REF_NAME));
         if (!janet_checktype(maybe_ref, JANET_POINTER)) {
         cleanup_and_panic:
             SafeArrayDestroy(psa);
@@ -1089,6 +1089,260 @@ static Janet IUIAutomation_CreateOrConditionFromArray(int32_t argc, Janet *argv)
             uia_thread_state.env));
 }
 
+static Janet IUIAutomation_CreatePropertyCondition(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    PROPERTYID propertyId;
+    //Janet value;
+
+    HRESULT hrRet;
+    IUIAutomationCondition *newCondition = NULL;
+
+    VARIANT value;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    propertyId = jw32_get_int(argv, 1);
+
+    VariantInit(&value);
+
+    /* all the UIA_* constants are const variables, not #define's, so
+       we can't use a normal switch(){} here. */
+#define __CASE(val, tag)                        \
+    do {                                        \
+        if ((val) == propertyId) { goto tag; }  \
+    } while (0)
+
+    /* VT_BSTR properties */
+    __CASE(UIA_AcceleratorKeyPropertyId, prepare_bstr_value);
+    __CASE(UIA_AccessKeyPropertyId, prepare_bstr_value);
+    __CASE(UIA_AriaPropertiesPropertyId, prepare_bstr_value);
+    __CASE(UIA_AriaRolePropertyId, prepare_bstr_value);
+    __CASE(UIA_AutomationIdPropertyId, prepare_bstr_value);
+    __CASE(UIA_ClassNamePropertyId, prepare_bstr_value);
+    __CASE(UIA_FrameworkIdPropertyId, prepare_bstr_value);
+    __CASE(UIA_FullDescriptionPropertyId, prepare_bstr_value);
+    __CASE(UIA_HelpTextPropertyId, prepare_bstr_value);
+    __CASE(UIA_ItemStatusPropertyId, prepare_bstr_value);
+    __CASE(UIA_ItemTypePropertyId, prepare_bstr_value);
+    __CASE(UIA_LocalizedControlTypePropertyId, prepare_bstr_value);
+    __CASE(UIA_LocalizedLandmarkTypePropertyId, prepare_bstr_value);
+    __CASE(UIA_NamePropertyId, prepare_bstr_value);
+    __CASE(UIA_ProviderDescriptionPropertyId, prepare_bstr_value);
+
+    /* (VT_I4 | VT_ARRAY) properties */
+    __CASE(UIA_AnnotationObjectsPropertyId, prepare_i4_array_value);
+    __CASE(UIA_AnnotationTypesPropertyId, prepare_i4_array_value);
+    __CASE(UIA_OutlineColorPropertyId, prepare_i4_array_value);
+    __CASE(UIA_RuntimeIdPropertyId, prepare_i4_array_value);
+
+    /* (VT_R8 | VT_ARRAY) properties */
+    __CASE(UIA_BoundingRectanglePropertyId, prepare_r8_array_value);
+    __CASE(UIA_CenterPointPropertyId, prepare_r8_array_value);
+    __CASE(UIA_ClickablePointPropertyId, prepare_r8_array_value);
+    __CASE(UIA_OutlineThicknessPropertyId, prepare_r8_array_value);
+    __CASE(UIA_SizePropertyId, prepare_r8_array_value);
+
+    /* (VT_UNKNOWN | VT_ARRAY) properties */
+    __CASE(UIA_ControllerForPropertyId, prepare_unknown_array_value);
+    __CASE(UIA_DescribedByPropertyId, prepare_unknown_array_value);
+    __CASE(UIA_FlowsFromPropertyId, prepare_unknown_array_value);
+    __CASE(UIA_FlowsToPropertyId, prepare_unknown_array_value);
+
+    /* VT_I4 properties */
+    __CASE(UIA_ControlTypePropertyId, prepare_i4_value);
+    __CASE(UIA_CulturePropertyId, prepare_i4_value);
+    __CASE(UIA_FillColorPropertyId, prepare_i4_value);
+    __CASE(UIA_FillTypePropertyId, prepare_i4_value);
+    __CASE(UIA_HeadingLevelPropertyId, prepare_i4_value);
+    __CASE(UIA_LandmarkTypePropertyId, prepare_i4_value);
+    __CASE(UIA_LevelPropertyId, prepare_i4_value);
+    __CASE(UIA_LiveSettingPropertyId, prepare_i4_value);
+    __CASE(UIA_OrientationPropertyId, prepare_i4_value);
+    __CASE(UIA_PositionInSetPropertyId, prepare_i4_value);
+    __CASE(UIA_ProcessIdPropertyId, prepare_i4_value);
+    __CASE(UIA_SizeOfSetPropertyId, prepare_i4_value);
+    __CASE(UIA_VisualEffectsPropertyId, prepare_i4_value);
+
+    /* still VT_I4, but HWNDs on the janet side are sometimes saved
+       as pointers, so they need to be parsed specially */
+    __CASE(UIA_NativeWindowHandlePropertyId, prepare_hwnd_value);
+
+    /* VT_BOOL properties */
+    __CASE(UIA_HasKeyboardFocusPropertyId, prepare_bool_value);
+    __CASE(UIA_IsContentElementPropertyId, prepare_bool_value);
+    __CASE(UIA_IsControlElementPropertyId, prepare_bool_value);
+    __CASE(UIA_IsDataValidForFormPropertyId, prepare_bool_value);
+    __CASE(UIA_IsDialogPropertyId, prepare_bool_value);
+    __CASE(UIA_IsEnabledPropertyId, prepare_bool_value);
+    __CASE(UIA_IsKeyboardFocusablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsOffscreenPropertyId, prepare_bool_value);
+    __CASE(UIA_IsPasswordPropertyId, prepare_bool_value);
+    __CASE(UIA_IsPeripheralPropertyId, prepare_bool_value);
+    __CASE(UIA_IsRequiredForFormPropertyId, prepare_bool_value);
+    __CASE(UIA_OptimizeForVisualContentPropertyId, prepare_bool_value);
+
+    /* VT_UNKNOWN properties */
+    __CASE(UIA_LabeledByPropertyId, prepare_unknown_value);
+
+    /* VT_R8 properties */
+    __CASE(UIA_RotationPropertyId, prepare_r8_value);
+
+    goto default_panic;
+
+#define __VALUE_IDX 2
+
+prepare_bstr_value: {
+        JanetString str_val = janet_getstring(argv, __VALUE_IDX);
+        V_VT(&value) = VT_BSTR;
+        V_BSTR(&value) = jw32_string_to_bstr(str_val);
+        goto call_create;
+    }
+
+prepare_i4_array_value: {
+        JanetView arr_val = janet_getindexed(argv, __VALUE_IDX);
+        SAFEARRAY *arr = SafeArrayCreateVector(VT_I4, 0, arr_val.len);
+        if (!arr) {
+            janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+        }
+        for (LONG i = 0; i < arr_val.len; i++) {
+            Janet item = arr_val.items[i];
+            if (!janet_checkint(item)) {
+                SafeArrayDestroy(arr);
+                janet_panicf("bad value #%d: expected a 32 bit integer, got %v", i, item);
+            }
+            LONG item_val = jw32_unwrap_long(item);
+            HRESULT hr = SafeArrayPutElement(arr, &i, &item_val);
+            jw32_dbg_val(hr, "0x%x");
+        }
+        V_VT(&value) = VT_I4 | VT_ARRAY;
+        V_ARRAY(&value) = arr;
+        goto call_create;
+    }
+
+
+prepare_r8_array_value: {
+        JanetView arr_val = janet_getindexed(argv, __VALUE_IDX);
+        SAFEARRAY *arr = SafeArrayCreateVector(VT_R8, 0, arr_val.len);
+        if (!arr) {
+            janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+        }
+        for (LONG i = 0; i < arr_val.len; i++) {
+            Janet item = arr_val.items[i];
+            if (!janet_checktype(item, JANET_NUMBER)) {
+                SafeArrayDestroy(arr);
+                janet_panicf("bad value #%d: expected a number, got %v", i, item);
+            }
+            DOUBLE item_val = janet_unwrap_number(item);
+            HRESULT hr = SafeArrayPutElement(arr, &i, &item_val);
+            jw32_dbg_val(hr, "0x%x");
+        }
+        V_VT(&value) = VT_R8 | VT_ARRAY;
+        V_ARRAY(&value) = arr;
+        goto call_create;
+    }
+
+prepare_unknown_array_value: {
+        JanetView arr_val = janet_getindexed(argv, __VALUE_IDX);
+        SAFEARRAY *arr = SafeArrayCreateVector(VT_UNKNOWN, 0, arr_val.len);
+        if (!arr) {
+            janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+        }
+        for (LONG i = 0; i < arr_val.len; i++) {
+            Janet item = arr_val.items[i];
+            if (!janet_checktype(item, JANET_TABLE)) {
+                SafeArrayDestroy(arr);
+                janet_panicf("bad value #%d: expected a table, got %v", i, item);
+            }
+            JanetTable *obj = janet_unwrap_table(item);
+            Janet maybe_ref = janet_table_get(obj, janet_ckeywordv(JW32_COM_OBJ_REF_NAME));
+            if (!janet_checktype(maybe_ref, JANET_POINTER)) {
+                SafeArrayDestroy(arr);
+                janet_panicf("invalid object reference in slot %d: %v", i, maybe_ref);
+            }
+            IUnknown *item_val = (IUnknown *)janet_unwrap_pointer(maybe_ref);
+            HRESULT hr = SafeArrayPutElement(arr, &i, item_val);
+            jw32_dbg_val(hr, "0x%x");
+        }
+        V_VT(&value) = VT_UNKNOWN | VT_ARRAY;
+        V_ARRAY(&value) = arr;
+        goto call_create;
+    }
+
+prepare_i4_value: {
+        LONG long_val = jw32_get_long(argv, __VALUE_IDX);
+        V_VT(&value) = VT_I4;
+        V_I4(&value) = long_val;
+        goto call_create;
+    }
+
+prepare_hwnd_value: {
+        HWND hwnd_val = jw32_get_handle(argv, __VALUE_IDX);
+        ULONG upper = (ULONG)((0xffffffff00000000ULL & (ULONGLONG)hwnd_val) >> 32);
+        ULONG lower = (ULONG)(0x00000000ffffffffULL & (ULONGLONG)hwnd_val);
+        if (upper > 0) {
+            jw32_dbg("cutting off 64 bit address: 0x%llx", (ULONGLONG)hwnd_val);
+        }
+        V_VT(&value) = VT_I4;
+        V_I4(&value) = (LONG)lower;
+        goto call_create;
+    }
+
+prepare_bool_value: {
+        BOOL bool_val = jw32_get_bool(argv, __VALUE_IDX);
+        V_VT(&value) = VT_BOOL;
+        V_BOOL(&value) = bool_val ? -1 : 0;
+        goto call_create;
+    }
+
+prepare_unknown_value: {
+        IUnknown *unk_val;
+        if (janet_checktype(argv[__VALUE_IDX], JANET_POINTER)) {
+            unk_val = janet_unwrap_pointer(argv[__VALUE_IDX]);
+        } else if (janet_checktype(argv[__VALUE_IDX], JANET_TABLE)) {
+            JanetTable *obj = janet_unwrap_table(argv[__VALUE_IDX]);
+            Janet found = janet_table_get(obj, janet_ckeywordv(JW32_COM_OBJ_REF_NAME));
+            if (!janet_checktype(found, JANET_POINTER)) {
+                janet_panicf("bad slot #%d, invalid object reference: %v",
+                             __VALUE_IDX, found);
+            }
+            unk_val = janet_unwrap_pointer(found);
+        } else {
+            janet_panicf("bad slot #%d, expected an object or a pointer, got %v",
+                         __VALUE_IDX, argv[__VALUE_IDX]);
+        }
+        V_VT(&value) = VT_UNKNOWN;
+        V_UNKNOWN(&value) = unk_val;
+        goto call_create;
+    }
+
+prepare_r8_value: {
+        DOUBLE double_val = janet_getnumber(argv, __VALUE_IDX);
+        V_VT(&value) = VT_R8;
+        V_R8(&value) = double_val;
+        goto call_create;
+    }
+
+#undef __VALUE_IDX
+
+call_create:
+    hrRet = self->lpVtbl->CreatePropertyCondition(self, propertyId, value, &newCondition);
+
+    HRESULT hr = VariantClear(&value);
+    jw32_dbg_val(hr, "0x%x");
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            newCondition,
+            "IUIAutomationCondition",
+            uia_thread_state.env));
+
+default_panic:
+    janet_panicf("unsupported property: %d", propertyId);
+}
+
 static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1265,7 +1519,7 @@ static Janet IUIAutomation_AddPropertyChangedEventHandler(int32_t argc, Janet *a
         }
         PROPERTYID pid = jw32_unwrap_int(item);
         HRESULT hr = SafeArrayPutElement(propertyArray, &i, &pid);
-        jw32_dbg_val(hr, "%d");
+        jw32_dbg_val(hr, "0x%x");
     }
 
     handler = create_uia_event_handler(&IID_IUIAutomationPropertyChangedEventHandler,
@@ -1495,6 +1749,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateNotCondition", IUIAutomation_CreateNotCondition},
     {"CreateOrCondition", IUIAutomation_CreateOrCondition},
     {"CreateOrConditionFromArray", IUIAutomation_CreateOrConditionFromArray},
+    {"CreatePropertyCondition", IUIAutomation_CreatePropertyCondition},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
 
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
@@ -1900,6 +2155,7 @@ static Janet IUIAutomationElement_GetRuntimeId(int32_t argc, Janet *argv)
     self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRuntimeId(self, &runtimeId);
 
+    /* TODO: the value returned is different from GetCurrentPropertyValue() */
     JW32_HR_RETURN_OR_PANIC(
         hrRet,
         /* opaque pointer, don't need to access its content,
