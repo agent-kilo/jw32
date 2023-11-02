@@ -116,6 +116,10 @@ JANET_THREAD_LOCAL Jw32UIAEventHandlerThreadState uia_thread_state = {
 /* make these global so that IUIAutomation methods can find them */
 JanetTable *IUIAutomation_proto;
 JanetTable *IUIAutomation2_proto;
+JanetTable *IUIAutomation3_proto;
+JanetTable *IUIAutomation4_proto;
+JanetTable *IUIAutomation5_proto;
+JanetTable *IUIAutomation6_proto;
 JanetTable *IUIAutomationElement_proto;
 JanetTable *IUIAutomationElementArray_proto;
 JanetTable *IUIAutomationCacheRequest_proto;
@@ -2130,6 +2134,54 @@ static const JanetMethod IUIAutomation2_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomation3
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomation3_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomation4
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomation4_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomation5
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomation5_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomation6
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomation6_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * IUIAutomationElement
  *
  *******************************************************************/
@@ -3158,6 +3210,18 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomation2,
                 IUIAutomation_proto,
                 "Prototype for COM IUIAutomation2 interface.");
+    __def_proto(IUIAutomation3,
+                IUIAutomation2_proto,
+                "Prototype for COM IUIAutomation3 interface.");
+    __def_proto(IUIAutomation4,
+                IUIAutomation3_proto,
+                "Prototype for COM IUIAutomation4 interface.");
+    __def_proto(IUIAutomation5,
+                IUIAutomation4_proto,
+                "Prototype for COM IUIAutomation5 interface.");
+    __def_proto(IUIAutomation6,
+                IUIAutomation5_proto,
+                "Prototype for COM IUIAutomation6 interface.");
 
     __def_proto(IUIAutomationElement,
                 IUnknown_proto,
