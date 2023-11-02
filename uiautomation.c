@@ -1824,7 +1824,15 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateTreeWalker", IUIAutomation_CreateTreeWalker},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
 
+    /* TODO:
+       ElementFromHandle
+       ElementFromHandleBuildCache
+       ElementFromPoint
+       ElementFromPointBuildCache
+     */
+
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
+    /* TODO: GetFocusedElementBuildCache */
     {"GetRootElement", IUIAutomation_GetRootElement},
     {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
 
