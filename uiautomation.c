@@ -1115,6 +1115,26 @@ static void define_consts_propertyconditionflags(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_coalesceeventsoptions(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation CoalesceEventsOptions.")
+    __def(CoalesceEventsOptions_Disabled);
+    __def(CoalesceEventsOptions_Enabled);
+#undef __def
+}
+
+static void define_consts_connectionrecoverybehavioroptions(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation ConnectionRecoveryBehaviorOptions.")
+    __def(ConnectionRecoveryBehaviorOptions_Disabled);
+    __def(ConnectionRecoveryBehaviorOptions_Enabled);
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -2174,8 +2194,14 @@ static const JanetMethod IUIAutomation5_methods[] = {
  *
  *******************************************************************/
 
+DEFINE_SIMPLE_PROPERTY(IUIAutomation6, CoalesceEvents, enum CoalesceEventsOptions, int)
+DEFINE_SIMPLE_PROPERTY(IUIAutomation6, ConnectionRecoveryBehavior, enum ConnectionRecoveryBehaviorOptions, int)
+
 static const JanetMethod IUIAutomation6_methods[] = {
-    /* TODO */
+
+    PROPERTY_METHODS(IUIAutomation6, CoalesceEvents),
+    PROPERTY_METHODS(IUIAutomation6, ConnectionRecoveryBehavior),
+
     {NULL, NULL},
 };
 
@@ -3283,6 +3309,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_uia_eventid(env);
     define_consts_treescope(env);
     define_consts_propertyconditionflags(env);
+    define_consts_coalesceeventsoptions(env);
+    define_consts_connectionrecoverybehavioroptions(env);
 
     init_table_protos(env);
 }
