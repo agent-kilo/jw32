@@ -122,6 +122,7 @@ JanetTable *IUIAutomation5_proto;
 JanetTable *IUIAutomation6_proto;
 JanetTable *IUIAutomationElement_proto;
 JanetTable *IUIAutomationElementArray_proto;
+JanetTable *IUIAutomationEventHandlerGroup_proto;
 JanetTable *IUIAutomationCacheRequest_proto;
 JanetTable *IUIAutomationCondition_proto;
 JanetTable *IUIAutomationAndCondition_proto;
@@ -2892,6 +2893,18 @@ static const JanetMethod IUIAutomationElementArray_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationEventHandlerGroup
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomationEventHandlerGroup_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * IUIAutomationCacheRequest
  *
  *******************************************************************/
@@ -3255,6 +3268,10 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationElementArray,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationElementArray interface.");
+
+    __def_proto(IUIAutomationEventHandlerGroup,
+                IUnknown_proto,
+                "Prototype for COM IUIAutomationEventHandlerGroup interface.");
 
     __def_proto(IUIAutomationCacheRequest,
                 IUnknown_proto,
