@@ -1181,6 +1181,90 @@ static Janet IUIAutomation_GetRootElementBuildCache(int32_t argc, Janet *argv)
             uia_thread_state.env));
 }
 
+static Janet IUIAutomation_GetPatternProgrammaticName(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    PATTERNID pattern;
+
+    HRESULT hrRet;
+    BSTR name = NULL;
+    Janet name_strv = janet_wrap_nil();
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pattern = jw32_get_int(argv, 1);
+
+    hrRet = self->lpVtbl->GetPatternProgrammaticName(self, pattern, &name);
+
+    if (SUCCEEDED(hrRet) && name) {
+        name_strv = janet_wrap_string(jw32_bstr_to_string(name));
+        SysFreeString(name);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, name_strv);
+}
+
+static Janet IUIAutomation_GetPropertyProgrammaticName(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    PROPERTYID property;
+
+    HRESULT hrRet;
+    BSTR name = NULL;
+    Janet name_strv = janet_wrap_nil();
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    property = jw32_get_int(argv, 1);
+
+    hrRet = self->lpVtbl->GetPropertyProgrammaticName(self, property, &name);
+
+    if (SUCCEEDED(hrRet) && name) {
+        name_strv = janet_wrap_string(jw32_bstr_to_string(name));
+        SysFreeString(name);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, name_strv);
+}
+
+static Janet IUIAutomation_PollForPotentialSupportedPatterns(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *pElement;
+
+    HRESULT hrRet;
+    SAFEARRAY *patternIds = NULL;
+    SAFEARRAY *patternNames = NULL;
+
+    Janet pid_arrv = janet_wrap_nil();
+    Janet pname_arrv = janet_wrap_nil();
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pElement = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+
+    hrRet = self->lpVtbl->PollForPotentialSupportedPatterns(self, pElement, &patternIds, &patternNames);
+
+    if (SUCCEEDED(hrRet)) {
+        if (patternIds) {
+            pid_arrv = jw32_parse_variant_safearray(patternIds, VT_INT);
+            SafeArrayDestroy(patternIds);
+        }
+        if (patternNames) {
+            pname_arrv = jw32_parse_variant_safearray(patternNames, VT_BSTR);
+            SafeArrayDestroy(patternNames);
+        }
+    }
+
+    ret_tuple[0] = pid_arrv;
+    ret_tuple[1] = pname_arrv;
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_tuple(janet_tuple_n(ret_tuple, 2)));
+}
+
 static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1192,6 +1276,28 @@ static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
 
     self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetFocusedElement(self, &element);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_GetFocusedElementBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 1);
+    hrRet = self->lpVtbl->GetFocusedElementBuildCache(self, cacheRequest, &element);
 
     JW32_HR_RETURN_OR_PANIC(
         hrRet,
@@ -1939,9 +2045,13 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"ElementFromPointBuildCache", IUIAutomation_ElementFromPointBuildCache},
 
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
-    /* TODO: GetFocusedElementBuildCache */
+    {"GetFocusedElementBuildCache", IUIAutomation_GetFocusedElementBuildCache},
     {"GetRootElement", IUIAutomation_GetRootElement},
     {"GetRootElementBuildCache", IUIAutomation_GetRootElementBuildCache},
+
+    {"GetPatternProgrammaticName", IUIAutomation_GetPatternProgrammaticName},
+    {"GetPropertyProgrammaticName", IUIAutomation_GetPropertyProgrammaticName},
+    {"PollForPotentialSupportedPatterns", IUIAutomation_PollForPotentialSupportedPatterns},
 
     {"RemoveAllEventHandlers", IUIAutomation_RemoveAllEventHandlers},
     {"RemoveAutomationEventHandler", IUIAutomation_RemoveAutomationEventHandler},

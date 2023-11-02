@@ -353,6 +353,7 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
 
     /* TODO: other types */
     switch (vt & VT_TYPEMASK) {
+
     __CASE(I2, SHORT, integer);
     __CASE(I4, LONG, integer);
     __CASE(R4, FLOAT, number);
@@ -366,6 +367,21 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
     __CASE(UI4, ULONG, u64);
     __CASE(INT, INT, integer);
     __CASE(UINT, UINT, u64);
+
+    case VT_BSTR: {
+        BSTR val;
+        for (LONG i = lLbound; i < (LONG)(lLbound + cElements); i++) {
+            HRESULT hr = SafeArrayGetElement(psa, &i, &val);
+            if (SUCCEEDED(hr)) {
+                Janet jval = janet_wrap_string(jw32_bstr_to_string(val));
+                janet_array_push(jarr, jval);
+            } else {
+                janet_panicf("SafeArrayGetElement() failed: 0x%x", hr);
+            }
+        }
+        return janet_wrap_array(jarr);
+    }
+
     default:
         janet_panicf("unsupported SAFEARRAY variant type: 0x%x", vt);
     }
