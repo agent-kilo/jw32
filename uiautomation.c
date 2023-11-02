@@ -2116,8 +2116,14 @@ static const JanetMethod IUIAutomation_methods[] = {
  *
  *******************************************************************/
 
+DEFINE_SIMPLE_PROPERTY(IUIAutomation2, AutoSetFocus, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY(IUIAutomation2, ConnectionTimeout, DWORD, dword)
+DEFINE_SIMPLE_PROPERTY(IUIAutomation2, TransactionTimeout, DWORD, dword)
+
 static const JanetMethod IUIAutomation2_methods[] = {
-    /* TODO */
+    PROPERTY_METHODS(IUIAutomation2, AutoSetFocus),
+    PROPERTY_METHODS(IUIAutomation2, ConnectionTimeout),
+    PROPERTY_METHODS(IUIAutomation2, TransactionTimeout),
     {NULL, NULL},
 };
 
