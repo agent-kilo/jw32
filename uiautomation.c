@@ -1265,6 +1265,42 @@ static Janet IUIAutomation_PollForPotentialSupportedPatterns(int32_t argc, Janet
     JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_tuple(janet_tuple_n(ret_tuple, 2)));
 }
 
+static Janet IUIAutomation_PollForPotentialSupportedProperties(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationElement *pElement;
+
+    HRESULT hrRet;
+    SAFEARRAY *propertyIds = NULL;
+    SAFEARRAY *propertyNames = NULL;
+
+    Janet pid_arrv = janet_wrap_nil();
+    Janet pname_arrv = janet_wrap_nil();
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pElement = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+
+    hrRet = self->lpVtbl->PollForPotentialSupportedProperties(self, pElement, &propertyIds, &propertyNames);
+
+    if (SUCCEEDED(hrRet)) {
+        if (propertyIds) {
+            pid_arrv = jw32_parse_variant_safearray(propertyIds, VT_INT);
+            SafeArrayDestroy(propertyIds);
+        }
+        if (propertyNames) {
+            pname_arrv = jw32_parse_variant_safearray(propertyNames, VT_BSTR);
+            SafeArrayDestroy(propertyNames);
+        }
+    }
+
+    ret_tuple[0] = pid_arrv;
+    ret_tuple[1] = pname_arrv;
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_tuple(janet_tuple_n(ret_tuple, 2)));
+}
+
 static Janet IUIAutomation_GetFocusedElement(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -2052,6 +2088,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"GetPatternProgrammaticName", IUIAutomation_GetPatternProgrammaticName},
     {"GetPropertyProgrammaticName", IUIAutomation_GetPropertyProgrammaticName},
     {"PollForPotentialSupportedPatterns", IUIAutomation_PollForPotentialSupportedPatterns},
+    {"PollForPotentialSupportedProperties", IUIAutomation_PollForPotentialSupportedProperties},
 
     {"RemoveAllEventHandlers", IUIAutomation_RemoveAllEventHandlers},
     {"RemoveAutomationEventHandler", IUIAutomation_RemoveAutomationEventHandler},
