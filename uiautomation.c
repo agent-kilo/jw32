@@ -115,6 +115,7 @@ JANET_THREAD_LOCAL Jw32UIAEventHandlerThreadState uia_thread_state = {
 
 /* make these global so that IUIAutomation methods can find them */
 JanetTable *IUIAutomation_proto;
+JanetTable *IUIAutomation2_proto;
 JanetTable *IUIAutomationElement_proto;
 JanetTable *IUIAutomationElementArray_proto;
 JanetTable *IUIAutomationCacheRequest_proto;
@@ -2111,6 +2112,18 @@ static const JanetMethod IUIAutomation_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomation2
+ *
+ *******************************************************************/
+
+static const JanetMethod IUIAutomation2_methods[] = {
+    /* TODO */
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * IUIAutomationElement
  *
  *******************************************************************/
@@ -3136,6 +3149,10 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomation,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomation interface.");
+    __def_proto(IUIAutomation2,
+                IUIAutomation_proto,
+                "Prototype for COM IUIAutomation2 interface.");
+
     __def_proto(IUIAutomationElement,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationElement interface.");
