@@ -264,6 +264,28 @@ static inline JanetTuple jw32_point_to_tuple(const POINT *point)
     return janet_tuple_n(tuple, 2);
 }
 
+static inline POINT jw32_view_to_point(JanetView view)
+{
+    POINT pt;
+    Janet xv, yv;
+
+    if (view.len != 2) {
+        janet_panicf("expected indexed view of length 2, got %v", view.len);
+    }
+
+    xv = view.items[0];
+    yv = view.items[1];
+
+    if (!janet_checkint(xv) || !janet_checkint(yv)) {
+        janet_panicf("expected 32 bit integers for POINT, got %v and %v ", xv, yv);
+    }
+
+    pt.x = jw32_unwrap_long(xv);
+    pt.y = jw32_unwrap_long(yv);
+
+    return pt;
+}
+
 static inline JanetString jw32_bstr_to_string(BSTR from)
 {
     int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
@@ -387,8 +409,8 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
             return janet_wrap_string(jw32_bstr_to_string(bstr));
         } else {
             /* XXX: some ui automation element properties (e.g. UIA_HelpTextPropertyId)
-               would set a BSTR VARIANT to NULL, fallback to empty string here. */
-            return janet_cstringv("");
+               would set a BSTR VARIANT to NULL, fallback to nil here. */
+            return janet_wrap_nil();
         }
     __CASE(DISPATCH, pointer);
     case VT_ERROR: /* ERROR is a macro defined by system, can't just say __CASE(ERROR, ...) */

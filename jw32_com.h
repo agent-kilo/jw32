@@ -114,27 +114,35 @@ static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMe
 
 static inline Janet jw32_com_make_object(LPVOID pv, JanetTable *if_proto)
 {
-    JanetTable *if_obj = janet_table(0);
-    janet_table_put(if_obj,
-                    janet_ckeywordv(JW32_COM_OBJ_REF_NAME),
-                    janet_wrap_pointer(pv));
-    if_obj->proto = if_proto;
-    return janet_wrap_table(if_obj);
+    if (pv) {
+        JanetTable *if_obj = janet_table(0);
+        janet_table_put(if_obj,
+                        janet_ckeywordv(JW32_COM_OBJ_REF_NAME),
+                        janet_wrap_pointer(pv));
+        if_obj->proto = if_proto;
+        return janet_wrap_table(if_obj);
+    } else {
+        return janet_wrap_nil();
+    }
 }
 
 static inline Janet jw32_com_make_object_in_env(LPVOID pv, const char *proto_name, JanetTable *env)
 {
-    Janet proto;
-    JanetBindingType b_type = janet_resolve(env, janet_csymbol(proto_name), &proto);
+    if (pv) {
+        Janet proto;
+        JanetBindingType b_type = janet_resolve(env, janet_csymbol(proto_name), &proto);
 
-    if (JANET_BINDING_NONE == b_type) {
-        janet_panicf("could not resolve variable %s", proto_name);
-    }
-    if (!janet_checktype(proto, JANET_TABLE)) {
-        janet_panicf("expected %s to be a table, got %v", proto_name, proto);
-    }
+        if (JANET_BINDING_NONE == b_type) {
+            janet_panicf("could not resolve variable %s", proto_name);
+        }
+        if (!janet_checktype(proto, JANET_TABLE)) {
+            janet_panicf("expected %s to be a table, got %v", proto_name, proto);
+        }
 
-    return jw32_com_make_object(pv, janet_unwrap_table(proto));
+        return jw32_com_make_object(pv, janet_unwrap_table(proto));
+    } else {
+        return janet_wrap_nil();
+    }
 }
 
 #endif /* __JW32_COM_H */

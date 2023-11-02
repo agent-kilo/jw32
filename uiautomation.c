@@ -31,6 +31,7 @@
         JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_##__prop_jw32_type##(out)); \
     }
 
+/* some properties return NULL as a BSTR, we coerce it into nil here */
 #define DEFINE_BSTR_PROPERTY_GETTER(__if, __prop)                       \
     static Janet PROPERTY_GETTER(__if, __prop)(int32_t argc, Janet *argv) \
     {                                                                   \
@@ -41,7 +42,12 @@
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &retVal);            \
         if (S_OK == hrRet) {                                            \
-            Janet jstr = janet_wrap_string(jw32_bstr_to_string(retVal)); \
+            Janet jstr;                                                 \
+            if (!retVal) {                                              \
+                jstr = janet_wrap_nil();                                \
+            } else {                                                    \
+                jstr = janet_wrap_string(jw32_bstr_to_string(retVal));  \
+            }                                                           \
             SysFreeString(retVal);                                      \
             return jstr;                                                \
         } else {                                                        \
@@ -1235,6 +1241,109 @@ static Janet IUIAutomation_CreateTrueCondition(int32_t argc, Janet *argv)
             uia_thread_state.env));
 }
 
+static Janet IUIAutomation_ElementFromHandle(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    UIA_HWND hwnd;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hwnd = jw32_get_handle(argv, 1);
+
+    hrRet = self->lpVtbl->ElementFromHandle(self, hwnd, &element);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_ElementFromHandleBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    UIA_HWND hwnd;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    hwnd = jw32_get_handle(argv, 1);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->ElementFromHandleBuildCache(self, hwnd, cacheRequest, &element);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_ElementFromPoint(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    JanetView pt_view;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    POINT pt;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pt_view = janet_getindexed(argv, 1);
+    pt = jw32_view_to_point(pt_view);
+
+    hrRet = self->lpVtbl->ElementFromPoint(self, pt, &element);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation_ElementFromPointBuildCache(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    JanetView pt_view;
+    IUIAutomationCacheRequest *cacheRequest;
+
+    HRESULT hrRet;
+    IUIAutomationElement *element = NULL;
+
+    POINT pt;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pt_view = janet_getindexed(argv, 1);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2);
+
+    pt = jw32_view_to_point(pt_view);
+
+    hrRet = self->lpVtbl->ElementFromPointBuildCache(self, pt, cacheRequest, &element);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            element,
+            "IUIAutomationElement",
+            uia_thread_state.env));
+}
+
 static Janet IUIAutomation_CreateFalseCondition(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1824,12 +1933,10 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateTreeWalker", IUIAutomation_CreateTreeWalker},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
 
-    /* TODO:
-       ElementFromHandle
-       ElementFromHandleBuildCache
-       ElementFromPoint
-       ElementFromPointBuildCache
-     */
+    {"ElementFromHandle", IUIAutomation_ElementFromHandle},
+    {"ElementFromHandleBuildCache", IUIAutomation_ElementFromHandleBuildCache},
+    {"ElementFromPoint", IUIAutomation_ElementFromPoint},
+    {"ElementFromPointBuildCache", IUIAutomation_ElementFromPointBuildCache},
 
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
     /* TODO: GetFocusedElementBuildCache */
