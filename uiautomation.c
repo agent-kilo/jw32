@@ -589,6 +589,53 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
     return hrRet;
 }
 
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleChangesEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender,
+    struct UiaChangeInfo *uiaChanges,
+    int changesCount)
+{
+    init_event_handler_thread_vm(self);
+
+    JanetTable *env = uia_thread_state.env;
+    JanetFunction *callback;
+    Janet argv[2];
+    Janet ret;
+    HRESULT hrRet = E_UNEXPECTED;
+
+    JanetArray *arr;
+
+    __JANET_TRY()
+
+    callback = unmarshal_handler_cb(self);
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+
+    arr = janet_array(changesCount);
+    for (int i = 0; i < changesCount; i++) {
+        JanetTable *change_info = janet_table(3);
+        janet_table_put(change_info,
+                        janet_ckeywordv("uiaId"),
+                        jw32_wrap_int(uiaChanges[i].uiaId));
+        janet_table_put(change_info,
+                        janet_ckeywordv("payload"),
+                        jw32_parse_variant(&uiaChanges[i].payload));
+        janet_table_put(change_info,
+                        janet_ckeywordv("extraInfo"),
+                        jw32_parse_variant(&uiaChanges[i].extraInfo));
+        janet_array_push(arr, janet_wrap_table(change_info));
+    }
+
+    argv[1] = janet_wrap_array(arr);
+
+    __JANET_TRY_END(hrRet)
+
+    if (uia_call_event_handler_fn(callback, 2, argv, env, &ret)) {
+        hrRet = jw32_unwrap_hresult(ret);
+    }
+
+    return hrRet;
+}
+
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
     Jw32UIAEventHandler *self,
     IUIAutomationElement *sender)
@@ -693,6 +740,11 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
 static CONST_VTBL Jw32UIAEventHandlerVtbl UIAEventHandler_Vtbl = {
     __COMMON_METHODS,
     (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleAutomationEvent,
+};
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIAChangesEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleChangesEvent,
 };
 
 static CONST_VTBL Jw32UIAEventHandlerVtbl UIAFocusChangedEventHandler_Vtbl = {
@@ -1088,6 +1140,12 @@ static void define_consts_uia_eventid(JanetTable *env)
     __def(UIA_NotificationEventId);
     __def(UIA_ActiveTextPositionChangedEventId);
 #undef __def
+}
+
+static void define_consts_uia_changeid(JanetTable *env)
+{
+    janet_def(env, "UIA_SummaryChangeId", jw32_wrap_int(UIA_SummaryChangeId),
+              "Constant for UI Automation change types.");
 }
 
 static void define_consts_treescope(JanetTable *env)
@@ -2195,10 +2253,72 @@ static const JanetMethod IUIAutomation5_methods[] = {
  *
  *******************************************************************/
 
+static Janet IUIAutomation6_AddEventHandlerGroup(int32_t argc, Janet *argv)
+{
+    IUIAutomation6 *self;
+    IUIAutomationElement *element;
+    IUIAutomationEventHandlerGroup *handlerGroup;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation6 *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    handlerGroup = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->AddEventHandlerGroup(self, element, handlerGroup);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomation6_CreateEventHandlerGroup(int32_t argc, Janet *argv)
+{
+    IUIAutomation6 *self;
+
+    HRESULT hrRet;
+    IUIAutomationEventHandlerGroup *handlerGroup;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomation6 *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->CreateEventHandlerGroup(self, &handlerGroup);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handlerGroup,
+            "IUIAutomationEventHandlerGroup",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomation6_RemoveEventHandlerGroup(int32_t argc, Janet *argv)
+{
+    IUIAutomation6 *self;
+    IUIAutomationElement *element;
+    IUIAutomationEventHandlerGroup *handlerGroup;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IUIAutomation6 *)jw32_com_get_obj_ref(argv, 0);
+    element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1);
+    handlerGroup = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 2);
+
+    hrRet = self->lpVtbl->RemoveEventHandlerGroup(self, element, handlerGroup);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
 DEFINE_SIMPLE_PROPERTY(IUIAutomation6, CoalesceEvents, enum CoalesceEventsOptions, int)
 DEFINE_SIMPLE_PROPERTY(IUIAutomation6, ConnectionRecoveryBehavior, enum ConnectionRecoveryBehaviorOptions, int)
 
 static const JanetMethod IUIAutomation6_methods[] = {
+    /* TODO */
+    {"AddEventHandlerGroup", IUIAutomation6_AddEventHandlerGroup},
+    {"CreateEventHandlerGroup", IUIAutomation6_CreateEventHandlerGroup},
+    {"RemoveEventHandlerGroup", IUIAutomation6_RemoveEventHandlerGroup},
 
     PROPERTY_METHODS(IUIAutomation6, CoalesceEvents),
     PROPERTY_METHODS(IUIAutomation6, ConnectionRecoveryBehavior),
@@ -2897,8 +3017,122 @@ static const JanetMethod IUIAutomationElementArray_methods[] = {
  *
  *******************************************************************/
 
+static Janet IUIAutomationEventHandlerGroup_AddAutomationEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomationEventHandlerGroup *self;
+    EVENTID eventId;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 5);
+
+    self = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 0);
+    eventId = jw32_get_int(argv, 1);
+    scope = jw32_get_int(argv, 2);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
+    callback = janet_getfunction(argv, 4);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationEventHandler,
+                                       &UIAEventHandler_Vtbl,
+                                       callback,
+                                       uia_thread_state.env);
+    if (!handler) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    hrRet = self->lpVtbl->AddAutomationEventHandler(self,
+                                                    eventId,
+                                                    scope,
+                                                    cacheRequest,
+                                                    (IUIAutomationEventHandler *)handler);
+
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
+}
+
+static Janet IUIAutomationEventHandlerGroup_AddChangesEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomationEventHandlerGroup *self;
+    enum TreeScope scope;
+    JanetView change_types;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+    int *changeTypes;
+    int changesCount;
+
+    janet_fixarity(argc, 5);
+
+    self = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    change_types = janet_getindexed(argv, 2);
+
+    changeTypes = GlobalAlloc(GPTR, change_types.len * sizeof(int));
+    changesCount = change_types.len;
+    jw32_dbg_val(changesCount, "%d");
+    for (int i = 0; i < changesCount; i++) {
+        Janet item = change_types.items[i];
+        if (!janet_checkint(item)) {
+            GlobalFree(changeTypes);
+            janet_panicf("bad change type #%d: expected an integer, got %v", i, item);
+        }
+        changeTypes[i] = jw32_unwrap_int(item);
+        jw32_dbg_val(changeTypes[i], "%d");
+    }
+
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 3);
+    callback = janet_getfunction(argv, 4);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationChangesEventHandler,
+                                       &UIAChangesEventHandler_Vtbl,
+                                       callback,
+                                       uia_thread_state.env);
+    if (!handler) {
+        GlobalFree(changeTypes);
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    hrRet = self->lpVtbl->AddChangesEventHandler(self,
+                                                 scope,
+                                                 changeTypes,
+                                                 changesCount,
+                                                 cacheRequest,
+                                                 (IUIAutomationChangesEventHandler *)handler);
+
+    GlobalFree(changeTypes);
+
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
+}
+
 static const JanetMethod IUIAutomationEventHandlerGroup_methods[] = {
     /* TODO */
+    {"AddAutomationEventHandler", IUIAutomationEventHandlerGroup_AddAutomationEventHandler},
+    {"AddChangesEventHandler", IUIAutomationEventHandlerGroup_AddChangesEventHandler},
     {NULL, NULL},
 };
 
@@ -3324,6 +3558,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_uia_propertyid(env);
     define_consts_uia_patternid(env);
     define_consts_uia_eventid(env);
+    define_consts_uia_changeid(env);
     define_consts_treescope(env);
     define_consts_propertyconditionflags(env);
     define_consts_coalesceeventsoptions(env);
