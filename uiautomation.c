@@ -118,6 +118,7 @@ JanetTable *IUIAutomationBoolCondition_proto;
 JanetTable *IUIAutomationNotCondition_proto;
 JanetTable *IUIAutomationOrCondition_proto;
 JanetTable *IUIAutomationPropertyCondition_proto;
+JanetTable *IUIAutomationTreeWalker_proto;
 JanetTable *IUIAutomationTransformPattern_proto;
 JanetTable *IUIAutomationWindowPattern_proto;
 
@@ -1387,6 +1388,28 @@ static Janet IUIAutomation_CreatePropertyConditionEx(int32_t argc, Janet *argv)
             uia_thread_state.env));
 }
 
+static Janet IUIAutomation_CreateTreeWalker(int32_t argc, Janet *argv)
+{
+    IUIAutomation *self;
+    IUIAutomationCondition *pCondition;
+
+    HRESULT hrRet;
+    IUIAutomationTreeWalker *walker = NULL;
+
+    janet_fixarity(argc, 2);
+    self = (IUIAutomation *)jw32_com_get_obj_ref(argv, 0);
+    pCondition = (IUIAutomationCondition *)jw32_com_get_obj_ref(argv, 1);
+
+    hrRet = self->lpVtbl->CreateTreeWalker(self, pCondition, &walker);
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            walker,
+            "IUIAutomationTreeWalker",
+            uia_thread_state.env));
+}
+
 static Janet IUIAutomation_CreateAndCondition(int32_t argc, Janet *argv)
 {
     IUIAutomation *self;
@@ -1795,6 +1818,7 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"CreateOrConditionFromArray", IUIAutomation_CreateOrConditionFromArray},
     {"CreatePropertyCondition", IUIAutomation_CreatePropertyCondition},
     {"CreatePropertyConditionEx", IUIAutomation_CreatePropertyConditionEx},
+    {"CreateTreeWalker", IUIAutomation_CreateTreeWalker},
     {"CreateTrueCondition", IUIAutomation_CreateTrueCondition},
 
     {"GetFocusedElement", IUIAutomation_GetFocusedElement},
@@ -2644,6 +2668,90 @@ static const JanetMethod IUIAutomationPropertyCondition_methods[] = {
 
 /*******************************************************************
  *
+ * IUIAutomationTreeWalker
+ *
+ *******************************************************************/
+
+#define __DEFINE_TREEWALKER_GET_METHOD(name)                            \
+    static Janet IUIAutomationTreeWalker_##name##(int32_t argc, Janet *argv) \
+    {                                                                   \
+        IUIAutomationTreeWalker *self;                                  \
+        IUIAutomationElement *element;                                  \
+        HRESULT hrRet;                                                  \
+        IUIAutomationElement *out;                                      \
+        janet_fixarity(argc, 2);                                        \
+        self = (IUIAutomationTreeWalker *)jw32_com_get_obj_ref(argv, 0); \
+        element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1); \
+        hrRet = self->lpVtbl->name(self, element, &out);                \
+        JW32_HR_RETURN_OR_PANIC(                                        \
+            hrRet,                                                      \
+            jw32_com_make_object_in_env(                                \
+                out,                                                    \
+                "IUIAutomationElement",                                 \
+                uia_thread_state.env));                                 \
+    }
+
+#define __DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(name)                \
+    static Janet IUIAutomationTreeWalker_##name##(int32_t argc, Janet *argv) \
+    {                                                                   \
+        IUIAutomationTreeWalker *self;                                  \
+        IUIAutomationElement *element;                                  \
+        IUIAutomationCacheRequest *cacheRequest;                        \
+        HRESULT hrRet;                                                  \
+        IUIAutomationElement *out;                                      \
+        janet_fixarity(argc, 3);                                        \
+        self = (IUIAutomationTreeWalker *)jw32_com_get_obj_ref(argv, 0); \
+        element = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 1); \
+        cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2); \
+        hrRet = self->lpVtbl->name(self, element, cacheRequest, &out);  \
+        JW32_HR_RETURN_OR_PANIC(                                        \
+            hrRet,                                                      \
+            jw32_com_make_object_in_env(                                \
+                out,                                                    \
+                "IUIAutomationElement",                                 \
+                uia_thread_state.env));                                 \
+    }
+
+__DEFINE_TREEWALKER_GET_METHOD(GetFirstChildElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(GetFirstChildElementBuildCache)
+__DEFINE_TREEWALKER_GET_METHOD(GetLastChildElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(GetLastChildElementBuildCache)
+__DEFINE_TREEWALKER_GET_METHOD(GetNextSiblingElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(GetNextSiblingElementBuildCache)
+__DEFINE_TREEWALKER_GET_METHOD(GetParentElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(GetParentElementBuildCache)
+__DEFINE_TREEWALKER_GET_METHOD(GetPreviousSiblingElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(GetPreviousSiblingElementBuildCache)
+__DEFINE_TREEWALKER_GET_METHOD(NormalizeElement)
+__DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE(NormalizeElementBuildCache)
+
+#undef __DEFINE_TREEWALKER_GET_METHOD
+#undef __DEFINE_TREEWALKER_GET_METHOD_BUILD_CACHE
+
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomationTreeWalker, Condition, IUIAutomationCondition)
+
+static const JanetMethod IUIAutomationTreeWalker_methods[] = {
+    {"GetFirstChildElement", IUIAutomationTreeWalker_GetFirstChildElement},
+    {"GetFirstChildElementBuildCache", IUIAutomationTreeWalker_GetFirstChildElementBuildCache},
+    {"GetLastChildElement", IUIAutomationTreeWalker_GetLastChildElement},
+    {"GetLastChildElementBuildCache", IUIAutomationTreeWalker_GetLastChildElementBuildCache},
+    {"GetNextSiblingElement", IUIAutomationTreeWalker_GetNextSiblingElement},
+    {"GetNextSiblingElementBuildCache", IUIAutomationTreeWalker_GetNextSiblingElementBuildCache},
+    {"GetParentElement", IUIAutomationTreeWalker_GetParentElement},
+    {"GetParentElementBuildCache", IUIAutomationTreeWalker_GetParentElementBuildCache},
+    {"GetPreviousSiblingElement", IUIAutomationTreeWalker_GetPreviousSiblingElement},
+    {"GetPreviousSiblingElementBuildCache", IUIAutomationTreeWalker_GetPreviousSiblingElementBuildCache},
+    {"NormalizeElement", IUIAutomationTreeWalker_NormalizeElement},
+    {"NormalizeElementBuildCache", IUIAutomationTreeWalker_NormalizeElementBuildCache},
+
+    PROPERTY_GETTER_METHOD(IUIAutomationTreeWalker, Condition),
+
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
  * IUIAutomationTransformPattern
  *
  *******************************************************************/
@@ -2789,6 +2897,10 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationPropertyCondition,
                 IUIAutomationCondition_proto,
                 "Prototype for COM IUIAutomationPropertyCondition interface.");
+
+    __def_proto(IUIAutomationTreeWalker,
+                IUIAutomationTreeWalker_proto,
+                "Prototype for COM IUIAutomationTreeWalker interface.");
 
     __def_proto(IUIAutomationTransformPattern,
                 IUnknown_proto,
