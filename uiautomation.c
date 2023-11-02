@@ -1794,8 +1794,11 @@ static Janet IUIAutomation_RemoveStructureChangedEventHandler(int32_t argc, Jane
 }
 
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ContentViewWalker, IUIAutomationTreeWalker)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, ControlViewWalker, IUIAutomationTreeWalker)
 DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewCondition, IUIAutomationCondition)
+DEFINE_OBJ_PROPERTY_GETTER(IUIAutomation, RawViewWalker, IUIAutomationTreeWalker)
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomation, ReservedMixedAttributeValue, IUnknown *, handle)
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomation, ReservedNotSupportedValue, IUnknown *, handle)
 
@@ -1832,8 +1835,11 @@ static const JanetMethod IUIAutomation_methods[] = {
     {"RemoveStructureChangedEventHandler", IUIAutomation_RemoveStructureChangedEventHandler},
 
     PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ContentViewWalker),
     PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, ControlViewWalker),
     PROPERTY_GETTER_METHOD(IUIAutomation, RawViewCondition),
+    PROPERTY_GETTER_METHOD(IUIAutomation, RawViewWalker),
     PROPERTY_GETTER_METHOD(IUIAutomation, ReservedMixedAttributeValue),
     PROPERTY_GETTER_METHOD(IUIAutomation, ReservedNotSupportedValue),
 
