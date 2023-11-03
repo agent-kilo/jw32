@@ -3114,7 +3114,6 @@ static Janet IUIAutomationEventHandlerGroup_AddChangesEventHandler(int32_t argc,
 
     Jw32UIAEventHandler *handler;
     int *changeTypes;
-    int changesCount;
 
     janet_fixarity(argc, 5);
 
@@ -3123,9 +3122,11 @@ static Janet IUIAutomationEventHandlerGroup_AddChangesEventHandler(int32_t argc,
     change_types = janet_getindexed(argv, 2);
 
     changeTypes = GlobalAlloc(GPTR, change_types.len * sizeof(int));
-    changesCount = change_types.len;
-    jw32_dbg_val(changesCount, "%d");
-    for (int i = 0; i < changesCount; i++) {
+    if (!changeTypes) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+    jw32_dbg_val(change_types.len, "%d");
+    for (int i = 0; i < change_types.len; i++) {
         Janet item = change_types.items[i];
         if (!janet_checkint(item)) {
             GlobalFree(changeTypes);
@@ -3150,7 +3151,7 @@ static Janet IUIAutomationEventHandlerGroup_AddChangesEventHandler(int32_t argc,
     hrRet = self->lpVtbl->AddChangesEventHandler(self,
                                                  scope,
                                                  changeTypes,
-                                                 changesCount,
+                                                 change_types.len,
                                                  cacheRequest,
                                                  (IUIAutomationChangesEventHandler *)handler);
 
@@ -3212,11 +3213,78 @@ static Janet IUIAutomationEventHandlerGroup_AddNotificationEventHandler(int32_t 
             uia_thread_state.env));
 }
 
+static Janet IUIAutomationEventHandlerGroup_AddPropertyChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomationEventHandlerGroup *self;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+    JanetView properties;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+    PROPERTYID *propertyArray;
+
+    janet_fixarity(argc, 5);
+
+    self = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2);
+    callback = janet_getfunction(argv, 3);
+    properties = janet_getindexed(argv, 4);
+
+    propertyArray = GlobalAlloc(GPTR, properties.len * sizeof(PROPERTYID));
+    if (!propertyArray) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+    for (LONG i = 0; i < properties.len; i++) {
+        Janet item = properties.items[i];
+        if (!janet_checkint(item)) {
+            GlobalFree(propertyArray);
+            janet_panicf("bad property #%d: expected an integer, got %v", i, item);
+        }
+        propertyArray[i] = jw32_unwrap_int(item);
+        jw32_dbg_val(propertyArray[i], "%d");
+    }
+
+    handler = create_uia_event_handler(&IID_IUIAutomationPropertyChangedEventHandler,
+                                       &UIAPropertyChangedEventHandler_Vtbl,
+                                       callback,
+                                       uia_thread_state.env);
+    if (!handler) {
+        GlobalFree(propertyArray);
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    hrRet = self->lpVtbl->AddPropertyChangedEventHandler(
+        self,
+        scope,
+        cacheRequest,
+        (IUIAutomationPropertyChangedEventHandler *)handler,
+        propertyArray,
+        properties.len);
+
+    GlobalFree(propertyArray);
+
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
+}
+
 static const JanetMethod IUIAutomationEventHandlerGroup_methods[] = {
     /* TODO */
     {"AddAutomationEventHandler", IUIAutomationEventHandlerGroup_AddAutomationEventHandler},
     {"AddChangesEventHandler", IUIAutomationEventHandlerGroup_AddChangesEventHandler},
     {"AddNotificationEventHandler", IUIAutomationEventHandlerGroup_AddNotificationEventHandler},
+    {"AddPropertyChangedEventHandler", IUIAutomationEventHandlerGroup_AddPropertyChangedEventHandler},
     {NULL, NULL},
 };
 
