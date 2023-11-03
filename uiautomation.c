@@ -662,6 +662,40 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
     return hrRet;
 }
 
+static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleNotificationEvent(
+    Jw32UIAEventHandler *self,
+    IUIAutomationElement *sender,
+    enum NotificationKind notificationKind,
+    enum NotificationProcessing notificationProcessing,
+    BSTR displayString,
+    BSTR activityId)
+{
+    init_event_handler_thread_vm(self);
+
+    JanetTable *env = uia_thread_state.env;
+    JanetFunction *callback;
+    Janet argv[5];
+    Janet ret;
+    HRESULT hrRet = E_UNEXPECTED;
+
+    __JANET_TRY()
+
+    callback = unmarshal_handler_cb(self);
+    argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
+    argv[1] = jw32_wrap_int(notificationKind);
+    argv[2] = jw32_wrap_int(notificationProcessing);
+    argv[3] = displayString ? janet_wrap_string(jw32_bstr_to_string(displayString)) : janet_wrap_nil();
+    argv[4] = activityId ? janet_wrap_string(jw32_bstr_to_string(activityId)) : janet_wrap_nil();
+
+    __JANET_TRY_END(hrRet)
+
+    if (uia_call_event_handler_fn(callback, 5, argv, env, &ret)) {
+        hrRet = jw32_unwrap_hresult(ret);
+    }
+
+    return hrRet;
+}
+
 static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
     Jw32UIAEventHandler *self,
     IUIAutomationElement *sender,
@@ -750,6 +784,11 @@ static CONST_VTBL Jw32UIAEventHandlerVtbl UIAChangesEventHandler_Vtbl = {
 static CONST_VTBL Jw32UIAEventHandlerVtbl UIAFocusChangedEventHandler_Vtbl = {
     __COMMON_METHODS,
     (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleFocusChangedEvent,
+};
+
+static CONST_VTBL Jw32UIAEventHandlerVtbl UIANotificationEventHandler_Vtbl = {
+    __COMMON_METHODS,
+    (Jw32UIAEventHandlerFunc)Jw32UIAEventHandler_HandleNotificationEvent,
 };
 
 static CONST_VTBL Jw32UIAEventHandlerVtbl UIAPropertyChangedEventHandler_Vtbl = {
@@ -3129,10 +3168,55 @@ static Janet IUIAutomationEventHandlerGroup_AddChangesEventHandler(int32_t argc,
             uia_thread_state.env));
 }
 
+static Janet IUIAutomationEventHandlerGroup_AddNotificationEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomationEventHandlerGroup *self;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 4);
+
+    self = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2);
+    callback = janet_getfunction(argv, 3);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationNotificationEventHandler,
+                                       &UIANotificationEventHandler_Vtbl,
+                                       callback,
+                                       uia_thread_state.env);
+    if (!handler) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    hrRet = self->lpVtbl->AddNotificationEventHandler(
+        self,
+        scope,
+        cacheRequest,
+        (IUIAutomationNotificationEventHandler *)handler);
+
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
+}
+
 static const JanetMethod IUIAutomationEventHandlerGroup_methods[] = {
     /* TODO */
     {"AddAutomationEventHandler", IUIAutomationEventHandlerGroup_AddAutomationEventHandler},
     {"AddChangesEventHandler", IUIAutomationEventHandlerGroup_AddChangesEventHandler},
+    {"AddNotificationEventHandler", IUIAutomationEventHandlerGroup_AddNotificationEventHandler},
     {NULL, NULL},
 };
 
