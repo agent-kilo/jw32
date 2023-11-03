@@ -3648,8 +3648,60 @@ static const JanetMethod IUIAutomationTransformPattern_methods[] = {
  *
  *******************************************************************/
 
+static Janet IUIAutomationWindowPattern_Close(int32_t argc, Janet *argv)
+{
+    IUIAutomationWindowPattern *self;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationWindowPattern *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->Close(self);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedCanMaximize, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentCanMaximize, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedCanMinimize, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentCanMinimize, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedIsModal, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentIsModal, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedIsTopmost, BOOL, bool)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentIsTopmost, BOOL, bool)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedWindowInteractionState, enum WindowInteractionState, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentWindowInteractionState, enum WindowInteractionState, int)
+
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedWindowVisualState, enum WindowVisualState, int)
+DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentWindowVisualState, enum WindowVisualState, int)
+
 static const JanetMethod IUIAutomationWindowPattern_methods[] = {
     /* TODO */
+    {"Close", IUIAutomationWindowPattern_Close},
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedCanMaximize),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentCanMaximize),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedCanMinimize),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentCanMinimize),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedIsModal),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentIsModal),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedIsTopmost),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentIsTopmost),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedWindowInteractionState),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentWindowInteractionState),
+
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedWindowVisualState),
+    PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentWindowVisualState),
+
     {NULL, NULL},
 };
 
