@@ -133,6 +133,7 @@ JanetTable *IUIAutomationPropertyCondition_proto;
 JanetTable *IUIAutomationTreeWalker_proto;
 JanetTable *IUIAutomationTransformPattern_proto;
 JanetTable *IUIAutomationWindowPattern_proto;
+JanetTable *IUIAutomationInvokePattern_proto;
 
 
 static SAFEARRAY *make_condition_safearray(JanetView view)
@@ -245,6 +246,42 @@ static void prepare_property_variant_value(PROPERTYID propertyId, Janet *argv, i
     __CASE(UIA_IsPeripheralPropertyId, prepare_bool_value);
     __CASE(UIA_IsRequiredForFormPropertyId, prepare_bool_value);
     __CASE(UIA_OptimizeForVisualContentPropertyId, prepare_bool_value);
+    __CASE(UIA_IsDockPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsExpandCollapsePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsGridItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsGridPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsInvokePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsMultipleViewPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsRangeValuePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsScrollPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsScrollItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSelectionItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSelectionPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTablePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTableItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTextPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTogglePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTransformPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsValuePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsWindowPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsLegacyIAccessiblePatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsItemContainerPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsVirtualizedItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSynchronizedInputPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsObjectModelPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsAnnotationPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTextPattern2AvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsStylesPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSpreadsheetPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSpreadsheetItemPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTransformPattern2AvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTextChildPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsDragPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsDropTargetPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsTextEditPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsCustomNavigationPatternAvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsSelectionPattern2AvailablePropertyId, prepare_bool_value);
+    __CASE(UIA_IsDialogPropertyId, prepare_bool_value);
 
     /* VT_UNKNOWN properties */
     __CASE(UIA_LabeledByPropertyId, prepare_unknown_value);
@@ -1230,6 +1267,30 @@ static void define_consts_connectionrecoverybehavioroptions(JanetTable *env)
               "Constant for UI Automation ConnectionRecoveryBehaviorOptions.")
     __def(ConnectionRecoveryBehaviorOptions_Disabled);
     __def(ConnectionRecoveryBehaviorOptions_Enabled);
+#undef __def
+}
+
+static void define_consts_windowinteractionstate(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation WindowInteractionState.")
+    __def(WindowInteractionState_Running);
+    __def(WindowInteractionState_Closing);
+    __def(WindowInteractionState_ReadyForUserInteraction);
+    __def(WindowInteractionState_BlockedByModalWindow);
+    __def(WindowInteractionState_NotResponding);
+#undef __def
+}
+
+static void define_consts_windowvisualstate(JanetTable *env)
+{
+#define __def(const_name)                                        \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),       \
+              "Constant for UI Automation WindowVisualState.")
+    __def(WindowVisualState_Normal);
+    __def(WindowVisualState_Maximized);
+    __def(WindowVisualState_Minimized);
 #undef __def
 }
 
@@ -3662,6 +3723,39 @@ static Janet IUIAutomationWindowPattern_Close(int32_t argc, Janet *argv)
     JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
+static Janet IUIAutomationWindowPattern_SetWindowVisualState(int32_t argc, Janet *argv)
+{
+    IUIAutomationWindowPattern *self;
+    enum WindowVisualState state;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationWindowPattern *)jw32_com_get_obj_ref(argv, 0);
+    state = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->SetWindowVisualState(self, state);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static Janet IUIAutomationWindowPattern_WaitForInputIdle(int32_t argc, Janet *argv)
+{
+    IUIAutomationWindowPattern *self;
+    int milliseconds;
+
+    HRESULT hrRet;
+    BOOL success;
+
+    janet_fixarity(argc, 2);
+
+    self = (IUIAutomationWindowPattern *)jw32_com_get_obj_ref(argv, 0);
+    milliseconds = jw32_get_int(argv, 1);
+    hrRet = self->lpVtbl->WaitForInputIdle(self, milliseconds, &success);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(success));
+}
+
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CachedCanMaximize, BOOL, bool)
 DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentCanMaximize, BOOL, bool)
 
@@ -3683,6 +3777,8 @@ DEFINE_SIMPLE_PROPERTY_GETTER(IUIAutomationWindowPattern, CurrentWindowVisualSta
 static const JanetMethod IUIAutomationWindowPattern_methods[] = {
     /* TODO */
     {"Close", IUIAutomationWindowPattern_Close},
+    {"SetWindowVisualState", IUIAutomationWindowPattern_SetWindowVisualState},
+    {"WaitForInputIdle", IUIAutomationWindowPattern_WaitForInputIdle},
 
     PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedCanMaximize),
     PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentCanMaximize),
@@ -3702,6 +3798,32 @@ static const JanetMethod IUIAutomationWindowPattern_methods[] = {
     PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CachedWindowVisualState),
     PROPERTY_GETTER_METHOD(IUIAutomationWindowPattern, CurrentWindowVisualState),
 
+    {NULL, NULL},
+};
+
+
+/*******************************************************************
+ *
+ * IUIAutomationInvokePattern
+ *
+ *******************************************************************/
+
+static Janet IUIAutomationInvokePattern_Invoke(int32_t argc, Janet *argv)
+{
+    IUIAutomationInvokePattern *self;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 1);
+
+    self = (IUIAutomationInvokePattern *)jw32_com_get_obj_ref(argv, 0);
+    hrRet = self->lpVtbl->Invoke(self);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+static const JanetMethod IUIAutomationInvokePattern_methods[] = {
+    {"Invoke", IUIAutomationInvokePattern_Invoke},
     {NULL, NULL},
 };
 
@@ -3789,6 +3911,9 @@ static void init_table_protos(JanetTable *env)
     __def_proto(IUIAutomationWindowPattern,
                 IUnknown_proto,
                 "Prototype for COM IUIAutomationWindowPattern interface.");
+    __def_proto(IUIAutomationInvokePattern,
+                IUnknown_proto,
+                "Prototype for COM IUIAutomationInvokePattern interface.");
 
 #undef __def_proto
 
@@ -3812,6 +3937,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_propertyconditionflags(env);
     define_consts_coalesceeventsoptions(env);
     define_consts_connectionrecoverybehavioroptions(env);
+    define_consts_windowinteractionstate(env);
+    define_consts_windowvisualstate(env);
 
     init_table_protos(env);
 }
