@@ -3279,12 +3279,57 @@ static Janet IUIAutomationEventHandlerGroup_AddPropertyChangedEventHandler(int32
             uia_thread_state.env));
 }
 
+static Janet IUIAutomationEventHandlerGroup_AddStructureChangedEventHandler(int32_t argc, Janet *argv)
+{
+    IUIAutomationEventHandlerGroup *self;
+    enum TreeScope scope;
+    IUIAutomationCacheRequest *cacheRequest;
+    JanetFunction *callback;
+
+    HRESULT hrRet;
+
+    Jw32UIAEventHandler *handler;
+
+    janet_fixarity(argc, 4);
+
+    self = (IUIAutomationEventHandlerGroup *)jw32_com_get_obj_ref(argv, 0);
+    scope = jw32_get_int(argv, 1);
+    cacheRequest = (IUIAutomationCacheRequest *)jw32_com_get_obj_ref(argv, 2);
+    callback = janet_getfunction(argv, 3);
+
+    handler = create_uia_event_handler(&IID_IUIAutomationStructureChangedEventHandler,
+                                       &UIAStructureChangedEventHandler_Vtbl,
+                                       callback,
+                                       uia_thread_state.env);
+    if (!handler) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_OUTOFMEMORY));
+    }
+
+    hrRet = self->lpVtbl->AddStructureChangedEventHandler(
+        self,
+        scope,
+        cacheRequest,
+        (IUIAutomationStructureChangedEventHandler *)handler);
+
+    if (FAILED(hrRet)) {
+        handler->lpVtbl->Release(handler);
+    }
+
+    JW32_HR_RETURN_OR_PANIC(
+        hrRet,
+        jw32_com_make_object_in_env(
+            handler,
+            "IUnknown",
+            uia_thread_state.env));
+}
+
 static const JanetMethod IUIAutomationEventHandlerGroup_methods[] = {
     /* TODO */
     {"AddAutomationEventHandler", IUIAutomationEventHandlerGroup_AddAutomationEventHandler},
     {"AddChangesEventHandler", IUIAutomationEventHandlerGroup_AddChangesEventHandler},
     {"AddNotificationEventHandler", IUIAutomationEventHandlerGroup_AddNotificationEventHandler},
     {"AddPropertyChangedEventHandler", IUIAutomationEventHandlerGroup_AddPropertyChangedEventHandler},
+    {"AddStructureChangedEventHandler", IUIAutomationEventHandlerGroup_AddStructureChangedEventHandler},
     {NULL, NULL},
 };
 
