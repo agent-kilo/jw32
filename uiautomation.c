@@ -296,8 +296,12 @@ static void prepare_property_variant_value(PROPERTYID propertyId, Janet *argv, i
 
 prepare_bstr_value: {
         JanetString str_val = janet_getstring(argv, n);
+        BSTR bstr = jw32_string_to_bstr(str_val);
+        if (!bstr) {
+            janet_panicf("jw32_string_to_bstr() failed");
+        }
         V_VT(value) = VT_BSTR;
-        V_BSTR(value) = jw32_string_to_bstr(str_val);
+        V_BSTR(value) = bstr;
         goto successful_return;
     }
 

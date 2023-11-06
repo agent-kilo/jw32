@@ -315,15 +315,14 @@ static inline BSTR jw32_string_to_bstr(JanetString from)
     int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, (const char *)from, -1, NULL, 0);
 
     if (count <= 0) {
-        janet_panicf("MultiByteToWideChar failed: 0x%x", GetLastError());
+        return NULL;
     } else {
         BSTR to = SysAllocStringByteLen(NULL, count * sizeof(WCHAR));
         int count_again = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
                                               (const char *)from, -1, (LPWSTR)to, count);
         if (count_again != count) {
             SysFreeString(to);
-            janet_panicf("calculated buffer len is %d characters, but %d characters are copied",
-                         count, count_again);
+            return NULL;
         }
         return to;
     }
