@@ -328,9 +328,16 @@ static inline BSTR jw32_string_to_bstr(JanetString from)
     }
 }
 
-static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
+static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt, int cleanup)
 {
+#define __CLEANUP() do {                        \
+        if (cleanup) {                          \
+            SafeArrayDestroy(psa);              \
+        }                                       \
+    } while (0)
+
     if (psa->cDims != 1) {
+        __CLEANUP();
         janet_panicf("SAFEARRAYs with more than one dimention are not supported");
     }
 
@@ -347,9 +354,11 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
                 Janet jval = janet_wrap_##jt##(val);                    \
                 janet_array_push(jarr, jval);                           \
             } else {                                                    \
+                __CLEANUP();                                            \
                 janet_panicf("SafeArrayGetElement() failed: 0x%x", hr); \
             }                                                           \
         }                                                               \
+        __CLEANUP();                                                    \
         return janet_wrap_array(jarr);                                  \
     } while(0)
 
@@ -377,22 +386,27 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
             if (SUCCEEDED(hr)) {
                 JanetString jstr = jw32_bstr_to_string(val);
                 if (!jstr) {
+                    __CLEANUP();
                     janet_panicf("jw32_bstr_to_string() failed");
                 }
                 Janet jval = janet_wrap_string(jstr);
                 janet_array_push(jarr, jval);
             } else {
+                __CLEANUP();
                 janet_panicf("SafeArrayGetElement() failed: 0x%x", hr);
             }
         }
+        __CLEANUP();
         return janet_wrap_array(jarr);
     }
 
     default:
+        __CLEANUP();
         janet_panicf("unsupported SAFEARRAY variant type: 0x%x", vt);
     }
     
 #undef __CASE
+#undef __CLEANUP
 }
 
 static inline Janet jw32_parse_variant(const VARIANT *v)
@@ -402,11 +416,8 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
     VARTYPE is_array = vt & VT_ARRAY;
 
     if (is_array) {
-        if (is_byref) {
-            return jw32_parse_variant_safearray(*V_ARRAYREF(v), vt);
-        } else {
-            return jw32_parse_variant_safearray(V_ARRAY(v), vt);
-        }
+        SAFEARRAY *psa = is_byref ? (*V_ARRAYREF(v)) : V_ARRAY(v);
+        return jw32_parse_variant_safearray(psa, vt, FALSE); /* TODO */
     }
 
 #define __maybe_ref(t) (is_byref ? (*V_##t##REF(v)) : (V_##t##(v)))

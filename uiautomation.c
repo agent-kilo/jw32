@@ -1466,12 +1466,10 @@ static Janet IUIAutomation_PollForPotentialSupportedPatterns(int32_t argc, Janet
 
     if (SUCCEEDED(hrRet)) {
         if (patternIds) {
-            pid_arrv = jw32_parse_variant_safearray(patternIds, VT_INT);
-            SafeArrayDestroy(patternIds);
+            pid_arrv = jw32_parse_variant_safearray(patternIds, VT_INT, TRUE);
         }
         if (patternNames) {
-            pname_arrv = jw32_parse_variant_safearray(patternNames, VT_BSTR);
-            SafeArrayDestroy(patternNames);
+            pname_arrv = jw32_parse_variant_safearray(patternNames, VT_BSTR, TRUE);
         }
     }
 
@@ -1502,12 +1500,10 @@ static Janet IUIAutomation_PollForPotentialSupportedProperties(int32_t argc, Jan
 
     if (SUCCEEDED(hrRet)) {
         if (propertyIds) {
-            pid_arrv = jw32_parse_variant_safearray(propertyIds, VT_INT);
-            SafeArrayDestroy(propertyIds);
+            pid_arrv = jw32_parse_variant_safearray(propertyIds, VT_INT, TRUE);
         }
         if (propertyNames) {
-            pname_arrv = jw32_parse_variant_safearray(propertyNames, VT_BSTR);
-            SafeArrayDestroy(propertyNames);
+            pname_arrv = jw32_parse_variant_safearray(propertyNames, VT_BSTR, TRUE);
         }
     }
 
