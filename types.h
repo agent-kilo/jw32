@@ -291,17 +291,20 @@ static inline JanetString jw32_bstr_to_string(BSTR from)
     int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, from, -1, NULL, 0, NULL, NULL);
 
     if (count <= 0) {
-        /* XXX: free the BSTR when panicked? */
-        janet_panicf("WideCharToMultiByte failed: 0x%x", GetLastError());
+        return NULL;
     } else {
         /* janet_string_begin() adds one more byte for the trailing zero,
            and count includes the trailing zero, so */
         uint8_t *to = janet_string_begin(count - 1);
+        to[0] = 0;
+
         int count_again = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
                                               from, -1, (LPSTR)to, count,
                                               NULL, NULL);
         if (count_again != count) {
-            janet_panicf("calculated buffer len is %d, but %d bytes are copied", count, count_again);
+            /* wait for gc to claim it */
+            janet_string_end(to);
+            return NULL;
         }
         return janet_string_end(to);
     }
@@ -373,7 +376,11 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt)
         for (LONG i = lLbound; i < (LONG)(lLbound + cElements); i++) {
             HRESULT hr = SafeArrayGetElement(psa, &i, &val);
             if (SUCCEEDED(hr)) {
-                Janet jval = janet_wrap_string(jw32_bstr_to_string(val));
+                JanetString jstr = jw32_bstr_to_string(val);
+                if (!jstr) {
+                    janet_panicf("jw32_bstr_to_string() failed");
+                }
+                Janet jval = janet_wrap_string(jstr);
                 janet_array_push(jarr, jval);
             } else {
                 janet_panicf("SafeArrayGetElement() failed: 0x%x", hr);
@@ -422,7 +429,11 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
     case VT_BSTR:
         BSTR bstr = is_byref ? (*V_BSTRREF(v)) : V_BSTR(v);
         if (bstr) {
-            return janet_wrap_string(jw32_bstr_to_string(bstr));
+            JanetString jstr = jw32_bstr_to_string(bstr);
+            if (!jstr) {
+                janet_panicf("jw32_bstr_to_string() failed");
+            }
+            return janet_wrap_string(jstr);
         } else {
             /* XXX: some ui automation element properties (e.g. UIA_HelpTextPropertyId)
                would set a BSTR VARIANT to NULL, fallback to nil here. */

@@ -42,13 +42,16 @@
         self = (__if *)jw32_com_get_obj_ref(argv, 0);                   \
         hrRet = self->lpVtbl->get_##__prop##(self, &retVal);            \
         if (S_OK == hrRet) {                                            \
-            Janet jstr;                                                 \
-            if (!retVal) {                                              \
-                jstr = janet_wrap_nil();                                \
-            } else {                                                    \
-                jstr = janet_wrap_string(jw32_bstr_to_string(retVal));  \
+            Janet jstr = janet_wrap_nil();                              \
+            if (retVal) {                                               \
+                JanetString str = jw32_bstr_to_string(retVal);          \
+                SysFreeString(retVal);                                  \
+                if (str) {                                              \
+                    jstr = janet_wrap_string(str);                      \
+                } else {                                                \
+                    janet_panicf("jw32_bstr_to_string() failed");       \
+                }                                                       \
             }                                                           \
-            SysFreeString(retVal);                                      \
             return jstr;                                                \
         } else {                                                        \
             janet_panicv(JW32_HRESULT_ERRORV(hrRet));                   \
@@ -721,8 +724,24 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleNotificationEvent(
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(notificationKind);
     argv[2] = jw32_wrap_int(notificationProcessing);
-    argv[3] = displayString ? janet_wrap_string(jw32_bstr_to_string(displayString)) : janet_wrap_nil();
-    argv[4] = activityId ? janet_wrap_string(jw32_bstr_to_string(activityId)) : janet_wrap_nil();
+
+    argv[3] = janet_wrap_nil();
+    if (displayString) {
+        JanetString disp_str = jw32_bstr_to_string(displayString);
+        if (!disp_str) {
+            janet_panicf("jw32_bstr_to_string() failed");
+        }
+        argv[3] = janet_wrap_string(disp_str);
+    }
+
+    argv[4] = janet_wrap_nil();
+    if (activityId) {
+        JanetString act_id = jw32_bstr_to_string(activityId);
+        if (!act_id) {
+            janet_panicf("jw32_bstr_to_string() failed");
+        }
+        argv[4] = janet_wrap_string(act_id);
+    }
 
     __JANET_TRY_END(hrRet)
 
@@ -1382,8 +1401,12 @@ static Janet IUIAutomation_GetPatternProgrammaticName(int32_t argc, Janet *argv)
     hrRet = self->lpVtbl->GetPatternProgrammaticName(self, pattern, &name);
 
     if (SUCCEEDED(hrRet) && name) {
-        name_strv = janet_wrap_string(jw32_bstr_to_string(name));
+        JanetString str = jw32_bstr_to_string(name);
         SysFreeString(name);
+        if (!str) {
+            janet_panicf("jw32_bstr_to_string() failed");
+        }
+        name_strv = janet_wrap_string(str);
     }
 
     JW32_HR_RETURN_OR_PANIC(hrRet, name_strv);
@@ -1406,8 +1429,12 @@ static Janet IUIAutomation_GetPropertyProgrammaticName(int32_t argc, Janet *argv
     hrRet = self->lpVtbl->GetPropertyProgrammaticName(self, property, &name);
 
     if (SUCCEEDED(hrRet) && name) {
-        name_strv = janet_wrap_string(jw32_bstr_to_string(name));
+        JanetString str = jw32_bstr_to_string(name);
         SysFreeString(name);
+        if (!str) {
+            janet_panicf("jw32_bstr_to_string() failed");
+        }
+        name_strv = janet_wrap_string(str);
     }
 
     JW32_HR_RETURN_OR_PANIC(hrRet, name_strv);
