@@ -17,8 +17,8 @@ static JanetArray *local_class_wnd_proc_registry;
 static JanetArray *global_class_wnd_proc_registry;
 static JanetTable *atom_class_name_map;
 
-static JanetTable *win_event_hook_registry;
-static JanetTable *win_hook_registry;
+JANET_THREAD_LOCAL JanetTable *win_event_hook_registry;
+JANET_THREAD_LOCAL JanetTable *win_hook_registry;
 
 
 /* pre-defined window properties we used */
@@ -1637,6 +1637,14 @@ static Janet cfun_MSG(int32_t argc, Janet *argv)
     return janet_wrap_abstract(msg);
 }
 
+static void init_win_event_hook_registry(void)
+{
+    if (!win_event_hook_registry) {
+        win_event_hook_registry = janet_table(0);
+        janet_gcroot(janet_wrap_table(win_event_hook_registry));
+    }
+}
+
 static Janet cfun_SetWinEventHook(int32_t argc, Janet *argv)
 {
     DWORD eventMin, eventMax;
@@ -1661,6 +1669,7 @@ static Janet cfun_SetWinEventHook(int32_t argc, Janet *argv)
 
     if (hHook) {
         Janet hook = jw32_wrap_handle(hHook);
+        init_win_event_hook_registry();
         janet_table_put(win_event_hook_registry, hook, janet_wrap_function(win_event_proc_fn));
         jw32_dbg_jval(hook);
         jw32_dbg_jval(argv[3]);
@@ -1680,12 +1689,20 @@ static Janet cfun_UnhookWinEvent(int32_t argc, Janet *argv)
     hWinEventHook = jw32_get_handle(argv, 0);
     bRet = UnhookWinEvent(hWinEventHook);
 
-    if (bRet) {
+    if (bRet && win_event_hook_registry) {
         Janet removed = janet_table_remove(win_event_hook_registry, jw32_wrap_handle(hWinEventHook));
         jw32_dbg_jval(removed);
     }
 
     return jw32_wrap_bool(bRet);
+}
+
+static void init_win_hook_registry(void)
+{
+    if (!win_hook_registry) {
+        win_hook_registry = janet_table(0);
+        janet_gcroot(janet_wrap_table(win_hook_registry));
+    }
 }
 
 static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
@@ -1707,6 +1724,8 @@ static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
     win_hook_proc_fn = janet_getfunction(argv, 1);
     hmod = jw32_get_handle(argv, 2);
     dwThreadId = jw32_get_dword(argv, 3);
+
+    init_win_hook_registry();
 
     Janet hook = jw32_wrap_int(idHook);
     Janet proc_arrv = janet_table_get(win_hook_registry, hook);
@@ -2769,8 +2788,6 @@ static void init_global_states(JanetTable *env)
     local_class_wnd_proc_registry = janet_array(0);
     global_class_wnd_proc_registry = janet_array(0);
     atom_class_name_map = janet_table(0);
-    win_event_hook_registry = janet_table(0);
-    win_hook_registry = janet_table(0);
 
     janet_def(env, "local_class_wnd_proc_registry", janet_wrap_array(local_class_wnd_proc_registry),
               "Where all the local WndProcs reside.");
@@ -2778,10 +2795,6 @@ static void init_global_states(JanetTable *env)
               "Where all the global WndProcs reside.");
     janet_def(env, "atom_class_name_map", janet_wrap_table(atom_class_name_map),
               "atom -> class name");
-    janet_def(env, "win_event_hook_registry", janet_wrap_table(win_event_hook_registry),
-              "HWINEVENTHOOK -> win event hook proc");
-    janet_def(env, "win_hook_registry", janet_wrap_table(win_hook_registry),
-              "WH_* -> win hook proc list");
 }
 
 
