@@ -409,37 +409,55 @@ static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt, int
 #undef __CLEANUP
 }
 
-static inline Janet jw32_parse_variant(const VARIANT *v)
+static inline Janet jw32_parse_variant(VARIANT *v, int cleanup)
 {
     VARTYPE vt = V_VT(v);
     VARTYPE is_byref = vt & VT_BYREF;
     VARTYPE is_array = vt & VT_ARRAY;
 
+#define __CLEANUP() do {                        \
+        if (cleanup) {                          \
+            VariantClear(v);                    \
+        }                                       \
+    } while (0)
+
     if (is_array) {
         SAFEARRAY *psa = is_byref ? (*V_ARRAYREF(v)) : V_ARRAY(v);
-        return jw32_parse_variant_safearray(psa, vt, FALSE); /* TODO */
+        Janet ret = jw32_parse_variant_safearray(psa, vt, FALSE);
+        __CLEANUP();
+        return ret;
     }
 
 #define __maybe_ref(t) (is_byref ? (*V_##t##REF(v)) : (V_##t##(v)))
-#define __CASE(t, jwt) \
-    case VT_##t##: return janet_wrap_##jwt##(__maybe_ref(t))
+#define __CASE(t, jwt)                                  \
+    case VT_##t##: do {                                 \
+        Janet ret = janet_wrap_##jwt##(__maybe_ref(t)); \
+        __CLEANUP();                                    \
+        return ret;                                     \
+    } while (0)
 
     switch (vt & VT_TYPEMASK) {
     case VT_EMPTY:
-    case VT_NULL:
+    case VT_NULL: {
+        __CLEANUP();
         return janet_wrap_nil();
+    }
     __CASE(I2, integer);
     __CASE(I4, integer);
     __CASE(R4, number);
     __CASE(R8, number);
-    case VT_CY:
+    case VT_CY: {
         CY *cy = is_byref ? V_CYREF(v) : (&V_CY(v));
-        return janet_wrap_s64(cy->int64);
+        Janet ret = janet_wrap_s64(cy->int64);
+        __CLEANUP();
+        return ret;
+    }
     __CASE(DATE, number);
-    case VT_BSTR:
+    case VT_BSTR: {
         BSTR bstr = is_byref ? (*V_BSTRREF(v)) : V_BSTR(v);
         if (bstr) {
             JanetString jstr = jw32_bstr_to_string(bstr);
+            __CLEANUP();
             if (!jstr) {
                 janet_panicf("jw32_bstr_to_string() failed");
             }
@@ -447,15 +465,20 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
         } else {
             /* XXX: some ui automation element properties (e.g. UIA_HelpTextPropertyId)
                would set a BSTR VARIANT to NULL, fallback to nil here. */
+            __CLEANUP();
             return janet_wrap_nil();
         }
+    }
     __CASE(DISPATCH, pointer);
-    case VT_ERROR: /* ERROR is a macro defined by system, can't just say __CASE(ERROR, ...) */
-        return janet_wrap_integer(is_byref ? (*V_ERRORREF(v)) : V_ERROR(v));
+    case VT_ERROR: { /* ERROR is a macro defined by system, can't just say __CASE(ERROR, ...) */
+        Janet ret = janet_wrap_integer(is_byref ? (*V_ERRORREF(v)) : V_ERROR(v));
+        __CLEANUP();
+        return ret;
+    }
     __CASE(BOOL, integer);
     case VT_VARIANT:
         /* can only be a ref */
-        return jw32_parse_variant(V_VARIANTREF(v));
+        return jw32_parse_variant(V_VARIANTREF(v), cleanup);
     __CASE(UNKNOWN, pointer);
     case VT_DECIMAL: {
         DECIMAL *dec = is_byref ? V_DECIMALREF(v) : (&V_DECIMAL(v));
@@ -465,11 +488,15 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
             janet_wrap_u64(dec->Hi32),
             janet_wrap_u64(dec->Lo64),
         };
+        __CLEANUP();
         return janet_wrap_tuple(janet_tuple_n(ret_tuple, 4));
     }
-    case VT_RECORD:
+    case VT_RECORD: {
         /* can only be a ref */
-        return janet_wrap_pointer(V_RECORD(v));
+        Janet ret = janet_wrap_pointer(V_RECORD(v));
+        __CLEANUP();
+        return ret;
+    }
     __CASE(I1, integer);
     __CASE(UI1, integer);
     __CASE(UI2, integer);
@@ -477,9 +504,11 @@ static inline Janet jw32_parse_variant(const VARIANT *v)
     __CASE(INT, integer);
     __CASE(UINT, u64);
     default:
+        __CLEANUP();
         janet_panicf("unsupported variant type: 0x%x", vt);
     }
 
+#undef __CLEANUP
 #undef __CASE
 #undef __maybe_ref
 }

@@ -662,10 +662,10 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleChangesEvent(
                         jw32_wrap_int(uiaChanges[i].uiaId));
         janet_table_put(change_info,
                         janet_ckeywordv("payload"),
-                        jw32_parse_variant(&uiaChanges[i].payload));
+                        jw32_parse_variant(&uiaChanges[i].payload, FALSE));
         janet_table_put(change_info,
                         janet_ckeywordv("extraInfo"),
-                        jw32_parse_variant(&uiaChanges[i].extraInfo));
+                        jw32_parse_variant(&uiaChanges[i].extraInfo, FALSE));
         janet_array_push(arr, janet_wrap_table(change_info));
     }
 
@@ -774,7 +774,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
 
     __JANET_TRY()
 
-    Janet new_jval = jw32_parse_variant(&newValue);
+    Janet new_jval = jw32_parse_variant(&newValue, FALSE);
     callback = unmarshal_handler_cb(self);
     /* TODO: wrap VT_UNKNOWN values in IUnknown */
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
@@ -2726,7 +2726,7 @@ static Janet IUIAutomationElement_GetCurrentPropertyValue(int32_t argc, Janet *a
         jw32_dbg_val(V_VT(&retVal), "0x%x");
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal, FALSE));
 }
 
 static Janet IUIAutomationElement_GetCachedPropertyValue(int32_t argc, Janet *argv)
@@ -2748,7 +2748,7 @@ static Janet IUIAutomationElement_GetCachedPropertyValue(int32_t argc, Janet *ar
         jw32_dbg_val(V_VT(&retVal), "0x%x");
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal, FALSE));
 }
 
 static Janet IUIAutomationElement_GetCurrentPropertyValueEx(int32_t argc, Janet *argv)
@@ -2774,7 +2774,7 @@ static Janet IUIAutomationElement_GetCurrentPropertyValueEx(int32_t argc, Janet 
 
     /* XXX: a VARIANT of type VT_UNKNOWN can mean this kind of property is not supported.
        see IUIAutomation_CheckNotSupported() */
-    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal, FALSE));
 }
 
 static Janet IUIAutomationElement_GetCachedPropertyValueEx(int32_t argc, Janet *argv)
@@ -2798,7 +2798,7 @@ static Janet IUIAutomationElement_GetCachedPropertyValueEx(int32_t argc, Janet *
         jw32_dbg_val(V_VT(&retVal), "0x%x");
     }
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal));
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_parse_variant(&retVal, FALSE));
 }
 
 static Janet IUIAutomationElement_GetClickablePoint(int32_t argc, Janet *argv)
