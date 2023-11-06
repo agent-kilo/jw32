@@ -19,6 +19,7 @@ JANET_THREAD_LOCAL JanetTable *atom_class_name_map;
 
 JANET_THREAD_LOCAL JanetTable *win_event_hook_registry;
 JANET_THREAD_LOCAL JanetTable *win_hook_registry;
+JANET_THREAD_LOCAL JanetTable *hhook_type_map;
 
 
 /* pre-defined window properties we used */
@@ -1087,6 +1088,50 @@ static void define_consts_objid(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_wh(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for SetWindowsHookEx() event types.")
+
+    __def(WH_MIN);
+    __def(WH_MSGFILTER);
+    __def(WH_JOURNALRECORD);
+    __def(WH_JOURNALPLAYBACK);
+    __def(WH_KEYBOARD);
+    __def(WH_GETMESSAGE);
+    __def(WH_CALLWNDPROC);
+    __def(WH_CBT);
+    __def(WH_SYSMSGFILTER);
+    __def(WH_MOUSE);
+#if defined(_WIN32_WINDOWS)
+    __def(WH_HARDWARE);
+#endif
+    __def(WH_DEBUG);
+    __def(WH_SHELL);
+    __def(WH_FOREGROUNDIDLE);
+#if(WINVER >= 0x0400)
+    __def(WH_CALLWNDPROCRET);
+#endif /* WINVER >= 0x0400 */
+#if (_WIN32_WINNT >= 0x0400)
+    __def(WH_KEYBOARD_LL);
+    __def(WH_MOUSE_LL);
+#endif // (_WIN32_WINNT >= 0x0400)
+#if(WINVER >= 0x0400)
+#if (_WIN32_WINNT >= 0x0400)
+    __def(WH_MAX);
+#else
+    __def(WH_MAX);
+#endif // (_WIN32_WINNT >= 0x0400)
+#else
+    __def(WH_MAX);
+#endif
+    __def(WH_MINHOOK);
+    __def(WH_MAXHOOK);
+
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -1442,6 +1487,32 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     }
 }
 
+static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM lParam)
+{
+    Janet hook = jw32_wrap_int(idHook);
+    Janet proc_n_hhook_v = janet_table_get(win_hook_registry, hook);
+
+    if (janet_checktype(proc_n_hhook_v, JANET_NIL)) {
+        jw32_dbg_msg("nil proc_n_hhook_v!");
+        return CallNextHookEx(0, nCode, wParam, lParam);
+    }
+
+    JanetTuple proc_n_hhook = janet_unwrap_tuple(proc_n_hhook_v);
+    JanetFunction *proc_fn = janet_unwrap_function(proc_n_hhook[0]);
+    Janet argv[3] = {
+        jw32_wrap_int(nCode),
+        jw32_wrap_wparam(wParam),
+        jw32_wrap_lparam(lParam),
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(proc_fn, 3, argv, &ret)) {
+        return jw32_unwrap_lresult(ret);
+    } else {
+        jw32_dbg_msg("jw32_pcall_fn() failed");
+        return CallNextHookEx(0, nCode, wParam, lParam);
+    }
+}
 
 LRESULT CALLBACK jw32_win_hook_msgfilter_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -1497,12 +1568,6 @@ LRESULT CALLBACK jw32_win_hook_mouse_proc(int nCode, WPARAM wParam, LPARAM lPara
     return 0;
 }
 
-LRESULT CALLBACK jw32_win_hook_hardware_proc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    /* TODO */
-    return 0;
-}
-
 LRESULT CALLBACK jw32_win_hook_debug_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
@@ -1530,7 +1595,14 @@ LRESULT CALLBACK jw32_win_hook_callwndprocret_proc(int nCode, WPARAM wParam, LPA
 LRESULT CALLBACK jw32_win_hook_keyboard_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
-    return 0;
+#ifdef JW32_CALLBACK_DEBUG
+    jw32_dbg_msg("============= jw32_win_hook_keyboard_ll_proc ===============");
+    jw32_dbg_val(nCode, "%d");
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "%lld");
+#endif
+
+    return call_win_hook_proc(WH_KEYBOARD_LL, nCode, wParam, lParam);
 }
 
 LRESULT CALLBACK jw32_win_hook_mouse_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -1723,6 +1795,10 @@ static void init_win_hook_registry(void)
         win_hook_registry = janet_table(0);
         janet_gcroot(janet_wrap_table(win_hook_registry));
     }
+    if (!hhook_type_map) {
+        hhook_type_map = janet_table(0);
+        janet_gcroot(janet_wrap_table(hhook_type_map));
+    }
 }
 
 static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
@@ -1745,30 +1821,88 @@ static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
     hmod = jw32_get_handle(argv, 2);
     dwThreadId = jw32_get_dword(argv, 3);
 
+    /* the hook types start from -1, thus the "+1" */
+    HOOKPROC hookProc = win_hook_proc_map[idHook + 1];
+    if (!hookProc) {
+        janet_panicf("unknown hook type: %d", idHook);
+    }
+
     init_win_hook_registry();
 
     Janet hook = jw32_wrap_int(idHook);
-    Janet proc_arrv = janet_table_get(win_hook_registry, hook);
-    JanetArray *proc_arr;
+    Janet proc_n_hhook_v = janet_table_get(win_hook_registry, hook);
 
     jw32_dbg_jval(hook);
     jw32_dbg_jval(argv[1]);
+    jw32_dbg_jval(proc_n_hhook_v);
 
-    if (janet_checktype(proc_arrv, JANET_NIL)) {
-        /* the hook types start from -1, thus the "+1" */
-        HOOKPROC hookProc = win_hook_proc_map[idHook + 1];
-        if (!hookProc) {
-            janet_panicf("unknown hook type: %d", idHook);
-        }
-        hHook = SetWindowsHookEx(idHook, hookProc, hmod, dwThreadId);
-        if (hHook) {
-            proc_arr = janet_array(1);
-            janet_array_push(proc_arr, janet_wrap_function(win_hook_proc_fn));
-            janet_table_put(win_hook_registry, hook, janet_wrap_array(proc_arr));
+    if (!janet_checktype(proc_n_hhook_v, JANET_NIL)) {
+        /* XXX: i failed to find a clean way to pass global states into
+           hook functions, so only allow one hook function for each hook
+           type here. existing hooks are removed first. */
+        JanetTuple proc_n_hhook = janet_unwrap_tuple(proc_n_hhook_v);
+        HHOOK hOldHook = jw32_unwrap_handle(proc_n_hhook[1]);
+        BOOL bUnhook = UnhookWindowsHookEx(hOldHook);
+        if (!bUnhook) {
+            janet_panicf("failed to remove old hook proc: 0x%x", GetLastError());
         }
     }
 
+    hHook = SetWindowsHookEx(idHook, hookProc, hmod, dwThreadId);
+
+    if (hHook) {
+        Janet reg_tuple[2] = {
+            janet_wrap_function(win_hook_proc_fn),
+            jw32_wrap_handle(hHook),
+        };
+        janet_table_put(win_hook_registry,
+                        hook,
+                        janet_wrap_tuple(janet_tuple_n(reg_tuple, 2)));
+    }
+
     return jw32_wrap_handle(hHook);
+}
+
+static Janet cfun_UnhookWindowsHookEx(int32_t argc, Janet *argv)
+{
+    HHOOK hhk;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    hhk = jw32_get_handle(argv, 0);
+    bRet = UnhookWindowsHookEx(hhk);
+    if (bRet) {
+        Janet typev = janet_table_remove(hhook_type_map, argv[0]);
+        if (!janet_checktype(typev, JANET_NIL)) {
+            janet_table_remove(win_hook_registry, typev);
+        }
+    }
+
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_CallNextHookEx(int32_t argc, Janet *argv)
+{
+    HHOOK hhk;
+    int nCode;
+    WPARAM wParam;
+    LPARAM lParam;
+
+    LRESULT lRet;
+
+    janet_fixarity(argc, 4);
+
+    hhk = jw32_get_handle(argv, 0);
+    nCode = jw32_get_int(argv, 1);
+    wParam = jw32_get_wparam(argv, 2);
+    lParam = jw32_get_lparam(argv, 3);
+
+    lRet = CallNextHookEx(hhk, nCode, wParam, lParam);
+    jw32_dbg_val(lRet, "%lld");
+
+    return jw32_wrap_lresult(lRet);
 }
 
 static Janet cfun_GetMessage(int32_t argc, Janet *argv)
@@ -2603,6 +2737,24 @@ static const JanetReg cfuns[] = {
         "Removes an event hook function.",
     },
     {
+        "SetWindowsHookEx",
+        cfun_SetWindowsHookEx,
+        "(" MOD_NAME "/SetWindowsHookEx idHook lpfn hmod dwThreadId)\n\n"
+        "Installs an application-defined hook procedure into a hook chain.",
+    },
+    {
+        "UnhookWindowsHookEx",
+        cfun_UnhookWindowsHookEx,
+        "(" MOD_NAME "/UnhookWindowsHookEx hhk)\n\n"
+        "Removes a hook procedure installed in a hook chain by SetWindowsHookEx().",
+    },
+    {
+        "CallNextHookEx",
+        cfun_CallNextHookEx,
+        "(" MOD_NAME "/CallNextHookEx hhk nCode wParam lParam)\n\n"
+        "Passes the hook information to the next hook procedure in the current hook chain.",
+    },
+    {
         "GetMessage",
         cfun_GetMessage,
         "(" MOD_NAME "/GetMessage lpMsg hWnd wMsgFilterMin wMsgFilterMax)\n\n"
@@ -2825,6 +2977,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_winevent(env);
     define_consts_event(env);
     define_consts_objid(env);
+    define_consts_wh(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
