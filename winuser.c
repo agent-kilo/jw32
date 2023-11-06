@@ -13,9 +13,9 @@ typedef struct {
 } jw32_wc_t;
 
 
-static JanetArray *local_class_wnd_proc_registry;
-static JanetArray *global_class_wnd_proc_registry;
-static JanetTable *atom_class_name_map;
+JANET_THREAD_LOCAL JanetArray *local_class_wnd_proc_registry;
+JANET_THREAD_LOCAL JanetArray *global_class_wnd_proc_registry;
+JANET_THREAD_LOCAL JanetTable *atom_class_name_map;
 
 JANET_THREAD_LOCAL JanetTable *win_event_hook_registry;
 JANET_THREAD_LOCAL JanetTable *win_hook_registry;
@@ -1191,8 +1191,26 @@ static inline int search_global_class_wnd_proc(const uint8_t *class_name)
     return -1;
 }
 
+static void init_wnd_proc_registries(void)
+{
+    if (!local_class_wnd_proc_registry) {
+        local_class_wnd_proc_registry = janet_array(0);
+        janet_gcroot(janet_wrap_array(local_class_wnd_proc_registry));
+    }
+    if (!global_class_wnd_proc_registry) {
+        global_class_wnd_proc_registry = janet_array(0);
+        janet_gcroot(janet_wrap_array(global_class_wnd_proc_registry));
+    }
+    if (!atom_class_name_map) {
+        atom_class_name_map = janet_table(0);
+        janet_gcroot(janet_wrap_table(atom_class_name_map));
+    }
+}
+
 static Janet normalize_wnd_class_name(LPCSTR lpClassName)
 {
+    init_wnd_proc_registries();
+
     if (!check_atom(lpClassName)) {
         /* we have a string pointer */
         return jw32_cstr_to_keyword(lpClassName);
@@ -1215,6 +1233,8 @@ static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
     Janet atom = jw32_wrap_atom(atmClass);
     Janet reg_entry_tuple[3];
     Janet reg_entry;
+
+    init_wnd_proc_registries();
 
     reg_entry_tuple[0] = class_name;
 
@@ -2783,21 +2803,6 @@ static const JanetReg cfuns[] = {
 };
 
 
-static void init_global_states(JanetTable *env)
-{
-    local_class_wnd_proc_registry = janet_array(0);
-    global_class_wnd_proc_registry = janet_array(0);
-    atom_class_name_map = janet_table(0);
-
-    janet_def(env, "local_class_wnd_proc_registry", janet_wrap_array(local_class_wnd_proc_registry),
-              "Where all the local WndProcs reside.");
-    janet_def(env, "global_class_wnd_proc_registry", janet_wrap_array(global_class_wnd_proc_registry),
-              "Where all the global WndProcs reside.");
-    janet_def(env, "atom_class_name_map", janet_wrap_table(atom_class_name_map),
-              "atom -> class name");
-}
-
-
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_wm(env);
@@ -2825,6 +2830,4 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
 
     janet_cfuns(env, MOD_NAME, cfuns);
-
-    init_global_states(env);
 }
