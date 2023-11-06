@@ -18,6 +18,7 @@ static JanetArray *global_class_wnd_proc_registry;
 static JanetTable *atom_class_name_map;
 
 static JanetTable *win_event_hook_registry;
+static JanetTable *win_hook_registry;
 
 
 /* pre-defined window properties we used */
@@ -1422,6 +1423,123 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
 }
 
 
+LRESULT CALLBACK jw32_win_hook_msgfilter_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_journalrecord_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_journalplayback_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_keyboard_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_getmessage_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_callwndproc_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_cbt_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_sysmsgfilter_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_mouse_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_hardware_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_debug_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_shell_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_foregroundidle_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_callwndprocret_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_keyboard_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+LRESULT CALLBACK jw32_win_hook_mouse_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    /* TODO */
+    return 0;
+}
+
+/* the hook types start from -1, thus the "+1" */
+static const HOOKPROC win_hook_proc_map[] = {
+    [WH_MSGFILTER + 1] = jw32_win_hook_msgfilter_proc,
+    [WH_JOURNALRECORD + 1] = jw32_win_hook_journalrecord_proc,
+    [WH_JOURNALPLAYBACK + 1] = jw32_win_hook_journalplayback_proc,
+    [WH_KEYBOARD + 1] = jw32_win_hook_keyboard_proc,
+    [WH_GETMESSAGE + 1] = jw32_win_hook_getmessage_proc,
+    [WH_CALLWNDPROC + 1] = jw32_win_hook_callwndproc_proc,
+    [WH_CBT + 1] = jw32_win_hook_cbt_proc,
+    [WH_SYSMSGFILTER + 1] = jw32_win_hook_sysmsgfilter_proc,
+    [WH_MOUSE + 1] = jw32_win_hook_mouse_proc,
+    [8 + 1] = NULL, /* WH_HARDWARE */
+    [WH_DEBUG + 1] = jw32_win_hook_debug_proc,
+    [WH_SHELL + 1] = jw32_win_hook_shell_proc,
+    [WH_FOREGROUNDIDLE + 1] = jw32_win_hook_foregroundidle_proc,
+    [WH_CALLWNDPROCRET + 1] = jw32_win_hook_callwndprocret_proc,
+    [WH_KEYBOARD_LL + 1] = jw32_win_hook_keyboard_ll_proc,
+    [WH_MOUSE_LL + 1] = jw32_win_hook_mouse_ll_proc,
+};
+
+
 /*******************************************************************
  *
  * MESSAGING
@@ -1568,6 +1686,50 @@ static Janet cfun_UnhookWinEvent(int32_t argc, Janet *argv)
     }
 
     return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
+{
+    int idHook;
+    JanetFunction *win_hook_proc_fn;
+    //HOOKPROC lpfn;
+    HINSTANCE hmod;
+    DWORD dwThreadId;
+
+    HHOOK hHook;
+
+    janet_fixarity(argc, 4);
+
+    idHook = jw32_get_int(argv, 0);
+    if (idHook < WH_MINHOOK || idHook > WH_MAXHOOK) {
+        janet_panicf("unknown hook type: %d", idHook);
+    }
+    win_hook_proc_fn = janet_getfunction(argv, 1);
+    hmod = jw32_get_handle(argv, 2);
+    dwThreadId = jw32_get_dword(argv, 3);
+
+    Janet hook = jw32_wrap_int(idHook);
+    Janet proc_arrv = janet_table_get(win_hook_registry, hook);
+    JanetArray *proc_arr;
+
+    jw32_dbg_jval(hook);
+    jw32_dbg_jval(argv[1]);
+
+    if (janet_checktype(proc_arrv, JANET_NIL)) {
+        /* the hook types start from -1, thus the "+1" */
+        HOOKPROC hookProc = win_hook_proc_map[idHook + 1];
+        if (!hookProc) {
+            janet_panicf("unknown hook type: %d", idHook);
+        }
+        hHook = SetWindowsHookEx(idHook, hookProc, hmod, dwThreadId);
+        if (hHook) {
+            proc_arr = janet_array(1);
+            janet_array_push(proc_arr, janet_wrap_function(win_hook_proc_fn));
+            janet_table_put(win_hook_registry, hook, janet_wrap_array(proc_arr));
+        }
+    }
+
+    return jw32_wrap_handle(hHook);
 }
 
 static Janet cfun_GetMessage(int32_t argc, Janet *argv)
@@ -2608,6 +2770,7 @@ static void init_global_states(JanetTable *env)
     global_class_wnd_proc_registry = janet_array(0);
     atom_class_name_map = janet_table(0);
     win_event_hook_registry = janet_table(0);
+    win_hook_registry = janet_table(0);
 
     janet_def(env, "local_class_wnd_proc_registry", janet_wrap_array(local_class_wnd_proc_registry),
               "Where all the local WndProcs reside.");
@@ -2617,6 +2780,8 @@ static void init_global_states(JanetTable *env)
               "atom -> class name");
     janet_def(env, "win_event_hook_registry", janet_wrap_table(win_event_hook_registry),
               "HWINEVENTHOOK -> win event hook proc");
+    janet_def(env, "win_hook_registry", janet_wrap_table(win_hook_registry),
+              "WH_* -> win hook proc list");
 }
 
 
