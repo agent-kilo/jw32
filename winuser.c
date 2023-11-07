@@ -2869,7 +2869,7 @@ static Janet cfun_GetRegisteredRawInputDevices(int32_t argc, Janet *argv)
 {
     JanetArray *rid_arr;
 
-    UINT uiRet;
+    UINT uiRet = 0;
 
     RAWINPUTDEVICE *prid = NULL;
     UINT uiNumDevices = 0;
@@ -2894,6 +2894,10 @@ static Janet cfun_GetRegisteredRawInputDevices(int32_t argc, Janet *argv)
             memcpy(item, &(prid[i]), sizeof(RAWINPUTDEVICE));
             janet_array_push(rid_arr, janet_wrap_abstract(item));
         }
+    }
+
+    if (prid) {
+        GlobalFree(prid);
     }
 
     return jw32_wrap_uint(uiRet);
