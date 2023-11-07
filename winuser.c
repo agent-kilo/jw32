@@ -2865,6 +2865,40 @@ static Janet cfun_RegisterRawInputDevices(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_GetRegisteredRawInputDevices(int32_t argc, Janet *argv)
+{
+    JanetArray *rid_arr;
+
+    UINT uiRet;
+
+    RAWINPUTDEVICE *prid = NULL;
+    UINT uiNumDevices = 0;
+
+    janet_fixarity(argc, 1);
+
+    rid_arr = janet_getarray(argv, 0);
+
+    uiRet = GetRegisteredRawInputDevices(NULL, &uiNumDevices, sizeof(RAWINPUTDEVICE));
+    jw32_dbg_val(uiNumDevices, "%u");
+
+    if (uiNumDevices > 0) {
+        prid = GlobalAlloc(GPTR, sizeof(RAWINPUTDEVICE) * uiNumDevices);
+        uiRet = GetRegisteredRawInputDevices(prid, &uiNumDevices, sizeof(RAWINPUTDEVICE));
+        jw32_dbg_val(uiRet, "%u");
+    }
+
+    if (uiRet != (UINT)(-1)) {
+        janet_array_setcount(rid_arr, 0);
+        for (UINT i = 0; i < uiRet; i++) {
+            RAWINPUTDEVICE *item = janet_abstract(&jw32_at_RAWINPUTDEVICE, sizeof(RAWINPUTDEVICE));
+            memcpy(item, &(prid[i]), sizeof(RAWINPUTDEVICE));
+            janet_array_push(rid_arr, janet_wrap_abstract(item));
+        }
+    }
+
+    return jw32_wrap_uint(uiRet);
+}
+
 /*******************************************************************
  *
  * RESOURCES
@@ -3196,6 +3230,12 @@ static const JanetReg cfuns[] = {
         cfun_RegisterRawInputDevices,
         "(" MOD_NAME "/RegisterRawInputDevices pRawInputDevices)\n\n"
         "Registers raw input devices.",
+    },
+    {
+        "GetRegisteredRawInputDevices",
+        cfun_GetRegisteredRawInputDevices,
+        "(" MOD_NAME "/GetRegisteredRawInputDevices pRawInputDevices)\n\n"
+        "Retrieves registered raw input devices.",
     },
 
     /************************** RESOURCES **************************/
