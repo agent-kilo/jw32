@@ -1517,78 +1517,117 @@ static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM l
 LRESULT CALLBACK jw32_win_hook_msgfilter_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_journalrecord_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_journalplayback_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_keyboard_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_getmessage_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_callwndproc_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_cbt_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_sysmsgfilter_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_mouse_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_debug_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_shell_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_foregroundidle_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
 LRESULT CALLBACK jw32_win_hook_callwndprocret_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
@@ -1608,6 +1647,9 @@ LRESULT CALLBACK jw32_win_hook_keyboard_ll_proc(int nCode, WPARAM wParam, LPARAM
 LRESULT CALLBACK jw32_win_hook_mouse_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     /* TODO */
+    (void)nCode;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }
 
@@ -2590,6 +2632,144 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
 
 /*******************************************************************
  *
+ * RAW INPUT
+ *
+ *******************************************************************/
+
+static int RAWINPUT_get(void *p, Janet key, Janet *out)
+{
+    RAWINPUT *pri = (RAWINPUT *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(pri->member);       \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    /* header */
+    __get_member(header.dwType, dword);
+    __get_member(header.dwSize, dword);
+    __get_member(header.hDevice, handle);
+    __get_member(header.wParam, wparam);
+
+    /* mouse */
+    __get_member(data.mouse.usFlags, word);
+    __get_member(data.mouse.ulButtons, ulong);
+    __get_member(data.mouse.usButtonFlags, word);
+    __get_member(data.mouse.usButtonData, word);
+    __get_member(data.mouse.ulRawButtons, ulong);
+    __get_member(data.mouse.lLastX, long);
+    __get_member(data.mouse.lLastY, long);
+    __get_member(data.mouse.ulExtraInformation, ulong);
+
+    /* keyboard */
+    __get_member(data.keyboard.MakeCode, word);
+    __get_member(data.keyboard.Flags, word);
+    __get_member(data.keyboard.Reserved, word);
+    __get_member(data.keyboard.VKey, word);
+    __get_member(data.keyboard.Message, uint);
+    __get_member(data.keyboard.ExtraInformation, ulong);
+
+    /* hid */
+    __get_member(data.hid.dwSizeHid, dword);
+    __get_member(data.hid.dwCount, dword);
+    /* TODO */
+    //__get_member(data.hid.bRawData, ...);
+
+    return 0;
+
+#undef __get_member
+}
+
+static const JanetAbstractType jw32_at_RAWINPUT = {
+    .name = MOD_NAME "/RAWINPUT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = RAWINPUT_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    DWORD dwSize = sizeof(RAWINPUT);
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+        if (!janet_cstrcmp(kw, "header.dwSize")) {
+            dwSize = jw32_get_dword(argv, v);
+            break;
+        }
+    }
+
+    RAWINPUT *pri = janet_abstract(&jw32_at_RAWINPUT, dwSize);
+    memset(pri, 0, dwSize);
+    pri->header.dwSize = dwSize;
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type) do {                 \
+            if (!janet_cstrcmp(kw, #member)) {          \
+                pri->member = jw32_get_##type(argv, v); \
+                continue;                               \
+            }                                           \
+        } while (0)
+
+        /* header */
+        __set_member(header.dwType, dword);
+        if (!janet_cstrcmp(kw, "header.dwSize")) {
+            /* already set */
+            continue;
+        }
+        __set_member(header.hDevice, handle);
+        __set_member(header.wParam, wparam);
+
+        /* mouse */
+        __set_member(data.mouse.usFlags, word);
+        __set_member(data.mouse.ulButtons, ulong);
+        __set_member(data.mouse.usButtonFlags, word);
+        __set_member(data.mouse.usButtonData, word);
+        __set_member(data.mouse.ulRawButtons, ulong);
+        __set_member(data.mouse.lLastX, long);
+        __set_member(data.mouse.lLastY, long);
+        __set_member(data.mouse.ulExtraInformation, ulong);
+
+        /* keyboard */
+        __set_member(data.keyboard.MakeCode, word);
+        __set_member(data.keyboard.Flags, word);
+        __set_member(data.keyboard.Reserved, word);
+        __set_member(data.keyboard.VKey, word);
+        __set_member(data.keyboard.Message, uint);
+        __set_member(data.keyboard.ExtraInformation, ulong);
+
+        /* hid */
+        __set_member(data.hid.dwSizeHid, dword);
+        __set_member(data.hid.dwCount, dword);
+        /* TODO */
+        //__set_member(data.hid.bRawData, ...);
+
+#undef __set_member
+
+        janet_panicf("unknown key %v", argv[k]);
+    }
+
+    return janet_wrap_abstract(pri);
+}
+
+
+/*******************************************************************
+ *
  * RESOURCES
  *
  *******************************************************************/
@@ -2901,6 +3081,14 @@ static const JanetReg cfuns[] = {
         "Sets a window property",
     },
 
+    /************************** RAW INPUT **************************/
+    {
+        "RAWINPUT",
+        cfun_RAWINPUT,
+        "(" MOD_NAME "/RAWINPUT ...)\n\n"
+        "Builds a RAWINPUT struct.",
+    },
+
     /************************** RESOURCES **************************/
     {
         "LoadIcon",
@@ -2981,6 +3169,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
+    janet_register_abstract_type(&jw32_at_RAWINPUT);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
