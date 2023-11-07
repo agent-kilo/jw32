@@ -2683,9 +2683,9 @@ static int RAWINPUT_get(void *p, Janet key, Janet *out)
     /* TODO */
     //__get_member(data.hid.bRawData, ...);
 
-    return 0;
-
 #undef __get_member
+
+    return 0;
 }
 
 static const JanetAbstractType jw32_at_RAWINPUT = {
@@ -2719,45 +2719,44 @@ static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
     for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
         const uint8_t *kw = janet_getkeyword(argv, k);
 
-#define __set_member(member, type) do {                 \
-            if (!janet_cstrcmp(kw, #member)) {          \
-                pri->member = jw32_get_##type(argv, v); \
-                continue;                               \
-            }                                           \
-        } while (0)
+#define __set_member(member, type)                      \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            pri->member = jw32_get_##type(argv, v);     \
+            continue;                                   \
+        }
 
         /* header */
-        __set_member(header.dwType, dword);
+        __set_member(header.dwType, dword)
         if (!janet_cstrcmp(kw, "header.dwSize")) {
             /* already set */
             continue;
         }
-        __set_member(header.hDevice, handle);
-        __set_member(header.wParam, wparam);
+        __set_member(header.hDevice, handle)
+        __set_member(header.wParam, wparam)
 
         /* mouse */
-        __set_member(data.mouse.usFlags, word);
-        __set_member(data.mouse.ulButtons, ulong);
-        __set_member(data.mouse.usButtonFlags, word);
-        __set_member(data.mouse.usButtonData, word);
-        __set_member(data.mouse.ulRawButtons, ulong);
-        __set_member(data.mouse.lLastX, long);
-        __set_member(data.mouse.lLastY, long);
-        __set_member(data.mouse.ulExtraInformation, ulong);
+        __set_member(data.mouse.usFlags, word)
+        __set_member(data.mouse.ulButtons, ulong)
+        __set_member(data.mouse.usButtonFlags, word)
+        __set_member(data.mouse.usButtonData, word)
+        __set_member(data.mouse.ulRawButtons, ulong)
+        __set_member(data.mouse.lLastX, long)
+        __set_member(data.mouse.lLastY, long)
+        __set_member(data.mouse.ulExtraInformation, ulong)
 
         /* keyboard */
-        __set_member(data.keyboard.MakeCode, word);
-        __set_member(data.keyboard.Flags, word);
-        __set_member(data.keyboard.Reserved, word);
-        __set_member(data.keyboard.VKey, word);
-        __set_member(data.keyboard.Message, uint);
-        __set_member(data.keyboard.ExtraInformation, ulong);
+        __set_member(data.keyboard.MakeCode, word)
+        __set_member(data.keyboard.Flags, word)
+        __set_member(data.keyboard.Reserved, word)
+        __set_member(data.keyboard.VKey, word)
+        __set_member(data.keyboard.Message, uint)
+        __set_member(data.keyboard.ExtraInformation, ulong)
 
         /* hid */
-        __set_member(data.hid.dwSizeHid, dword);
-        __set_member(data.hid.dwCount, dword);
+        __set_member(data.hid.dwSizeHid, dword)
+        __set_member(data.hid.dwCount, dword)
         /* TODO */
-        //__set_member(data.hid.bRawData, ...);
+        //__set_member(data.hid.bRawData, ...)
 
 #undef __set_member
 
@@ -2767,6 +2766,74 @@ static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
     return janet_wrap_abstract(pri);
 }
 
+static int RAWINPUTDEVICE_get(void *p, Janet key, Janet *out)
+{
+    RAWINPUTDEVICE *prid = (RAWINPUTDEVICE *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(prid->member);      \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(usUsagePage, word);
+    __get_member(usUsage, word);
+    __get_member(dwFlags, dword);
+    __get_member(hwndTarget, handle);
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_RAWINPUTDEVICE = {
+    .name = MOD_NAME "/RAWINPUTDEVICE",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = RAWINPUTDEVICE_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_RAWINPUTDEVICE(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    RAWINPUTDEVICE *prid = janet_abstract(&jw32_at_RAWINPUTDEVICE, sizeof(RAWINPUTDEVICE));
+    memset(prid, 0, sizeof(RAWINPUTDEVICE));
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+        jw32_dbg_jval(janet_wrap_keyword(kw));
+        jw32_dbg_val(janet_cstrcmp(kw, "usUsagePage"), "%d");
+        jw32_dbg_val(k, "%d");
+
+#define __set_member(member, type)                       \
+        if (!janet_cstrcmp(kw, #member)) {               \
+            prid->member = jw32_get_##type(argv, v);     \
+            continue;                                    \
+        }
+
+        __set_member(usUsagePage, word)
+        __set_member(usUsage, word)
+        __set_member(dwFlags, dword)
+        __set_member(hwndTarget, handle)
+
+#undef __set_member
+
+        janet_panicf("unknown key %v", argv[k]);
+    }
+
+    return janet_wrap_abstract(prid);
+}
 
 /*******************************************************************
  *
@@ -3087,6 +3154,12 @@ static const JanetReg cfuns[] = {
         cfun_RAWINPUT,
         "(" MOD_NAME "/RAWINPUT ...)\n\n"
         "Builds a RAWINPUT struct.",
+    },
+    {
+        "RAWINPUTDEVICE",
+        cfun_RAWINPUTDEVICE,
+        "(" MOD_NAME "/RAWINPUTDEVICE ...)\n\n"
+        "Builds a RAWINPUTDEVICE struct.",
     },
 
     /************************** RESOURCES **************************/
