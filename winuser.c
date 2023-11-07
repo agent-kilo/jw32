@@ -2812,9 +2812,6 @@ static Janet cfun_RAWINPUTDEVICE(int32_t argc, Janet *argv)
 
     for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
         const uint8_t *kw = janet_getkeyword(argv, k);
-        jw32_dbg_jval(janet_wrap_keyword(kw));
-        jw32_dbg_val(janet_cstrcmp(kw, "usUsagePage"), "%d");
-        jw32_dbg_val(k, "%d");
 
 #define __set_member(member, type)                       \
         if (!janet_cstrcmp(kw, #member)) {               \
@@ -2833,6 +2830,39 @@ static Janet cfun_RAWINPUTDEVICE(int32_t argc, Janet *argv)
     }
 
     return janet_wrap_abstract(prid);
+}
+
+static Janet cfun_RegisterRawInputDevices(int32_t argc, Janet *argv)
+{
+    JanetView raw_input_devices;
+
+    BOOL bRet;
+
+    RAWINPUTDEVICE *arrRid;
+
+    janet_fixarity(argc, 1);
+
+    raw_input_devices = janet_getindexed(argv, 0);
+    arrRid = GlobalAlloc(GPTR, sizeof(RAWINPUTDEVICE) * raw_input_devices.len);
+    if (!arrRid) {
+        JANET_OUT_OF_MEMORY;
+    }
+
+    for (int32_t i = 0; i < raw_input_devices.len; i++) {
+        Janet item = raw_input_devices.items[i];
+        if (!janet_checkabstract(item, &jw32_at_RAWINPUTDEVICE)) {
+            GlobalFree(arrRid);
+            janet_panicf("expected a RAWINPUTDEVICE, got %v", item);
+        }
+        RAWINPUTDEVICE *prid = janet_unwrap_abstract(item);
+        memcpy(&(arrRid[i]), prid, sizeof(RAWINPUTDEVICE));
+    }
+
+    bRet = RegisterRawInputDevices(arrRid, raw_input_devices.len, sizeof(RAWINPUTDEVICE));
+
+    GlobalFree(arrRid);
+
+    return jw32_wrap_bool(bRet);
 }
 
 /*******************************************************************
@@ -3160,6 +3190,12 @@ static const JanetReg cfuns[] = {
         cfun_RAWINPUTDEVICE,
         "(" MOD_NAME "/RAWINPUTDEVICE ...)\n\n"
         "Builds a RAWINPUTDEVICE struct.",
+    },
+    {
+        "RegisterRawInputDevices",
+        cfun_RegisterRawInputDevices,
+        "(" MOD_NAME "/RegisterRawInputDevices pRawInputDevices)\n\n"
+        "Registers raw input devices.",
     },
 
     /************************** RESOURCES **************************/
