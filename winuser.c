@@ -12,6 +12,13 @@ typedef struct {
     WNDCLASSEX wc;
 } jw32_wc_t;
 
+typedef struct {
+    DWORD ri_size;
+    RAWINPUT ri;
+} jw32_rawinput_t;
+
+#define JW32_RAWINPUT_T_HEADER_SIZE (sizeof(((jw32_rawinput_t *)NULL)->ri_size))
+
 
 JANET_THREAD_LOCAL JanetArray *local_class_wnd_proc_registry;
 JANET_THREAD_LOCAL JanetArray *global_class_wnd_proc_registry;
@@ -2660,7 +2667,8 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
 
 static int RAWINPUT_get(void *p, Janet key, Janet *out)
 {
-    RAWINPUT *pri = (RAWINPUT *)p;
+    jw32_rawinput_t *jpri = (jw32_rawinput_t *)p;
+    RAWINPUT *pri = &(jpri->ri);
 
     if (!janet_checktype(key, JANET_KEYWORD)) {
         janet_panicf("expected keyword, got %v", key);
@@ -2674,6 +2682,11 @@ static int RAWINPUT_get(void *p, Janet key, Janet *out)
             return 1;                                   \
         }                                               \
     } while (0)
+
+    if (!janet_cstrcmp(kw, "size")) {
+        *out = jw32_wrap_dword(jpri->ri_size);
+        return 1;
+    }
 
     /* header */
     __get_member(header.dwType, dword);
@@ -2728,14 +2741,17 @@ static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
 
     for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
         const uint8_t *kw = janet_getkeyword(argv, k);
-        if (!janet_cstrcmp(kw, "header.dwSize")) {
+        if (!janet_cstrcmp(kw, "header.dwSize") || !janet_cstrcmp(kw, "size")) {
             dwSize = jw32_get_dword(argv, v);
             break;
         }
     }
 
-    RAWINPUT *pri = janet_abstract(&jw32_at_RAWINPUT, dwSize);
-    memset(pri, 0, dwSize);
+    jw32_rawinput_t *jpri = janet_abstract(&jw32_at_RAWINPUT, dwSize + JW32_RAWINPUT_T_HEADER_SIZE);
+    memset(jpri, 0, dwSize + JW32_RAWINPUT_T_HEADER_SIZE);
+    jpri->ri_size = dwSize;
+
+    RAWINPUT *pri = &(jpri->ri);
     pri->header.dwSize = dwSize;
 
     for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
@@ -2745,6 +2761,11 @@ static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
         if (!janet_cstrcmp(kw, #member)) {              \
             pri->member = jw32_get_##type(argv, v);     \
             continue;                                   \
+        }
+
+        if (!janet_cstrcmp(kw, "size")) {
+            /* already set */
+            continue;
         }
 
         /* header */
@@ -2785,7 +2806,7 @@ static Janet cfun_RAWINPUT(int32_t argc, Janet *argv)
         janet_panicf("unknown key %v", argv[k]);
     }
 
-    return janet_wrap_abstract(pri);
+    return janet_wrap_abstract(jpri);
 }
 
 static int RAWINPUTDEVICE_get(void *p, Janet key, Janet *out)
@@ -2929,23 +2950,28 @@ static Janet cfun_GetRawInputData(int32_t argc, Janet *argv)
 {
     HRAWINPUT hRawInput;
     UINT uiCommand;
-    RAWINPUT *pri;
+    jw32_rawinput_t *jpri;
 
     UINT uiRet;
     UINT cbSize = 0;
     Janet ret_tuple[2];
+
+    RAWINPUT *pri;
 
     janet_fixarity(argc, 3);
 
     hRawInput = jw32_get_handle(argv, 0);
     uiCommand = jw32_get_uint(argv, 1);
     if (janet_checktype(argv[2], JANET_NIL)) {
+        jpri = NULL;
         pri = NULL;
     } else {
-        pri = janet_getabstract(argv, 2, &jw32_at_RAWINPUT);
-        cbSize = pri->header.dwSize;
+        jpri = janet_getabstract(argv, 2, &jw32_at_RAWINPUT);
+        pri = &(jpri->ri);
+        cbSize = jpri->ri_size;
     }
     jw32_dbg_val((uint64_t)pri, "0x%llx");
+    jw32_dbg_val(cbSize, "%u");
 
     uiRet = GetRawInputData(hRawInput, uiCommand, pri, &cbSize, sizeof(RAWINPUTHEADER));
     jw32_dbg_val(uiRet, "%u");
