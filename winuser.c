@@ -3053,6 +3053,41 @@ static Janet cfun_GetRawInputData(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_GetRawInputDeviceInfo(int32_t argc, Janet *argv)
+{
+    HANDLE hDevice;
+    UINT uiCommand;
+
+    UINT uiRet = 0;
+
+    janet_fixarity(argc, 3);
+
+    hDevice = jw32_get_handle(argv, 0);
+    uiCommand = jw32_get_uint(argv, 1);
+
+    switch (uiCommand) {
+    case RIDI_DEVICENAME: {
+        JanetBuffer *buf = janet_getbuffer(argv, 2);
+        UINT cbSize = 0;
+        uiRet = GetRawInputDeviceInfo(hDevice, uiCommand, NULL, &cbSize);
+        if (0 == uiRet) {
+            jw32_dbg_val(cbSize, "%u");
+            janet_buffer_ensure(buf, cbSize * sizeof(TCHAR), 1);
+            uiRet = GetRawInputDeviceInfo(hDevice, uiCommand, buf->data, &cbSize);
+            if (uiRet != (UINT)(-1)) {
+                /* exclude trailing null byte */
+                buf->count = (uiRet - 1) * sizeof(TCHAR);
+            }
+        }
+        break;
+    }
+    default:
+        janet_panicf("unsupported command: 0x%x", uiCommand);
+    }
+
+    return jw32_wrap_uint(uiRet);
+}
+
 /*******************************************************************
  *
  * RESOURCES
@@ -3395,7 +3430,13 @@ static const JanetReg cfuns[] = {
         "GetRawInputData",
         cfun_GetRawInputData,
         "(" MOD_NAME "/GetRawInputData hRawInput uiCommand pRawInput)\n\n"
-        "Retrieves  raw input data.",
+        "Retrieves raw input data.",
+    },
+    {
+        "GetRawInputDeviceInfo",
+        cfun_GetRawInputDeviceInfo,
+        "(" MOD_NAME "/GetRawInputDeviceInfo hDevice uiCommand pData)\n\n"
+        "Retrieves raw input device info.",
     },
 
     /************************** RESOURCES **************************/
