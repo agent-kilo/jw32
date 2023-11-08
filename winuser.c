@@ -910,8 +910,10 @@ static void define_consts_mf(JanetTable *env)
 
 static void define_consts_hwnd(JanetTable *env)
 {
+    /* janet will truncate the hwnd values if we used jw32_wrap_handle() here.
+       use jw32_wrap_uint() instead to preserve all the bits */
 #define __def(const_name)                                         \
-    janet_def(env, #const_name, jw32_wrap_handle(const_name),     \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
               "Constant for special HWND handles.")
 
     __def(HWND_BROADCAST);
