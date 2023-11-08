@@ -1161,6 +1161,29 @@ static void define_consts_rim(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_ridev(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),      \
+              "Constant for Raw Input device flags.")
+
+    __def(RIDEV_REMOVE);
+    __def(RIDEV_EXCLUDE);
+    __def(RIDEV_PAGEONLY);
+    __def(RIDEV_NOLEGACY);
+    __def(RIDEV_INPUTSINK);
+    __def(RIDEV_CAPTUREMOUSE);
+    __def(RIDEV_NOHOTKEYS);
+    __def(RIDEV_APPKEYS);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(RIDEV_EXINPUTSINK);
+    __def(RIDEV_DEVNOTIFY);
+#endif /* _WIN32_WINNT >= 0x0501 */
+    __def(RIDEV_EXMODEMASK);
+
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -3407,6 +3430,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_wh(env);
     define_consts_rid(env);
     define_consts_rim(env);
+    define_consts_ridev(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
