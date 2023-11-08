@@ -1132,6 +1132,28 @@ static void define_consts_wh(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_rid(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),      \
+              "Constant for Raw Input commands.")
+    __def(RID_INPUT);
+    __def(RID_HEADER);
+#undef __def
+}
+
+static void define_consts_rim(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),      \
+              "Constant for Raw Input data types.")
+    __def(RIM_TYPEMOUSE);
+    __def(RIM_TYPEKEYBOARD);
+    __def(RIM_TYPEHID);
+    __def(RIM_TYPEMAX);
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -2903,6 +2925,38 @@ static Janet cfun_GetRegisteredRawInputDevices(int32_t argc, Janet *argv)
     return jw32_wrap_uint(uiRet);
 }
 
+static Janet cfun_GetRawInputData(int32_t argc, Janet *argv)
+{
+    HRAWINPUT hRawInput;
+    UINT uiCommand;
+    RAWINPUT *pri;
+
+    UINT uiRet;
+    UINT cbSize = 0;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 3);
+
+    hRawInput = jw32_get_handle(argv, 0);
+    uiCommand = jw32_get_uint(argv, 1);
+    if (janet_checktype(argv[2], JANET_NIL)) {
+        pri = NULL;
+    } else {
+        pri = janet_getabstract(argv, 2, &jw32_at_RAWINPUT);
+        cbSize = pri->header.dwSize;
+    }
+    jw32_dbg_val((uint64_t)pri, "0x%llx");
+
+    uiRet = GetRawInputData(hRawInput, uiCommand, pri, &cbSize, sizeof(RAWINPUTHEADER));
+    jw32_dbg_val(uiRet, "%u");
+    jw32_dbg_val(cbSize, "%u");
+
+    ret_tuple[0] = jw32_wrap_uint(uiRet);
+    ret_tuple[1] = jw32_wrap_uint(cbSize);
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 /*******************************************************************
  *
  * RESOURCES
@@ -3241,6 +3295,12 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetRegisteredRawInputDevices pRawInputDevices)\n\n"
         "Retrieves registered raw input devices.",
     },
+    {
+        "GetRawInputData",
+        cfun_GetRawInputData,
+        "(" MOD_NAME "/GetRawInputData hRawInput uiCommand pRawInput)\n\n"
+        "Retrieves  raw input data.",
+    },
 
     /************************** RESOURCES **************************/
     {
@@ -3319,6 +3379,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_event(env);
     define_consts_objid(env);
     define_consts_wh(env);
+    define_consts_rid(env);
+    define_consts_rim(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
