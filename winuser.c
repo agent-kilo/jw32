@@ -1184,6 +1184,53 @@ static void define_consts_ridev(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_ri(JanetTable *env)
+{
+#define __def(const_name)                                         \
+    janet_def(env, #const_name, jw32_wrap_word(const_name),      \
+              "Constant for Raw Input device state flags.")
+
+    __def(RI_KEY_MAKE);
+    __def(RI_KEY_BREAK);
+    __def(RI_KEY_E0);
+    __def(RI_KEY_E1);
+    __def(RI_KEY_TERMSRV_SET_LED);
+    __def(RI_KEY_TERMSRV_SHADOW);
+    __def(RI_MOUSE_LEFT_BUTTON_DOWN);
+    __def(RI_MOUSE_LEFT_BUTTON_UP);
+    __def(RI_MOUSE_RIGHT_BUTTON_DOWN);
+    __def(RI_MOUSE_RIGHT_BUTTON_UP);
+    __def(RI_MOUSE_MIDDLE_BUTTON_DOWN);
+    __def(RI_MOUSE_MIDDLE_BUTTON_UP);
+    __def(RI_MOUSE_BUTTON_1_DOWN);
+    __def(RI_MOUSE_BUTTON_1_UP);
+    __def(RI_MOUSE_BUTTON_2_DOWN);
+    __def(RI_MOUSE_BUTTON_2_UP);
+    __def(RI_MOUSE_BUTTON_3_DOWN);
+    __def(RI_MOUSE_BUTTON_3_UP);
+    __def(RI_MOUSE_BUTTON_4_DOWN);
+    __def(RI_MOUSE_BUTTON_4_UP);
+    __def(RI_MOUSE_BUTTON_5_DOWN);
+    __def(RI_MOUSE_BUTTON_5_UP);
+    __def(RI_MOUSE_WHEEL);
+#if(WINVER >= 0x0600)
+    __def(RI_MOUSE_HWHEEL);
+#endif /* WINVER >= 0x0600 */
+
+#undef __def
+}
+
+static void define_consts_ridi(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),      \
+              "Constant for Raw Input device info commands.")
+    __def(RIDI_PREPARSEDDATA);
+    __def(RIDI_DEVICENAME);
+    __def(RIDI_DEVICEINFO);
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -3431,6 +3478,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_rid(env);
     define_consts_rim(env);
     define_consts_ridev(env);
+    define_consts_ri(env);
+    define_consts_ridi(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
