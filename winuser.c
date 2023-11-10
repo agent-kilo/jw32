@@ -1224,12 +1224,67 @@ static void define_consts_ri(JanetTable *env)
 
 static void define_consts_ridi(JanetTable *env)
 {
-#define __def(const_name)                                       \
+#define __def(const_name)                                        \
     janet_def(env, #const_name, jw32_wrap_uint(const_name),      \
               "Constant for Raw Input device info commands.")
     __def(RIDI_PREPARSEDDATA);
     __def(RIDI_DEVICENAME);
     __def(RIDI_DEVICEINFO);
+#undef __def
+}
+
+static void define_consts_input(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for INPUT types.")
+    __def(INPUT_MOUSE);
+    __def(INPUT_KEYBOARD);
+    __def(INPUT_HARDWARE);
+#undef __def
+}
+
+static void define_consts_mouseeventf(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for mouse input event types.")
+
+    __def(MOUSEEVENTF_MOVE);
+    __def(MOUSEEVENTF_LEFTDOWN);
+    __def(MOUSEEVENTF_LEFTUP);
+    __def(MOUSEEVENTF_RIGHTDOWN);
+    __def(MOUSEEVENTF_RIGHTUP);
+    __def(MOUSEEVENTF_MIDDLEDOWN);
+    __def(MOUSEEVENTF_MIDDLEUP);
+    __def(MOUSEEVENTF_XDOWN);
+    __def(MOUSEEVENTF_XUP);
+    __def(MOUSEEVENTF_WHEEL);
+#if (_WIN32_WINNT >= 0x0600)
+    __def(MOUSEEVENTF_HWHEEL);
+#endif
+#if(WINVER >= 0x0600)
+    __def(MOUSEEVENTF_MOVE_NOCOALESCE);
+#endif /* WINVER >= 0x0600 */
+    __def(MOUSEEVENTF_VIRTUALDESK);
+    __def(MOUSEEVENTF_ABSOLUTE);
+
+#undef __def
+}
+
+static void define_consts_keyeventf(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for keyboard input event types.")
+
+    __def(KEYEVENTF_EXTENDEDKEY);
+    __def(KEYEVENTF_KEYUP);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(KEYEVENTF_UNICODE);
+    __def(KEYEVENTF_SCANCODE);
+#endif /* _WIN32_WINNT >= 0x0500 */
+
 #undef __def
 }
 
@@ -3090,6 +3145,133 @@ static Janet cfun_GetRawInputDeviceInfo(int32_t argc, Janet *argv)
     return jw32_wrap_uint(uiRet);
 }
 
+static int INPUT_get(void *p, Janet key, Janet *out)
+{
+    INPUT *input = (INPUT *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(input->member);     \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(type, dword);
+
+    /* mouse input */
+    __get_member(mi.dx, long);
+    __get_member(mi.dy, long);
+    __get_member(mi.mouseData, dword);
+    __get_member(mi.dwFlags, dword);
+    __get_member(mi.time, dword);
+    __get_member(mi.dwExtraInfo, ulong_ptr);
+
+    /* keyboard input */
+    __get_member(ki.wVk, word);
+    __get_member(ki.wScan, word);
+    __get_member(ki.dwFlags, dword);
+    __get_member(ki.time, dword);
+    __get_member(ki.dwExtraInfo, ulong_ptr);
+
+    /* hardware input */
+    __get_member(hi.uMsg, dword);
+    __get_member(hi.wParamL, word);
+    __get_member(hi.wParamH, word);
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_INPUT = {
+    .name = MOD_NAME "/INPUT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = INPUT_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_INPUT(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    INPUT *input = janet_abstract(&jw32_at_INPUT, sizeof(INPUT));
+    memset(input, 0, sizeof(INPUT));
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type)                    \
+        if (!janet_cstrcmp(kw, #member)) {            \
+            input->member = jw32_get_##type(argv, v); \
+            continue;                                 \
+        }
+
+        __set_member(type, dword)
+
+        /* mouse input */
+        __set_member(mi.dx, long)
+        __set_member(mi.dy, long)
+        __set_member(mi.mouseData, dword)
+        __set_member(mi.dwFlags, dword)
+        __set_member(mi.time, dword)
+        __set_member(mi.dwExtraInfo, ulong_ptr)
+
+        /* keyboard input */
+        __set_member(ki.wVk, word)
+        __set_member(ki.wScan, word)
+        __set_member(ki.dwFlags, dword)
+        __set_member(ki.time, dword)
+        __set_member(ki.dwExtraInfo, ulong_ptr)
+
+        /* hardware input */
+        __set_member(hi.uMsg, dword)
+        __set_member(hi.wParamL, word)
+        __set_member(hi.wParamH, word)
+
+#undef __set_member
+
+        janet_panicf("unknown key %v", argv[k]);
+    }
+
+    return janet_wrap_abstract(input);
+}
+
+static Janet cfun_SendInput(int32_t argc, Janet *argv)
+{
+    JanetView input_list;
+
+    UINT uiRet;
+
+    INPUT *pInputs;
+
+    janet_fixarity(argc, 1);
+
+    input_list = janet_getindexed(argv, 0);
+    pInputs = GlobalAlloc(GPTR, input_list.len * sizeof(INPUT));
+    for (int i = 0; i < input_list.len; i++) {
+        Janet item = input_list.items[i];
+        if (!janet_checkabstract(item, &jw32_at_INPUT)) {
+            GlobalFree(pInputs);
+            janet_panicf("expected an INPUT, got %v", item);
+        }
+        memcpy(&(pInputs[i]), janet_unwrap_abstract(item), sizeof(INPUT));
+    }
+
+    uiRet = SendInput(input_list.len, pInputs, sizeof(INPUT));
+    GlobalFree(pInputs);
+    return jw32_wrap_uint(uiRet);
+}
+
+
 /*******************************************************************
  *
  * RESOURCES
@@ -3440,6 +3622,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetRawInputDeviceInfo hDevice uiCommand pData)\n\n"
         "Retrieves raw input device info.",
     },
+    {
+        "INPUT",
+        cfun_INPUT,
+        "(" MOD_NAME "/INPUT ...)\n\n"
+        "Builds an INPUT struct.",
+    },
+    {
+        "SendInput",
+        cfun_SendInput,
+        "(" MOD_NAME "/SendInput pInputs)\n\n"
+        "Send simulated inputs.",
+    },
 
     /************************** RESOURCES **************************/
     {
@@ -3523,6 +3717,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_ridev(env);
     define_consts_ri(env);
     define_consts_ridi(env);
+    define_consts_input(env);
+    define_consts_mouseeventf(env);
+    define_consts_keyeventf(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
