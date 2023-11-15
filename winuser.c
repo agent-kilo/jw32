@@ -2788,7 +2788,7 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
 
 /*******************************************************************
  *
- * RAW INPUT
+ * INPUT
  *
  *******************************************************************/
 
@@ -3271,6 +3271,23 @@ static Janet cfun_SendInput(int32_t argc, Janet *argv)
     return jw32_wrap_uint(uiRet);
 }
 
+static Janet cfun_GetPhysicalCursorPos(int32_t argc, Janet *argv)
+{
+    (void)argv;
+
+    BOOL bRet;
+    POINT pt = {0, 0};
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 0);
+
+    bRet = GetPhysicalCursorPos(&pt);
+    ret_tuple[0] = jw32_wrap_bool(bRet);
+    ret_tuple[1] = janet_wrap_tuple(jw32_point_to_tuple(&pt));
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
 
 /*******************************************************************
  *
@@ -3396,6 +3413,20 @@ static Janet cfun_SetMenu(int32_t argc, Janet *argv)
 
     bRet = SetMenu(hWnd, hMenu);
     return jw32_wrap_bool(bRet);
+}
+
+
+/*******************************************************************
+ *
+ * MISC.
+ *
+ *******************************************************************/
+
+static Janet cfun_SetProcessDPIAware(int32_t argc, Janet *argv)
+{
+    (void)argv;
+    janet_fixarity(argc, 0);
+    return jw32_wrap_bool(SetProcessDPIAware());
 }
 
 
@@ -3585,7 +3616,7 @@ static const JanetReg cfuns[] = {
         "Sets a window property",
     },
 
-    /************************** RAW INPUT **************************/
+    /************************** INPUT **************************/
     {
         "RAWINPUT",
         cfun_RAWINPUT,
@@ -3633,6 +3664,12 @@ static const JanetReg cfuns[] = {
         cfun_SendInput,
         "(" MOD_NAME "/SendInput pInputs)\n\n"
         "Send simulated inputs.",
+    },
+    {
+        "GetPhysicalCursorPos",
+        cfun_GetPhysicalCursorPos,
+        "(" MOD_NAME "/GetPhysicalCursorPos)\n\n"
+        "Retrieves the position of the cursor in physical coordinates.",
     },
 
     /************************** RESOURCES **************************/
@@ -3683,6 +3720,14 @@ static const JanetReg cfuns[] = {
         cfun_SetMenu,
         "(" MOD_NAME "/SetMenu hWnd hMenu)\n\n"
         "Assigns a menu to a window.",
+    },
+
+    /************************** MISC. **************************/
+    {
+        "SetProcessDPIAware",
+        cfun_SetProcessDPIAware,
+        "(" MOD_NAME "/SetProcessDPIAware)\n\n"
+        "Sets the process-default DPI awareness to system-DPI awareness.",
     },
 
     {NULL, NULL, NULL},
