@@ -1,6 +1,7 @@
 #include "jw32.h"
 #include "jw32_com.h"
 #include <UIAutomationClient.h>
+#include "state.h"    /* for JanetVM internals */
 #include "debug.h"
 
 #define MOD_NAME "uiautomation"
@@ -482,8 +483,22 @@ struct Jw32UIAEventHandler {
     LONG _refCount;
     JanetBuffer *marshaled_cb;
     JanetBuffer *marshaled_env;
+    JanetBuffer *marshaled_abs_reg;
 };
 
+
+static JanetBuffer *marshal_into_buffer(Janet value, JanetBuffer *buf)
+{
+    if (!buf) {
+        buf = janet_malloc(sizeof(JanetBuffer));
+        if (!buf) {
+            return NULL;
+        }
+        janet_buffer_init(buf, 0);
+    }
+    janet_marshal(buf, value, NULL, JANET_MARSHAL_UNSAFE);
+    return buf;
+}
 
 static JanetFunction *unmarshal_handler_cb(Jw32UIAEventHandler *handler)
 {
@@ -501,6 +516,14 @@ static JanetTable *unmarshal_handler_env(Jw32UIAEventHandler *handler)
     return janet_unwrap_table(env);
 }
 
+static JanetTable *unmarshal_handler_abs_reg(Jw32UIAEventHandler *handler)
+{
+    JanetBuffer *marshaled_abs_reg = handler->marshaled_abs_reg;
+    Janet abs_reg = janet_unmarshal(marshaled_abs_reg->data, marshaled_abs_reg->count,
+                                    JANET_MARSHAL_UNSAFE, NULL, NULL);
+    return janet_unwrap_table(abs_reg);
+}
+
 static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
 {
     jw32_dbg_val(GetCurrentThreadId(), "0x%x");
@@ -512,13 +535,20 @@ static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
 
     janet_init();
 
-    /* TODO: pass abstract type registry & cfun registry by marshaling?
+    /* TODO: pass cfun registry by marshaling?
        see cfun_ev_thread() & janet_go_thread_subr() */
 
     JanetTryState tstate;
     JanetSignal signal = janet_try(&tstate);
     if (JANET_SIGNAL_OK == signal) {
         uia_thread_state.env = unmarshal_handler_env(handler);
+        janet_gcroot(janet_wrap_table(uia_thread_state.env));
+        jw32_dbg_val(uia_thread_state.env->count, "%d");
+
+        janet_local_vm()->abstract_registry = unmarshal_handler_abs_reg(handler);
+        janet_gcroot(janet_wrap_table(janet_local_vm()->abstract_registry));
+        jw32_dbg_val(janet_local_vm()->abstract_registry->count, "%d");
+
         uia_thread_state.vm_initialized = 1;
     } else {
         jw32_dbg_val(signal, "%d");
@@ -569,6 +599,9 @@ static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_Release(Jw32UIAEventHandler *
 
         janet_buffer_deinit(self->marshaled_env);
         janet_free(self->marshaled_env);
+
+        janet_buffer_deinit(self->marshaled_abs_reg);
+        janet_free(self->marshaled_abs_reg);
 
         GlobalFree(self);
     }
@@ -879,28 +912,29 @@ static Jw32UIAEventHandler *create_uia_event_handler(
     handler->_riid = riid,
     handler->lpVtbl = pVtbl;
 
-    JanetBuffer *marshaled_cb = janet_malloc(sizeof(JanetBuffer));
-    if (!marshaled_cb) {
+    handler->marshaled_cb = marshal_into_buffer(janet_wrap_function(callback), NULL);
+    if (!(handler->marshaled_cb)) {
         goto error_cb;
     }
-    janet_buffer_init(marshaled_cb, 0);
-    janet_marshal(marshaled_cb, janet_wrap_function(callback), NULL, JANET_MARSHAL_UNSAFE);
-    handler->marshaled_cb = marshaled_cb;
 
-    JanetBuffer *marshaled_env = janet_malloc(sizeof(JanetBuffer));
-    if (!marshaled_env) {
+    handler->marshaled_env = marshal_into_buffer(janet_wrap_table(env), NULL);
+    if (!(handler->marshaled_env)) {
         goto error_env;
     }
-    janet_buffer_init(marshaled_env, 0);
-    janet_marshal(marshaled_env, janet_wrap_table(env), NULL, JANET_MARSHAL_UNSAFE);
-    handler->marshaled_env = marshaled_env;
+
+    handler->marshaled_abs_reg = marshal_into_buffer(janet_wrap_table(janet_local_vm()->abstract_registry), NULL);
+    if (!(handler->marshaled_abs_reg)) {
+        goto error_abs_reg;
+    }
 
     handler->lpVtbl->AddRef(handler);
 
     return handler;
 
+error_abs_reg:
+    janet_free(handler->marshaled_env);
 error_env:
-    janet_free(marshaled_cb);
+    janet_free(handler->marshaled_cb);
 error_cb:
     GlobalFree(handler);
     return NULL;
