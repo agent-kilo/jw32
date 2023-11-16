@@ -3288,6 +3288,38 @@ static Janet cfun_GetPhysicalCursorPos(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_GetCursorPos(int32_t argc, Janet *argv)
+{
+    (void)argv;
+
+    BOOL bRet;
+    POINT pt = {0, 0};
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 0);
+
+    bRet = GetCursorPos(&pt);
+    ret_tuple[0] = jw32_wrap_bool(bRet);
+    ret_tuple[1] = janet_wrap_tuple(jw32_point_to_tuple(&pt));
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+static Janet cfun_SetCursorPos(int32_t argc, Janet *argv)
+{
+    int x, y;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    x = jw32_get_int(argv, 0);
+    y = jw32_get_int(argv, 1);
+
+    bRet = SetCursorPos(x, y);
+    return jw32_wrap_bool(bRet);
+}
+
 
 /*******************************************************************
  *
@@ -3670,6 +3702,18 @@ static const JanetReg cfuns[] = {
         cfun_GetPhysicalCursorPos,
         "(" MOD_NAME "/GetPhysicalCursorPos)\n\n"
         "Retrieves the position of the cursor in physical coordinates.",
+    },
+    {
+        "GetCursorPos",
+        cfun_GetCursorPos,
+        "(" MOD_NAME "/GetCursorPos)\n\n"
+        "Retrieves the position of the cursor in screen coordinates.",
+    },
+    {
+        "SetCursorPos",
+        cfun_SetCursorPos,
+        "(" MOD_NAME "/SetCursorPos x y)\n\n"
+        "Moves the cursor to the specified screen coordinates.",
     },
 
     /************************** RESOURCES **************************/
