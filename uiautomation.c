@@ -1412,6 +1412,16 @@ static void define_consts_windowvisualstate(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_automationelementmode(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),              \
+              "Constant for UI Automation AutomationElementMode.")
+    __def(AutomationElementMode_None);
+    __def(AutomationElementMode_Full);
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -4061,6 +4071,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_connectionrecoverybehavioroptions(env);
     define_consts_windowinteractionstate(env);
     define_consts_windowvisualstate(env);
+    define_consts_automationelementmode(env);
 
     init_table_protos(env);
 }
