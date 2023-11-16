@@ -131,7 +131,6 @@ static Janet cfun_CoUninitialize(int32_t argc, Janet *argv)
 {
     janet_fixarity(argc, 0);
 
-    (void)argc;
     (void)argv;
 
     CoUninitialize();
