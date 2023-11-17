@@ -1643,6 +1643,25 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     }
 }
 
+BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, LPARAM lParam)
+{
+    JanetFunction *enum_fn = (JanetFunction *)lParam;
+    Janet argv[3] = {
+        jw32_wrap_handle(hMonitor),
+        jw32_wrap_handle(hdc),
+        janet_wrap_table(jw32_rect_to_table(lpRect)),
+        /* janet has closures, doesn't need lParam */
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(enum_fn, 3, argv, &ret)) {
+        return jw32_unwrap_bool(ret);
+    } else {
+        jw32_dbg_msg("jw32_pcall_fn() failed, stop monitor enumeration");
+        return FALSE;
+    }
+}
+
 static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM lParam)
 {
     Janet hook = jw32_wrap_int(idHook);
@@ -3461,6 +3480,98 @@ static Janet cfun_SetProcessDPIAware(int32_t argc, Janet *argv)
     return jw32_wrap_bool(SetProcessDPIAware());
 }
 
+static Janet cfun_EnumDisplayMonitors(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+    LPCRECT lprcClip;
+    JanetFunction *enum_fn;
+    /* janet has closures, we don't need this */
+    //LPARAM dwData;
+
+    BOOL bRet;
+
+    RECT rcClip;
+
+    janet_fixarity(argc, 3);
+
+    hdc = jw32_get_handle(argv, 0);
+
+    switch (janet_type(argv[1])) {
+    case JANET_TABLE: {
+        JanetTable *rc_table = janet_gettable(argv, 1);
+        lprcClip = &rcClip;
+
+#define __get_member(key) do {                                          \
+            Janet val;                                                  \
+            val = janet_table_get(rc_table, janet_ckeywordv(#key));     \
+            if (!janet_checkint(val)) {                                 \
+                janet_panicf("bad slot #1: bad value for :" #key ": %v", val); \
+            }                                                           \
+            rcClip.##key## = jw32_unwrap_int(val);                      \
+        } while (0)
+
+        __get_member(left);
+        __get_member(top);
+        __get_member(right);
+        __get_member(bottom);
+
+#undef __get_member
+
+        break;
+    }
+
+    case JANET_ARRAY:
+    case JANET_TUPLE: {
+        JanetView rc_view = janet_getindexed(argv, 1);
+
+        if (rc_view.len != 4) {
+            janet_panicf("bad slot #1: expected a tuple with 4 elements, got %d", rc_view.len);
+        }
+
+        lprcClip = &rcClip;
+
+#define __get_item(idx, key) do {                                       \
+            Janet val;                                                  \
+            val = rc_view.items[idx];                                   \
+            if (!janet_checkint(val)) {                                 \
+                janet_panicf("bad slot #1: bad value for :" #key ": %v", val); \
+            }                                                           \
+            rcClip.##key## = jw32_unwrap_int(val);                      \
+        } while (0)
+
+        __get_item(0, left);
+        __get_item(1, top);
+        __get_item(2, right);
+        __get_item(3, bottom);
+
+#undef __get_item
+
+        break;
+    }
+
+    case JANET_POINTER: {
+        lprcClip = (LPCRECT)janet_unwrap_pointer(argv[1]);
+        if (lprcClip != NULL) {
+            janet_panicf("bad slot #1: only accept NULL for pointers, got %v", argv[1]);
+        }
+        break;
+    }
+
+    case JANET_NIL:
+        lprcClip = NULL;
+        break;
+
+    default:
+        janet_panicf("bad slot #1: expected a table, a tuple/array or nil, got %v", argv[1]);
+    }
+
+    enum_fn = janet_getfunction(argv, 2);
+
+    bRet = EnumDisplayMonitors(hdc, lprcClip, jw32_monitor_enum_proc, (LPARAM)enum_fn);
+
+    return jw32_wrap_bool(bRet);
+}
+
 
 static const JanetReg cfuns[] = {
 
@@ -3772,6 +3883,12 @@ static const JanetReg cfuns[] = {
         cfun_SetProcessDPIAware,
         "(" MOD_NAME "/SetProcessDPIAware)\n\n"
         "Sets the process-default DPI awareness to system-DPI awareness.",
+    },
+    {
+        "EnumDisplayMonitors",
+        cfun_EnumDisplayMonitors,
+        "(" MOD_NAME "/EnumDisplayMonitors hdc rcClip lpfnEnum)\n\n"
+        "Enumerates display monitors.",
     },
 
     {NULL, NULL, NULL},
