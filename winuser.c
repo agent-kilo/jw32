@@ -1288,6 +1288,12 @@ static void define_consts_keyeventf(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_monitorinfof(JanetTable *env)
+{
+    janet_def(env, "MONITORINFOF_PRIMARY", jw32_wrap_dword(MONITORINFOF_PRIMARY),
+              "Constant for moniter info flags.");
+}
+
 
 /*******************************************************************
  *
@@ -4002,6 +4008,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_input(env);
     define_consts_mouseeventf(env);
     define_consts_keyeventf(env);
+    define_consts_monitorinfof(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
