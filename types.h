@@ -244,6 +244,51 @@ static inline LONG_PTR jw32_get_long_ptr(const Janet *argv, int32_t n)
 #define jw32_unwrap_double(x) (janet_unwrap_number(x))
 #define jw32_get_double(argv, n) (janet_getnumber(argv, n))
 
+static inline RECT jw32_get_rect(const Janet *argv, int32_t n)
+{
+    RECT rcRet = {0, 0, 0, 0};
+
+#define __get_member(__exp, __key) do {                                 \
+        Janet __val = (__exp);                                          \
+        if (!janet_checkint(__val)) {                                   \
+            janet_panicf("bad slot #%d: bad value for :" #__key ": %v", n, __val); \
+        }                                                               \
+        rcRet.##__key## = jw32_unwrap_long(__val);                      \
+    } while (0)
+
+    switch (janet_type(argv[n])) {
+
+    case JANET_TABLE: {
+        JanetTable *rc_table = janet_gettable(argv, n);
+        __get_member(janet_table_get(rc_table, janet_ckeywordv("left")), left);
+        __get_member(janet_table_get(rc_table, janet_ckeywordv("top")), top);
+        __get_member(janet_table_get(rc_table, janet_ckeywordv("right")), right);
+        __get_member(janet_table_get(rc_table, janet_ckeywordv("bottom")), bottom);
+        break;
+    }
+
+    case JANET_ARRAY:
+    case JANET_TUPLE: {
+        JanetView rc_view = janet_getindexed(argv, n);
+        if (rc_view.len != 4) {
+            janet_panicf("bad slot #%d: expected a tuple with 4 elements, got %d", n, rc_view.len);
+        }
+        __get_member(rc_view.items[0], left);
+        __get_member(rc_view.items[1], top);
+        __get_member(rc_view.items[2], right);
+        __get_member(rc_view.items[3], bottom);
+        break;
+    }
+
+    default:
+        janet_panicf("bad slot #%d: expected a table, a tuple or an array, got %v", n, argv[n]);
+    }
+
+#undef __get_member
+
+    return rcRet;
+}
+
 static inline JanetTable *jw32_rect_to_table(const RECT *rect)
 {
     JanetTable *rect_tb = janet_table(4);

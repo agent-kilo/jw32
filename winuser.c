@@ -3497,57 +3497,6 @@ static Janet cfun_EnumDisplayMonitors(int32_t argc, Janet *argv)
     hdc = jw32_get_handle(argv, 0);
 
     switch (janet_type(argv[1])) {
-    case JANET_TABLE: {
-        JanetTable *rc_table = janet_gettable(argv, 1);
-        lprcClip = &rcClip;
-
-#define __get_member(key) do {                                          \
-            Janet val;                                                  \
-            val = janet_table_get(rc_table, janet_ckeywordv(#key));     \
-            if (!janet_checkint(val)) {                                 \
-                janet_panicf("bad slot #1: bad value for :" #key ": %v", val); \
-            }                                                           \
-            rcClip.##key## = jw32_unwrap_int(val);                      \
-        } while (0)
-
-        __get_member(left);
-        __get_member(top);
-        __get_member(right);
-        __get_member(bottom);
-
-#undef __get_member
-
-        break;
-    }
-
-    case JANET_ARRAY:
-    case JANET_TUPLE: {
-        JanetView rc_view = janet_getindexed(argv, 1);
-
-        if (rc_view.len != 4) {
-            janet_panicf("bad slot #1: expected a tuple with 4 elements, got %d", rc_view.len);
-        }
-
-        lprcClip = &rcClip;
-
-#define __get_item(idx, key) do {                                       \
-            Janet val;                                                  \
-            val = rc_view.items[idx];                                   \
-            if (!janet_checkint(val)) {                                 \
-                janet_panicf("bad slot #1: bad value for :" #key ": %v", val); \
-            }                                                           \
-            rcClip.##key## = jw32_unwrap_int(val);                      \
-        } while (0)
-
-        __get_item(0, left);
-        __get_item(1, top);
-        __get_item(2, right);
-        __get_item(3, bottom);
-
-#undef __get_item
-
-        break;
-    }
 
     case JANET_POINTER: {
         lprcClip = (LPCRECT)janet_unwrap_pointer(argv[1]);
@@ -3562,12 +3511,127 @@ static Janet cfun_EnumDisplayMonitors(int32_t argc, Janet *argv)
         break;
 
     default:
-        janet_panicf("bad slot #1: expected a table, a tuple/array or nil, got %v", argv[1]);
+        rcClip = jw32_get_rect(argv, 1);
+        lprcClip = &rcClip;
+        break;
     }
 
     enum_fn = janet_getfunction(argv, 2);
 
     bRet = EnumDisplayMonitors(hdc, lprcClip, jw32_monitor_enum_proc, (LPARAM)enum_fn);
+
+    return jw32_wrap_bool(bRet);
+}
+
+static int MONITORINFOEX_get(void *p, Janet key, Janet *out)
+{
+    MONITORINFOEX *lpmi = (MONITORINFOEX *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(name, exp)                 \
+    if (!janet_cstrcmp(kw, name)) {             \
+        *out = (exp);                           \
+        return 1;                               \
+    }
+
+    __get_member("cbSize", jw32_wrap_dword(lpmi->cbSize));
+    __get_member("rcMonitor", janet_wrap_table(jw32_rect_to_table(&(lpmi->rcMonitor))));
+    __get_member("rcWork", janet_wrap_table(jw32_rect_to_table(&(lpmi->rcWork))));
+    __get_member("dwFlags", jw32_wrap_dword(lpmi->dwFlags));
+    __get_member("szDevice", janet_cstringv(lpmi->szDevice));
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_MONITORINFOEX = {
+    .name = MOD_NAME "/MONITORINFOEX",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = MONITORINFOEX_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_MONITORINFOEX(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+    
+    MONITORINFOEX *lpmi = janet_abstract(&jw32_at_MONITORINFOEX, sizeof(MONITORINFOEX));
+    memset(lpmi, 0, sizeof(MONITORINFOEX));
+
+    BOOL bSizeSet = FALSE;
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type)                      \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            lpmi->member = jw32_get_##type(argv, v);    \
+            continue;                                   \
+        }
+
+        if (!janet_cstrcmp(kw, "cbSize")) {
+            lpmi->cbSize = jw32_get_dword(argv, v);
+            bSizeSet = TRUE;
+            continue;
+        }
+        __set_member(rcMonitor, rect)
+        __set_member(rcWork, rect)
+        __set_member(dwFlags, dword)
+        if (!janet_cstrcmp(kw, "szDevice")) {
+            const uint8_t *name = NULL;
+            uint32_t name_len = 0;
+            switch (janet_type(argv[v])) {
+            case JANET_STRING: {
+                name = janet_unwrap_string(argv[v]);
+                name_len = janet_string_length(name);
+                break;
+            }
+            case JANET_BUFFER: {
+                JanetBuffer *buf = janet_unwrap_buffer(argv[v]);
+                name = buf->data;
+                name_len = buf->count;
+                break;
+            }
+            default:
+                janet_panicf("invalid value for szDevice: %v", argv[v]);
+            }
+            name_len = name_len < (CCHDEVICENAME - 1) ? name_len : (CCHDEVICENAME - 1);
+            memcpy(lpmi->szDevice, name, name_len);
+            lpmi->szDevice[name_len] = 0;
+        }
+
+#undef __set_member
+    }
+
+    if (!bSizeSet) {
+        lpmi->cbSize = sizeof(MONITORINFOEX);
+    }
+
+    return janet_wrap_abstract(lpmi);
+}
+
+static Janet cfun_GetMonitorInfo(int32_t argc, Janet *argv)
+{
+    HMONITOR hMonitor;
+    LPMONITORINFO lpmi;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hMonitor = jw32_get_handle(argv, 0);
+    lpmi = janet_getabstract(argv, 1, &jw32_at_MONITORINFOEX);
+
+    bRet = GetMonitorInfo(hMonitor, lpmi);
 
     return jw32_wrap_bool(bRet);
 }
@@ -3889,6 +3953,18 @@ static const JanetReg cfuns[] = {
         cfun_EnumDisplayMonitors,
         "(" MOD_NAME "/EnumDisplayMonitors hdc rcClip lpfnEnum)\n\n"
         "Enumerates display monitors.",
+    },
+    {
+        "MONITORINFOEX",
+        cfun_MONITORINFOEX,
+        "(" MOD_NAME "/MONITORINFOEX ...)\n\n"
+        "Creates a MONITORINFOEX struct.",
+    },
+    {
+        "GetMonitorInfo",
+        cfun_GetMonitorInfo,
+        "(" MOD_NAME "/GetMonitorInfo hMonitor lpmi)\n\n"
+        "Retrieves information about a display monitor.",
     },
 
     {NULL, NULL, NULL},
