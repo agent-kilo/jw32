@@ -41,7 +41,7 @@ static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
 
     JanetTable *tbl = janet_gettable(argv, n);
     /* XXX: this is slow? */
-    Janet maybe_ref = janet_table_get(tbl, jw32_cstr_to_keyword(JW32_COM_OBJ_REF_NAME));
+    Janet maybe_ref = janet_table_get(tbl, janet_ckeywordv(JW32_COM_OBJ_REF_NAME));
     void *ref;
 
     if (!janet_checktype(maybe_ref, JANET_POINTER)) {
@@ -53,7 +53,7 @@ static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
         janet_panicf("invalid object reference: %v", maybe_ref);
     }
 
-    return janet_unwrap_pointer(maybe_ref);
+    return ref;
 }
 
 static inline REFIID jw32_com_normalize_iid(JanetTable *proto)
