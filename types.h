@@ -5,9 +5,6 @@
 #include <janet.h>
 
 
-#define jw32_cstr_to_keyword(x) janet_wrap_keyword(janet_ckeyword(x))
-
-
 /* HANDLE: defined as pointers in win32 APIs */
 #define jw32_wrap_handle(x) janet_wrap_pointer(x)
 #define jw32_unwrap_handle(x) ((HANDLE)janet_unwrap_pointer(x))

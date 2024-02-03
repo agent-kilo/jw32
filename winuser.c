@@ -1420,7 +1420,7 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
 
     if (!check_atom(lpClassName)) {
         /* we have a string pointer */
-        return jw32_cstr_to_keyword(lpClassName);
+        return janet_ckeywordv(lpClassName);
     } else {
         /* looks like an ATOM */
         ATOM atmClass = lpcstr_to_atom(lpClassName);
@@ -1436,7 +1436,7 @@ static Janet normalize_wnd_class_name(LPCSTR lpClassName)
 static void register_class_wnd_proc(jw32_wc_t *jwc, ATOM atmClass)
 {
     Janet wnd_proc = janet_wrap_function(jwc->wnd_proc);
-    Janet class_name = jw32_cstr_to_keyword(jwc->wc.lpszClassName);
+    Janet class_name = janet_ckeywordv(jwc->wc.lpszClassName);
     Janet atom = jw32_wrap_atom(atmClass);
     Janet reg_entry_tuple[3];
     Janet reg_entry;
