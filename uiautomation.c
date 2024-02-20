@@ -3968,8 +3968,6 @@ static const JanetMethod IUIAutomationInvokePattern_methods[] = {
 
 static void init_table_protos(JanetTable *env)
 {
-    JanetTable *IUnknown_proto = jw32_com_resolve_iunknown_proto();
-
     uia_thread_state.env = janet_table(0);
     janet_def(uia_thread_state.env, "IUnknown", janet_wrap_table(IUnknown_proto), NULL);
 

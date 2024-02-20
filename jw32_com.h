@@ -13,6 +13,13 @@
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
 
+#ifndef JW32_COM_IUNKNOWN_EXPORT
+#ifdef JW32_DLL
+__declspec(dllimport) JanetTable *IUnknown_proto;
+#else
+extern JanetTable *IUnknown_proto; /* For static linking */
+#endif /* JW32_DLL */
+#endif /* JW32_COM_IUNKNOWN_EXPORT */
 
 /* REFCLSID: pointer to class UUID struct */
 #define jw32_wrap_refclsid(x) jw32_wrap_lpvoid((void *)x)

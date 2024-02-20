@@ -1,7 +1,12 @@
 #include "jw32.h"
+
+#define JW32_COM_IUNKNOWN_EXPORT
 #include "jw32_com.h"
 
 #define MOD_NAME "combaseapi"
+
+
+__declspec(dllexport) JanetTable *IUnknown_proto = NULL;
 
 
 static void define_consts_coinit(JanetTable *env)
@@ -104,7 +109,7 @@ static const JanetMethod IUnknown_methods[] = {
 
 static void init_table_protos(JanetTable *env)
 {
-    JanetTable *IUnknown_proto = jw32_com_make_if_proto("IUnknown", IUnknown_methods, NULL, NULL);
+    IUnknown_proto = jw32_com_make_if_proto("IUnknown", IUnknown_methods, NULL, NULL);
     janet_def(env, "IUnknown", janet_wrap_table(IUnknown_proto),
               "Prototype for COM IUnknown interface.");
 }
