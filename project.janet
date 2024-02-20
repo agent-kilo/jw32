@@ -2,7 +2,7 @@
 
 (def janet-src-tree "D:/w/janet_code/janet")
 (def cflags
-  ["/nologo" "/W4"])
+  ["/nologo" "/MD" "/W4"])
 (def debug-flags
   [
    "/DJW32_DEBUG"
@@ -83,5 +83,4 @@
    :name (project-module "util")
    :source ["util.c"]
    :headers [;common-headers]
-   :cflags [;cflags ;debug-flags]
-   :ldflags []))
+   :cflags [;cflags ;debug-flags]))
