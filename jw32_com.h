@@ -13,14 +13,24 @@
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
 
+typedef struct {
+    JanetTable *proto_map;
+    JanetTable *deferred_init;
+    JanetTable *hook_map;
+} jw32_com_proto_registry_t;
+
 #ifndef JW32_COM_PROTO_EXPORT
 #ifdef JW32_DLL
-__declspec(dllimport) JanetTable *jw32_com_proto_registry;
+__declspec(dllimport) jw32_com_proto_registry_t jw32_com_proto_registry;
 #else
-extern JanetTable *jw32_com_proto_registry;
+extern jw32_com_proto_registry_t jw32_com_proto_registry;
 #endif /* JW32_DLL */
 #else /* JW32_COM_IUNKNOWN_EXPORT */
-__declspec(dllexport) JanetTable *jw32_com_proto_registry = NULL;
+__declspec(dllexport) jw32_com_proto_registry_t jw32_com_proto_registry = {
+    .proto_map = NULL,
+    .deferred_init = NULL,
+    .hook_map = NULL,
+};
 #endif /* !JW32_COM_IUNKNOWN_EXPORT */
 
 /* REFCLSID: pointer to class UUID struct */
@@ -75,37 +85,13 @@ static inline REFIID jw32_com_normalize_iid(JanetTable *proto)
     return (REFIID)janet_unwrap_pointer(maybe_iid);
 }
 
-static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
-{
-    Janet argv[] = {
-        janet_wrap_string(janet_cstring(IUNKNOWN_MOD_NAME)),
-    };
-    /* (import* ...) may fail by raising a signal. */
-    Janet cur_env = jw32_call_core_fn("import*", 1, argv);
-    JanetTable *cur_env_tb = janet_unwrap_table(cur_env);
-
-    Janet iunknown_proto;
-    JanetBindingType b_type = janet_resolve(cur_env_tb,
-                                            janet_csymbol(IUNKNOWN_PROTO_NAME),
-                                            &iunknown_proto);
-    if (JANET_BINDING_NONE == b_type) {
-        janet_panicf("could not import variable %s", IUNKNOWN_PROTO_NAME);
-    }
-    if (!janet_checktype(iunknown_proto, JANET_TABLE)) {
-        janet_panicf("expected %s to be a table, got %v",
-                     IUNKNOWN_PROTO_NAME, iunknown_proto);
-    }
-
-    return janet_unwrap_table(iunknown_proto);
-}
-
 static inline JanetTable *jw32_com_find_if_proto(const char* name)
 {
-    if (!jw32_com_proto_registry) {
+    if (!jw32_com_proto_registry.proto_map) {
         return NULL;
     }
 
-    Janet pv = janet_table_get(jw32_com_proto_registry, janet_cstringv(name));
+    Janet pv = janet_table_get(jw32_com_proto_registry.proto_map, janet_cstringv(name));
     if (janet_checktype(pv, JANET_NIL)) {
         return NULL;
     }
@@ -113,11 +99,45 @@ static inline JanetTable *jw32_com_find_if_proto(const char* name)
     return janet_unwrap_table(pv);
 }
 
-static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMethod *methods, JanetTable *parent, REFIID riid)
+/* A hook function that's called when a prototype is ready for use. */
+typedef void (*jw32_com_proto_hook_t)(JanetTable *proto);
+
+static inline void jw32_com_reg_proto_hook(const char* proto_name, jw32_com_proto_hook_t hook)
 {
-    if (!jw32_com_proto_registry) {
-        jw32_com_proto_registry = janet_table(0);
-        janet_gcroot(janet_wrap_table(jw32_com_proto_registry));
+    if (!jw32_com_proto_registry.hook_map) {
+        jw32_com_proto_registry.hook_map = janet_table(0);
+        janet_gcroot(janet_wrap_table(jw32_com_proto_registry.hook_map));
+    }
+
+    JanetTable *proto = jw32_com_find_if_proto(proto_name);
+    if (proto) {
+        hook(proto);
+        return;
+    }
+
+    /* The prototype is not registered yet, register a hook function for future execution */
+    Janet arrv = janet_table_get(jw32_com_proto_registry.hook_map, janet_cstringv(proto_name));
+    JanetArray *arr;
+    if (janet_checktype(arrv, JANET_NIL)) {
+        arr = janet_array(1);
+    } else {
+        arr = janet_unwrap_array(arrv);
+    }
+    janet_array_push(arr, janet_wrap_pointer((void *)hook));
+    janet_table_put(jw32_com_proto_registry.hook_map,
+                    janet_cstringv(proto_name),
+                    janet_wrap_array(arr));
+}
+
+static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMethod *methods, const char *parent, REFIID riid)
+{
+    if (!jw32_com_proto_registry.proto_map) {
+        jw32_com_proto_registry.proto_map = janet_table(0);
+        janet_gcroot(janet_wrap_table(jw32_com_proto_registry.proto_map));
+    }
+    if (!jw32_com_proto_registry.deferred_init) {
+        jw32_com_proto_registry.deferred_init = janet_table(0);
+        janet_gcroot(janet_wrap_table(jw32_com_proto_registry.deferred_init));
     }
 
     JanetTable *proto = janet_table(0);
@@ -135,9 +155,51 @@ static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMe
                     janet_ckeywordv(JW32_COM_IF_NAME_NAME),
                     janet_wrap_string(janet_cstring(name)));
 
-    proto->proto = parent;
+    if (parent) {
+        JanetTable *pt = jw32_com_find_if_proto(parent);
+        if (pt) {
+            proto->proto = pt;
+        } else {
+            /* The required prototype is not registered yet, defer the initialization */
+            Janet arrv = janet_table_get(jw32_com_proto_registry.deferred_init, janet_cstringv(parent));
+            JanetArray *arr;
+            if (janet_checktype(arrv, JANET_NIL)) {
+                arr = janet_array(1);
+            } else {
+                arr = janet_unwrap_array(arrv);
+            }
+            janet_array_push(arr, janet_cstringv(name));
+            janet_table_put(jw32_com_proto_registry.deferred_init,
+                            janet_cstringv(parent),
+                            janet_wrap_array(arr));
+        }
+    }
 
-    janet_table_put(jw32_com_proto_registry, janet_cstringv(name), janet_wrap_table(proto));
+    janet_table_put(jw32_com_proto_registry.proto_map, janet_cstringv(name), janet_wrap_table(proto));
+
+    Janet deferred_arrv = janet_table_remove(jw32_com_proto_registry.deferred_init, janet_cstringv(name));
+    if (!janet_checktype(deferred_arrv, JANET_NIL)) {
+        JanetArray *deferred_arr = janet_unwrap_array(deferred_arrv);
+        for (int32_t i = 0; i < deferred_arr->count; i++) {
+            const char *child_name = (const char *)janet_unwrap_string(deferred_arr->data[i]);
+            JanetTable *child_proto = jw32_com_find_if_proto(child_name);
+            if (!child_proto) {
+                janet_panicf("deferred initialization for unknown prototype: %s", child_name);
+            }
+            child_proto->proto = proto;
+        }
+    }
+
+    if (jw32_com_proto_registry.hook_map) {
+        Janet hook_arrv = janet_table_remove(jw32_com_proto_registry.hook_map, janet_cstringv(name));
+        if (!janet_checktype(hook_arrv, JANET_NIL)) {
+            JanetArray *hook_arr = janet_unwrap_array(hook_arrv);
+            for (int32_t i = 0; i < hook_arr->count; i++) {
+                jw32_com_proto_hook_t hook = (jw32_com_proto_hook_t)janet_unwrap_pointer(hook_arr->data[i]);
+                hook(proto);
+            }
+        }
+    }
 
     return proto;
 }

@@ -3966,12 +3966,15 @@ static const JanetMethod IUIAutomationInvokePattern_methods[] = {
  *
  *******************************************************************/
 
+static void define_iunknown_in_thread_state(JanetTable *IUnknown_proto)
+{
+    janet_def(uia_thread_state.env, "IUnknown", janet_wrap_table(IUnknown_proto), NULL);
+}
+
 static void init_table_protos(JanetTable *env)
 {
-    /* TODO: IUnknown_proto can be NULL since static linking may re-arrange module init order. */
-    JanetTable *IUnknown_proto = jw32_com_find_if_proto("IUnknown");
     uia_thread_state.env = janet_table(0);
-    janet_def(uia_thread_state.env, "IUnknown", janet_wrap_table(IUnknown_proto), NULL);
+    jw32_com_reg_proto_hook("IUnknown", define_iunknown_in_thread_state);
 
 #define __def_proto(name, parent, doc)                                  \
     do {                                                                \
@@ -3981,70 +3984,70 @@ static void init_table_protos(JanetTable *env)
     } while (0)
 
     __def_proto(IUIAutomation,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomation interface.");
     __def_proto(IUIAutomation2,
-                IUIAutomation_proto,
+                "IUIAutomation",
                 "Prototype for COM IUIAutomation2 interface.");
     __def_proto(IUIAutomation3,
-                IUIAutomation2_proto,
+                "IUIAutomation2",
                 "Prototype for COM IUIAutomation3 interface.");
     __def_proto(IUIAutomation4,
-                IUIAutomation3_proto,
+                "IUIAutomation3",
                 "Prototype for COM IUIAutomation4 interface.");
     __def_proto(IUIAutomation5,
-                IUIAutomation4_proto,
+                "IUIAutomation4",
                 "Prototype for COM IUIAutomation5 interface.");
     __def_proto(IUIAutomation6,
-                IUIAutomation5_proto,
+                "IUIAutomation5",
                 "Prototype for COM IUIAutomation6 interface.");
 
     __def_proto(IUIAutomationElement,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationElement interface.");
     __def_proto(IUIAutomationElementArray,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationElementArray interface.");
 
     __def_proto(IUIAutomationEventHandlerGroup,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationEventHandlerGroup interface.");
 
     __def_proto(IUIAutomationCacheRequest,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationCacheRequest interface.");
 
     __def_proto(IUIAutomationCondition,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationCondition interface.");
     __def_proto(IUIAutomationAndCondition,
-                IUIAutomationCondition_proto,
+                "IUIAutomationCondition",
                 "Prototype for COM IUIAutomationAndCondition interface.");
     __def_proto(IUIAutomationBoolCondition,
-                IUIAutomationCondition_proto,
+                "IUIAutomationCondition",
                 "Prototype for COM IUIAutomationBoolCondition interface.");
     __def_proto(IUIAutomationNotCondition,
-                IUIAutomationCondition_proto,
+                "IUIAutomationCondition",
                 "Prototype for COM IUIAutomationNotCondition interface.");
     __def_proto(IUIAutomationOrCondition,
-                IUIAutomationCondition_proto,
+                "IUIAutomationCondition",
                 "Prototype for COM IUIAutomationOrCondition interface.");
     __def_proto(IUIAutomationPropertyCondition,
-                IUIAutomationCondition_proto,
+                "IUIAutomationCondition",
                 "Prototype for COM IUIAutomationPropertyCondition interface.");
 
     __def_proto(IUIAutomationTreeWalker,
-                IUIAutomationTreeWalker_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationTreeWalker interface.");
 
     __def_proto(IUIAutomationTransformPattern,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationTransformPattern interface.");
     __def_proto(IUIAutomationWindowPattern,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationWindowPattern interface.");
     __def_proto(IUIAutomationInvokePattern,
-                IUnknown_proto,
+                "IUnknown",
                 "Prototype for COM IUIAutomationInvokePattern interface.");
 
 #undef __def_proto
