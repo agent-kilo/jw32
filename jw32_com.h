@@ -13,13 +13,15 @@
 #define IUNKNOWN_MOD_NAME "jw32/combaseapi"
 #define IUNKNOWN_PROTO_NAME "combaseapi/IUnknown"
 
-#ifndef JW32_COM_IUNKNOWN_EXPORT
+#ifndef JW32_COM_PROTO_EXPORT
 #ifdef JW32_DLL
-__declspec(dllimport) JanetTable *IUnknown_proto;
+__declspec(dllimport) JanetTable *jw32_com_proto_registry;
 #else
-extern JanetTable *IUnknown_proto; /* For static linking */
+extern JanetTable *jw32_com_proto_registry;
 #endif /* JW32_DLL */
-#endif /* JW32_COM_IUNKNOWN_EXPORT */
+#else /* JW32_COM_IUNKNOWN_EXPORT */
+__declspec(dllexport) JanetTable *jw32_com_proto_registry = NULL;
+#endif /* !JW32_COM_IUNKNOWN_EXPORT */
 
 /* REFCLSID: pointer to class UUID struct */
 #define jw32_wrap_refclsid(x) jw32_wrap_lpvoid((void *)x)
@@ -97,8 +99,27 @@ static inline JanetTable *jw32_com_resolve_iunknown_proto(void)
     return janet_unwrap_table(iunknown_proto);
 }
 
+static inline JanetTable *jw32_com_find_if_proto(const char* name)
+{
+    if (!jw32_com_proto_registry) {
+        return NULL;
+    }
+
+    Janet pv = janet_table_get(jw32_com_proto_registry, janet_cstringv(name));
+    if (janet_checktype(pv, JANET_NIL)) {
+        return NULL;
+    }
+
+    return janet_unwrap_table(pv);
+}
+
 static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMethod *methods, JanetTable *parent, REFIID riid)
 {
+    if (!jw32_com_proto_registry) {
+        jw32_com_proto_registry = janet_table(0);
+        janet_gcroot(janet_wrap_table(jw32_com_proto_registry));
+    }
+
     JanetTable *proto = janet_table(0);
 
     for (int i = 0; NULL != methods[i].name; i++) {
@@ -115,6 +136,8 @@ static inline JanetTable *jw32_com_make_if_proto(const char* name, const JanetMe
                     janet_wrap_string(janet_cstring(name)));
 
     proto->proto = parent;
+
+    janet_table_put(jw32_com_proto_registry, janet_cstringv(name), janet_wrap_table(proto));
 
     return proto;
 }
