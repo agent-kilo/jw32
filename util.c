@@ -1,4 +1,5 @@
 #include "jw32.h"
+#include <windowsx.h>
 
 #define MOD_NAME "util"
 
@@ -32,6 +33,28 @@ static Janet cfun_HIWORD(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GET_X_LPARAM(int32_t argc, Janet *argv)
+{
+    LPARAM lParam;
+
+    janet_fixarity(argc, 1);
+
+    lParam = jw32_get_lparam(argv, 0);
+    return jw32_wrap_int(GET_X_LPARAM(lParam));
+}
+
+
+static Janet cfun_GET_Y_LPARAM(int32_t argc, Janet *argv)
+{
+    LPARAM lParam;
+
+    janet_fixarity(argc, 1);
+
+    lParam = jw32_get_lparam(argv, 0);
+    return jw32_wrap_int(GET_Y_LPARAM(lParam));
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "null?",
@@ -50,6 +73,18 @@ static const JanetReg cfuns[] = {
         cfun_HIWORD,
         "(" MOD_NAME "/HIWORD dwordptr)\n\n"
         "Retrieves HIWORD.",
+    },
+    {
+        "GET_X_LPARAM",
+        cfun_GET_X_LPARAM,
+        "(" MOD_NAME "/GET_X_LPARAM lparam)\n\n"
+        "Retrieves the signed x-coordinate from the specified value.",
+    },
+    {
+        "GET_Y_LPARAM",
+        cfun_GET_Y_LPARAM,
+        "(" MOD_NAME "/GET_Y_LPARAM lparam)\n\n"
+        "Retrieves the signed y-coordinate from the specified value.",
     },
     {NULL, NULL, NULL},
 };
