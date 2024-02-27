@@ -191,12 +191,35 @@ static Janet cfun_NOTIFYICONDATA(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_Shell_NotifyIcon(int32_t argc, Janet *argv)
+{
+    DWORD dwMessage;
+    PNOTIFYICONDATA lpData;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    dwMessage = jw32_get_dword(argv, 0);
+    lpData = janet_getabstract(argv, 1, &jw32_at_NOTIFYICONDATA);
+
+    bRet = Shell_NotifyIcon(dwMessage, lpData);
+    return jw32_wrap_bool(bRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "NOTIFYICONDATA",
         cfun_NOTIFYICONDATA,
         "(" MOD_NAME "/NOTIFYICONDATA ...)\n\n"
         "Builds a NOTIFYICONDATA struct.",
+    },
+    {
+        "Shell_NotifyIcon",
+        cfun_Shell_NotifyIcon,
+        "(" MOD_NAME "/Shell_NotifyIcon dwMessage NOTIFYICONDATA)\n\n"
+        "Sends a message to the taskbar's status area.",
     },
 
     {NULL, NULL, NULL},
