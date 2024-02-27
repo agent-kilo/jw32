@@ -76,6 +76,12 @@
            (string (find-build-dir) ((dyn :project) :name) "/combaseapi.dll"))
 
   (declare-native
+   :name (project-module "shellapi")
+   :source ["shellapi.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "shell32.lib"])
+
+  (declare-native
    :name (project-module "util")
    :source ["util.c"]
    :headers [;common-headers]))
