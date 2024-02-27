@@ -1,4 +1,5 @@
 #include "jw32.h"
+#include <strsafe.h>
 #include "debug.h"
 
 #define MOD_NAME "shellapi"
@@ -160,19 +161,22 @@ static Janet cfun_NOTIFYICONDATA(int32_t argc, Janet *argv)
         __set_member(uCallbackMessage, uint)
         __set_member(hIcon, handle)
         if (!janet_cstrcmp(kw, "szTip")) {
-            /* TODO */
+            LPCSTR szTip = jw32_get_lpcstr(argv, v);
+            StringCchCopy(nid->szTip, ARRAYSIZE(nid->szTip), szTip);
             continue;
         }
         __set_member(dwState, dword)
         __set_member(dwStateMask, dword)
         if (!janet_cstrcmp(kw, "szInfo")) {
-            /* TODO */
+            LPCSTR szInfo = jw32_get_lpcstr(argv, v);
+            StringCchCopy(nid->szInfo, ARRAYSIZE(nid->szInfo), szInfo);
             continue;
         }
         __set_member(uTimeout, uint)
         __set_member(uVersion, uint)
         if (!janet_cstrcmp(kw, "szInfoTitle")) {
-            /* TODO */
+            LPCSTR szInfoTitle = jw32_get_lpcstr(argv, v);
+            StringCchCopy(nid->szInfoTitle, ARRAYSIZE(nid->szInfoTitle), szInfoTitle);
             continue;
         }
         __set_member(dwInfoFlags, dword)
