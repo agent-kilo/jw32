@@ -1294,6 +1294,46 @@ static void define_consts_monitorinfof(JanetTable *env)
               "Constant for moniter info flags.");
 }
 
+static void define_consts_tpm(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),    \
+              "Constant for TrackPopupMenu flags.")
+
+    __def(TPM_LEFTBUTTON);
+    __def(TPM_RIGHTBUTTON);
+    __def(TPM_LEFTALIGN);
+    __def(TPM_CENTERALIGN);
+    __def(TPM_RIGHTALIGN);
+#if(WINVER >= 0x0400)
+    __def(TPM_TOPALIGN);
+    __def(TPM_VCENTERALIGN);
+    __def(TPM_BOTTOMALIGN);
+    __def(TPM_HORIZONTAL);
+    __def(TPM_VERTICAL);
+    __def(TPM_NONOTIFY);
+    __def(TPM_RETURNCMD);
+#endif /* WINVER >= 0x0400 */
+#if(WINVER >= 0x0500)
+    __def(TPM_RECURSE);
+    __def(TPM_HORPOSANIMATION);
+    __def(TPM_HORNEGANIMATION);
+    __def(TPM_VERPOSANIMATION);
+    __def(TPM_VERNEGANIMATION);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(TPM_NOANIMATION);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0501)
+    __def(TPM_LAYOUTRTL);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#endif /* WINVER >= 0x0500 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(TPM_WORKAREA);
+#endif /* _WIN32_WINNT >= 0x0601 */
+
+#undef __def
+}
+
 
 /*******************************************************************
  *
@@ -2811,6 +2851,17 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SetForegroundWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_bool(SetForegroundWindow(hWnd));
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -3473,6 +3524,61 @@ static Janet cfun_SetMenu(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_TrackPopupMenuEx(int32_t argc, Janet *argv)
+{
+    HMENU hMenu;
+    UINT uFlags;
+    int x, y;
+    HWND hwnd;
+    LPTPMPARAMS lptpm;
+
+    BOOL bRet;
+
+    TPMPARAMS tpm;
+
+    janet_fixarity(argc, 6);
+
+    hMenu = jw32_get_handle(argv, 0);
+    uFlags = jw32_get_uint(argv, 1);
+    x = jw32_get_int(argv, 2);
+    y = jw32_get_int(argv, 3);
+    hwnd = jw32_get_handle(argv, 4);
+
+    memset(&tpm, 0, sizeof(tpm));
+    tpm.cbSize = sizeof(tpm);
+    if (janet_checktype(argv[5], JANET_NIL)) {
+        lptpm = NULL;
+    } else {
+        if (janet_checktype(argv[5], JANET_TABLE)) {
+            JanetTable *tbl_rect = janet_unwrap_table(argv[5]);
+            Janet val;
+
+#define __extract_rect_field(name)                                      \
+            val = janet_table_get(tbl_rect, janet_ckeywordv(#name));    \
+            if (janet_checkint(val)) {                                  \
+                tpm.rcExclude.##name## = janet_unwrap_integer(val);     \
+            } else {                                                    \
+                tpm.rcExclude.##name## = 0;                             \
+            }
+
+            __extract_rect_field(left);
+            __extract_rect_field(top);
+            __extract_rect_field(right);
+            __extract_rect_field(bottom);
+
+#undef __extract_rect_field
+
+            lptpm = &tpm;
+        } else {
+            janet_panicf("bad slot #%d: expected a table or nil, got %v", 5, argv[5]);
+        }
+    }
+
+    bRet = TrackPopupMenuEx(hMenu, uFlags, x, y, hwnd, lptpm);
+    return jw32_wrap_bool(bRet);
+}
+
+
 /*******************************************************************
  *
  * MISC.
@@ -3640,6 +3746,15 @@ static Janet cfun_GetMonitorInfo(int32_t argc, Janet *argv)
     bRet = GetMonitorInfo(hMonitor, lpmi);
 
     return jw32_wrap_bool(bRet);
+}
+
+
+static Janet cfun_GetSystemMetrics(int32_t argc, Janet *argv)
+{
+    int nIndex;
+    janet_fixarity(argc, 1);
+    nIndex = jw32_get_int(argv, 0);
+    return jw32_wrap_int(GetSystemMetrics(nIndex));
 }
 
 
@@ -3828,6 +3943,12 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/SetProp hWnd lpString hData)\n\n"
         "Sets a window property",
     },
+    {
+        "SetForegroundWindow",
+        cfun_SetForegroundWindow,
+        "(" MOD_NAME "/SetForegroundWindow hWnd)\n\n"
+        "Brings the thread that created the specified window into the foreground and activates the window.",
+    },
 
     /************************** INPUT **************************/
     {
@@ -3946,6 +4067,12 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/SetMenu hWnd hMenu)\n\n"
         "Assigns a menu to a window.",
     },
+    {
+        "TrackPopupMenuEx",
+        cfun_TrackPopupMenuEx,
+        "(" MOD_NAME "/TrackPopupMenuEx hMenu uFlags x y hwnd rect)\n\n"
+        "Displays a shortcut menu at the specified location and tracks the selection of items.",
+    },
 
     /************************** MISC. **************************/
     {
@@ -3971,6 +4098,12 @@ static const JanetReg cfuns[] = {
         cfun_GetMonitorInfo,
         "(" MOD_NAME "/GetMonitorInfo hMonitor lpmi)\n\n"
         "Retrieves information about a display monitor.",
+    },
+    {
+        "GetSystemMetrics",
+        cfun_GetSystemMetrics,
+        "(" MOD_NAME "/GetSystemMetrics nIndex)\n\n"
+        "Retrieves information about system settings.",
     },
 
     {NULL, NULL, NULL},
@@ -4009,6 +4142,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_mouseeventf(env);
     define_consts_keyeventf(env);
     define_consts_monitorinfof(env);
+    define_consts_tpm(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
