@@ -81,6 +81,15 @@
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "shell32.lib"])
 
+  (with-dyns [:dynamic-lflags [;old-dynamic-lflags
+                               "/manifest:embed"
+                               "/manifestinput:manifest/commctrl.manifest"]]
+    (declare-native
+     :name (project-module "commctrl")
+     :source ["commctrl.c"]
+     :headers ["debug.h" ;common-headers]
+     :ldflags [;ldflags "comctl32.lib"]))
+
   (declare-native
    :name (project-module "util")
    :source ["util.c"]
