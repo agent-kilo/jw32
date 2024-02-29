@@ -91,6 +91,12 @@
      :ldflags [;ldflags "comctl32.lib"]))
 
   (declare-native
+   :name (project-module "consoleapi")
+   :source ["consoleapi.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "kernel32.lib"])
+
+  (declare-native
    :name (project-module "util")
    :source ["util.c"]
    :headers [;common-headers]))
