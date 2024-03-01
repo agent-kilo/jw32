@@ -393,6 +393,25 @@ static void define_consts_wm(JanetTable *env)
 #undef __def
 }
 
+static void define_consts_pm(JanetTable *env)
+{
+#define __def(const_name)                                  \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name), \
+              "Constant for PeekMessage behavior.")
+
+    __def(PM_NOREMOVE);
+    __def(PM_REMOVE);
+    __def(PM_NOYIELD);
+#if(WINVER >= 0x0500)
+    __def(PM_QS_INPUT);
+    __def(PM_QS_POSTMESSAGE);
+    __def(PM_QS_PAINT);
+    __def(PM_QS_SENDMESSAGE);
+#endif /* WINVER >= 0x0500 */
+
+#undef __def
+}
+
 static void define_consts_mb(JanetTable *env)
 {
 #define __def(const_name)                                   \
@@ -2187,6 +2206,27 @@ static Janet cfun_GetMessage(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_PeekMessage(int32_t argc, Janet *argv)
+{
+    MSG *lpMsg;
+    HWND hWnd;
+    UINT wMsgFilterMin, wMsgFilterMax;
+    UINT wRemoveMsg;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 5);
+
+    lpMsg = janet_getabstract(argv, 0, &jw32_at_MSG);
+    hWnd = jw32_get_handle(argv, 1);
+    wMsgFilterMin = jw32_get_uint(argv, 2);
+    wMsgFilterMax = jw32_get_uint(argv, 3);
+    wRemoveMsg = jw32_get_uint(argv, 4);
+
+    bRet = PeekMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+    return jw32_wrap_bool(bRet);
+}
+
 static Janet cfun_TranslateMessage(int32_t argc, Janet *argv)
 {
     MSG *lpMsg;
@@ -3758,6 +3798,39 @@ static Janet cfun_GetSystemMetrics(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SetTimer(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT_PTR nIDEvent;
+    UINT uElapse;
+    TIMERPROC lpTimerFunc;
+
+    janet_fixarity(argc, 4);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIDEvent = jw32_get_uint_ptr(argv, 1);
+    uElapse = jw32_get_uint(argv, 2);
+    /* TODO: lpTimerFunc */
+    lpTimerFunc = (TIMERPROC)jw32_get_handle(argv, 3);
+
+    return jw32_wrap_uint_ptr(SetTimer(hWnd, nIDEvent, uElapse, NULL));
+}
+
+
+static Janet cfun_KillTimer(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT_PTR nIDEvent;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIDEvent = jw32_get_uint_ptr(argv, 1);
+
+    return jw32_wrap_bool(KillTimer(hWnd, nIDEvent));
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -3802,6 +3875,12 @@ static const JanetReg cfuns[] = {
         cfun_GetMessage,
         "(" MOD_NAME "/GetMessage lpMsg hWnd wMsgFilterMin wMsgFilterMax)\n\n"
         "Returns non-zero if the operation succeeds.",
+    },
+    {
+        "PeekMessage",
+        cfun_PeekMessage,
+        "(" MOD_NAME "/PeekMessage lpMsg hWnd wMsgFilterMin wMsgFilterMax wRemoveMsg)\n\n"
+        "Checks the thread message queue for a posted message.",
     },
     {
         "TranslateMessage",
@@ -4105,6 +4184,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetSystemMetrics nIndex)\n\n"
         "Retrieves information about system settings.",
     },
+    {
+        "SetTimer",
+        cfun_SetTimer,
+        "(" MOD_NAME "/SetTimer hWnd nIDEvent uElapse lpTimerFunc)\n\n"
+        "Creates a timer.",
+    },
+    {
+        "KillTimer",
+        cfun_KillTimer,
+        "(" MOD_NAME "/KillTimer hWnd nIDEvent)\n\n"
+        "Destroys a timer.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -4113,6 +4204,7 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_wm(env);
+    define_consts_pm(env);
     define_consts_mb(env);
     define_consts_button_id(env);
     define_consts_idi(env);
