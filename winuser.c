@@ -1727,6 +1727,66 @@ BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, 
     }
 }
 
+static int PKBDLLHOOKSTRUCT_get(void *p, Janet key, Janet *out)
+{
+    PKBDLLHOOKSTRUCT *ppHookStruct = (PKBDLLHOOKSTRUCT *)p;
+    PKBDLLHOOKSTRUCT pHookStruct = *ppHookStruct;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type)              \
+    if (!janet_cstrcmp(kw, #member)) {          \
+        *out = jw32_wrap_##type(pHookStruct->member);   \
+        return 1;                               \
+    }
+
+    __get_member(vkCode, dword)
+    __get_member(scanCode, dword)
+    __get_member(flags, dword)
+    if (!janet_cstrcmp(kw, "flags.extended")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLKHF_EXTENDED);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "flags.lower_il_injected")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLKHF_LOWER_IL_INJECTED);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "flags.injected")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLKHF_INJECTED);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "flags.altdown")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLKHF_ALTDOWN);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "flags.up")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLKHF_UP);
+        return 1;
+    }
+    __get_member(time, dword)
+    __get_member(dwExtraInfo, ulong_ptr)
+    if (!janet_cstrcmp(kw, "address")) {
+        *out = jw32_wrap_lparam(pHookStruct);
+        return 1;
+    }
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_PKBDLLHOOKSTRUCT = {
+    .name = MOD_NAME "/PKBDLLHOOKSTRUCT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = PKBDLLHOOKSTRUCT_get,
+    JANET_ATEND_GET
+};
+
 static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM lParam)
 {
     Janet hook = jw32_wrap_int(idHook);
@@ -1742,8 +1802,20 @@ static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM l
     Janet argv[3] = {
         jw32_wrap_int(nCode),
         jw32_wrap_wparam(wParam),
-        jw32_wrap_lparam(lParam),
+        janet_wrap_nil(),
     };
+
+    switch (idHook) {
+    case WH_KEYBOARD_LL:
+        PKBDLLHOOKSTRUCT *ppHookStruct = janet_abstract(&jw32_at_PKBDLLHOOKSTRUCT, sizeof(PKBDLLHOOKSTRUCT));
+        *ppHookStruct = (PKBDLLHOOKSTRUCT)lParam;
+        argv[2] = janet_wrap_abstract(ppHookStruct);
+        break;
+    default:
+        argv[2] = jw32_wrap_lparam(lParam);
+        break;
+    }
+
     Janet ret;
 
     if (jw32_pcall_fn(proc_fn, 3, argv, &ret)) {
@@ -1873,7 +1945,6 @@ LRESULT CALLBACK jw32_win_hook_callwndprocret_proc(int nCode, WPARAM wParam, LPA
 
 LRESULT CALLBACK jw32_win_hook_keyboard_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    /* TODO */
 #ifdef JW32_CALLBACK_DEBUG
     jw32_dbg_msg("============= jw32_win_hook_keyboard_ll_proc ===============");
     jw32_dbg_val(nCode, "%d");
@@ -4242,6 +4313,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_register_abstract_type(&jw32_at_RAWINPUTDEVICE);
     janet_register_abstract_type(&jw32_at_INPUT);
     janet_register_abstract_type(&jw32_at_MONITORINFOEX);
+    janet_register_abstract_type(&jw32_at_PKBDLLHOOKSTRUCT);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
