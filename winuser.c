@@ -1354,6 +1354,261 @@ static void define_consts_tpm(JanetTable *env)
 }
 
 
+static void define_consts_vk(JanetTable *env)
+{
+#define __def(const_name)                                   \
+    janet_def(env, #const_name, jw32_wrap_word(const_name), \
+              "Constant for Virtual-Key Codes.")
+
+    __def(VK_LBUTTON);
+    __def(VK_RBUTTON);
+    __def(VK_CANCEL);
+    __def(VK_MBUTTON);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(VK_XBUTTON1);
+    __def(VK_XBUTTON2);
+#endif /* _WIN32_WINNT >= 0x0500 */
+/*
+ * 0x07 : reserved
+ */
+    __def(VK_BACK);
+    __def(VK_TAB);
+/*
+ * 0x0A - 0x0B : reserved
+ */
+    __def(VK_CLEAR);
+    __def(VK_RETURN);
+/*
+ * 0x0E - 0x0F : unassigned
+ */
+    __def(VK_SHIFT);
+    __def(VK_CONTROL);
+    __def(VK_MENU);
+    __def(VK_PAUSE);
+    __def(VK_CAPITAL);
+    __def(VK_KANA);
+    __def(VK_HANGEUL);
+    __def(VK_HANGUL);
+    __def(VK_IME_ON);
+    __def(VK_JUNJA);
+    __def(VK_FINAL);
+    __def(VK_HANJA);
+    __def(VK_KANJI);
+    __def(VK_IME_OFF);
+    __def(VK_ESCAPE);
+    __def(VK_CONVERT);
+    __def(VK_NONCONVERT);
+    __def(VK_ACCEPT);
+    __def(VK_MODECHANGE);
+    __def(VK_SPACE);
+    __def(VK_PRIOR);
+    __def(VK_NEXT);
+    __def(VK_END);
+    __def(VK_HOME);
+    __def(VK_LEFT);
+    __def(VK_UP);
+    __def(VK_RIGHT);
+    __def(VK_DOWN);
+    __def(VK_SELECT);
+    __def(VK_PRINT);
+    __def(VK_EXECUTE);
+    __def(VK_SNAPSHOT);
+    __def(VK_INSERT);
+    __def(VK_DELETE);
+    __def(VK_HELP);
+/*
+ * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
+ * 0x3A - 0x40 : unassigned
+ * VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
+ */
+    __def(VK_LWIN);
+    __def(VK_RWIN);
+    __def(VK_APPS);
+/*
+ * 0x5E : reserved
+ */
+    __def(VK_SLEEP);
+    __def(VK_NUMPAD0);
+    __def(VK_NUMPAD1);
+    __def(VK_NUMPAD2);
+    __def(VK_NUMPAD3);
+    __def(VK_NUMPAD4);
+    __def(VK_NUMPAD5);
+    __def(VK_NUMPAD6);
+    __def(VK_NUMPAD7);
+    __def(VK_NUMPAD8);
+    __def(VK_NUMPAD9);
+    __def(VK_MULTIPLY);
+    __def(VK_ADD);
+    __def(VK_SEPARATOR);
+    __def(VK_SUBTRACT);
+    __def(VK_DECIMAL);
+    __def(VK_DIVIDE);
+    __def(VK_F1);
+    __def(VK_F2);
+    __def(VK_F3);
+    __def(VK_F4);
+    __def(VK_F5);
+    __def(VK_F6);
+    __def(VK_F7);
+    __def(VK_F8);
+    __def(VK_F9);
+    __def(VK_F10);
+    __def(VK_F11);
+    __def(VK_F12);
+    __def(VK_F13);
+    __def(VK_F14);
+    __def(VK_F15);
+    __def(VK_F16);
+    __def(VK_F17);
+    __def(VK_F18);
+    __def(VK_F19);
+    __def(VK_F20);
+    __def(VK_F21);
+    __def(VK_F22);
+    __def(VK_F23);
+    __def(VK_F24);
+#if(_WIN32_WINNT >= 0x0604)
+/*
+ * 0x88 - 0x8F : UI navigation
+ */
+    __def(VK_NAVIGATION_VIEW);
+    __def(VK_NAVIGATION_MENU);
+    __def(VK_NAVIGATION_UP);
+    __def(VK_NAVIGATION_DOWN);
+    __def(VK_NAVIGATION_LEFT);
+    __def(VK_NAVIGATION_RIGHT);
+    __def(VK_NAVIGATION_ACCEPT);
+    __def(VK_NAVIGATION_CANCEL);
+#endif /* _WIN32_WINNT >= 0x0604 */
+    __def(VK_NUMLOCK);
+    __def(VK_SCROLL);
+    __def(VK_OEM_NEC_EQUAL);
+    __def(VK_OEM_FJ_JISHO);
+    __def(VK_OEM_FJ_MASSHOU);
+    __def(VK_OEM_FJ_TOUROKU);
+    __def(VK_OEM_FJ_LOYA);
+    __def(VK_OEM_FJ_ROYA);
+/*
+ * 0x97 - 0x9F : unassigned
+ */
+    __def(VK_LSHIFT);
+    __def(VK_RSHIFT);
+    __def(VK_LCONTROL);
+    __def(VK_RCONTROL);
+    __def(VK_LMENU);
+    __def(VK_RMENU);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(VK_BROWSER_BACK);
+    __def(VK_BROWSER_FORWARD);
+    __def(VK_BROWSER_REFRESH);
+    __def(VK_BROWSER_STOP);
+    __def(VK_BROWSER_SEARCH);
+    __def(VK_BROWSER_FAVORITES);
+    __def(VK_BROWSER_HOME);
+    __def(VK_VOLUME_MUTE);
+    __def(VK_VOLUME_DOWN);
+    __def(VK_VOLUME_UP);
+    __def(VK_MEDIA_NEXT_TRACK);
+    __def(VK_MEDIA_PREV_TRACK);
+    __def(VK_MEDIA_STOP);
+    __def(VK_MEDIA_PLAY_PAUSE);
+    __def(VK_LAUNCH_MAIL);
+    __def(VK_LAUNCH_MEDIA_SELECT);
+    __def(VK_LAUNCH_APP1);
+    __def(VK_LAUNCH_APP2);
+#endif /* _WIN32_WINNT >= 0x0500 */
+/*
+ * 0xB8 - 0xB9 : reserved
+ */
+    __def(VK_OEM_1);
+    __def(VK_OEM_PLUS);
+    __def(VK_OEM_COMMA);
+    __def(VK_OEM_MINUS);
+    __def(VK_OEM_PERIOD);
+    __def(VK_OEM_2);
+    __def(VK_OEM_3);
+/*
+ * 0xC1 - 0xC2 : reserved
+ */
+#if(_WIN32_WINNT >= 0x0604)
+    __def(VK_GAMEPAD_A);
+    __def(VK_GAMEPAD_B);
+    __def(VK_GAMEPAD_X);
+    __def(VK_GAMEPAD_Y);
+    __def(VK_GAMEPAD_RIGHT_SHOULDER);
+    __def(VK_GAMEPAD_LEFT_SHOULDER);
+    __def(VK_GAMEPAD_LEFT_TRIGGER);
+    __def(VK_GAMEPAD_RIGHT_TRIGGER);
+    __def(VK_GAMEPAD_DPAD_UP);
+    __def(VK_GAMEPAD_DPAD_DOWN);
+    __def(VK_GAMEPAD_DPAD_LEFT);
+    __def(VK_GAMEPAD_DPAD_RIGHT);
+    __def(VK_GAMEPAD_MENU);
+    __def(VK_GAMEPAD_VIEW);
+    __def(VK_GAMEPAD_LEFT_THUMBSTICK_BUTTON);
+    __def(VK_GAMEPAD_RIGHT_THUMBSTICK_BUTTON);
+    __def(VK_GAMEPAD_LEFT_THUMBSTICK_UP);
+    __def(VK_GAMEPAD_LEFT_THUMBSTICK_DOWN);
+    __def(VK_GAMEPAD_LEFT_THUMBSTICK_RIGHT);
+    __def(VK_GAMEPAD_LEFT_THUMBSTICK_LEFT);
+    __def(VK_GAMEPAD_RIGHT_THUMBSTICK_UP);
+    __def(VK_GAMEPAD_RIGHT_THUMBSTICK_DOWN);
+    __def(VK_GAMEPAD_RIGHT_THUMBSTICK_RIGHT);
+    __def(VK_GAMEPAD_RIGHT_THUMBSTICK_LEFT);
+#endif /* _WIN32_WINNT >= 0x0604 */
+    __def(VK_OEM_4);
+    __def(VK_OEM_5);
+    __def(VK_OEM_6);
+    __def(VK_OEM_7);
+    __def(VK_OEM_8);
+/*
+ * 0xE0 : reserved
+ */
+    __def(VK_OEM_AX);
+    __def(VK_OEM_102);
+    __def(VK_ICO_HELP);
+    __def(VK_ICO_00);
+#if(WINVER >= 0x0400)
+    __def(VK_PROCESSKEY);
+#endif /* WINVER >= 0x0400 */
+    __def(VK_ICO_CLEAR);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(VK_PACKET);
+#endif /* _WIN32_WINNT >= 0x0500 */
+/*
+ * 0xE8 : unassigned
+ */
+    __def(VK_OEM_RESET);
+    __def(VK_OEM_JUMP);
+    __def(VK_OEM_PA1);
+    __def(VK_OEM_PA2);
+    __def(VK_OEM_PA3);
+    __def(VK_OEM_WSCTRL);
+    __def(VK_OEM_CUSEL);
+    __def(VK_OEM_ATTN);
+    __def(VK_OEM_FINISH);
+    __def(VK_OEM_COPY);
+    __def(VK_OEM_AUTO);
+    __def(VK_OEM_ENLW);
+    __def(VK_OEM_BACKTAB);
+    __def(VK_ATTN);
+    __def(VK_CRSEL);
+    __def(VK_EXSEL);
+    __def(VK_EREOF);
+    __def(VK_PLAY);
+    __def(VK_ZOOM);
+    __def(VK_NONAME);
+    __def(VK_PA1);
+    __def(VK_OEM_CLEAR);
+/*
+ * 0xFF : reserved
+ */
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -4306,6 +4561,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_keyeventf(env);
     define_consts_monitorinfof(env);
     define_consts_tpm(env);
+    define_consts_vk(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
