@@ -4157,6 +4157,18 @@ static Janet cfun_KillTimer(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetAsyncKeyState(int32_t argc, Janet *argv)
+{
+    int vKey;
+
+    janet_fixarity(argc, 1);
+
+    vKey = jw32_get_int(argv, 0);
+    /* The return value is actually a SHORT */
+    return jw32_wrap_int(GetAsyncKeyState(vKey));
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -4521,6 +4533,12 @@ static const JanetReg cfuns[] = {
         cfun_KillTimer,
         "(" MOD_NAME "/KillTimer hWnd nIDEvent)\n\n"
         "Destroys a timer.",
+    },
+    {
+        "GetAsyncKeyState",
+        cfun_GetAsyncKeyState,
+        "(" MOD_NAME "/GetAsyncKeyState vKey)\n\n"
+        "Gets the current key state.",
     },
 
     {NULL, NULL, NULL},
