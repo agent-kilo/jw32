@@ -1999,7 +1999,7 @@ static int PKBDLLHOOKSTRUCT_get(void *p, Janet key, Janet *out)
         return 1;                               \
     }
 
-    __get_member(vkCode, dword)
+    __get_member(vkCode, int)
     __get_member(scanCode, dword)
     __get_member(flags, dword)
     if (!janet_cstrcmp(kw, "flags.extended")) {
