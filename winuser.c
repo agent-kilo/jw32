@@ -3228,6 +3228,14 @@ static Janet cfun_SetForegroundWindow(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetForegroundWindow(int32_t argc, Janet *argv)
+{
+    (void)argv;
+    janet_fixarity(argc, 0);
+    return jw32_wrap_handle(GetForegroundWindow());
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -4365,6 +4373,12 @@ static const JanetReg cfuns[] = {
         cfun_SetForegroundWindow,
         "(" MOD_NAME "/SetForegroundWindow hWnd)\n\n"
         "Brings the thread that created the specified window into the foreground and activates the window.",
+    },
+    {
+        "GetForegroundWindow",
+        cfun_GetForegroundWindow,
+        "(" MOD_NAME "/GetForegroundWindow)\n\n"
+        "Retrieves a handle to the foreground window.",
     },
 
     /************************** INPUT **************************/
