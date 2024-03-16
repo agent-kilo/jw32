@@ -109,11 +109,13 @@
 struct Jw32UIAEventHandlerThreadState {
     int vm_initialized;
     JanetTable *env;
+    JanetTable *cb_map;
 };
 typedef struct Jw32UIAEventHandlerThreadState Jw32UIAEventHandlerThreadState;
 
 JANET_THREAD_LOCAL Jw32UIAEventHandlerThreadState uia_thread_state = {
     0,
+    NULL,
     NULL,
 };
 
@@ -501,14 +503,6 @@ static JanetBuffer *marshal_into_buffer(Janet value, JanetBuffer *buf)
     return buf;
 }
 
-static JanetFunction *unmarshal_handler_cb(Jw32UIAEventHandler *handler)
-{
-    JanetBuffer *marshaled_cb = handler->marshaled_cb;
-    Janet cb = janet_unmarshal(marshaled_cb->data, marshaled_cb->count,
-                               JANET_MARSHAL_UNSAFE, NULL, NULL);
-    return janet_unwrap_function(cb);
-}
-
 static JanetTable *unmarshal_handler_env(Jw32UIAEventHandler *handler)
 {
     JanetBuffer *marshaled_env = handler->marshaled_env;
@@ -554,6 +548,22 @@ static JanetCFunRegistry *unmarshal_handler_cfun_reg(Jw32UIAEventHandler *handle
     return cfun_reg;
 }
 
+static void init_uia_thread_state(Jw32UIAEventHandler *handler)
+{
+    if (handler) {
+        uia_thread_state.env = unmarshal_handler_env(handler);
+    } else {
+        uia_thread_state.env = janet_table(0);
+    }
+    janet_gcroot(janet_wrap_table(uia_thread_state.env));
+    jw32_dbg_val(uia_thread_state.env->count, "%d");
+
+    uia_thread_state.cb_map = janet_table(0);
+    janet_gcroot(janet_wrap_table(uia_thread_state.cb_map));
+
+    uia_thread_state.vm_initialized = 1;
+}
+
 static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
 {
     jw32_dbg_val(GetCurrentThreadId(), "0x%x");
@@ -571,10 +581,6 @@ static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
     JanetSignal signal = janet_try(&tstate);
 
     if (JANET_SIGNAL_OK == signal) {
-        uia_thread_state.env = unmarshal_handler_env(handler);
-        janet_gcroot(janet_wrap_table(uia_thread_state.env));
-        jw32_dbg_val(uia_thread_state.env->count, "%d");
-
         janet_local_vm()->abstract_registry = unmarshal_handler_abs_reg(handler);
         janet_gcroot(janet_wrap_table(janet_local_vm()->abstract_registry));
         jw32_dbg_val(janet_local_vm()->abstract_registry->count, "%d");
@@ -586,12 +592,31 @@ static void init_event_handler_thread_vm(Jw32UIAEventHandler *handler)
         janet_local_vm()->registry_dirty = 1;
         jw32_dbg_val(janet_local_vm()->registry_count, "%zu");
 
-        uia_thread_state.vm_initialized = 1;
+        init_uia_thread_state(handler);
     } else {
         jw32_dbg_val(signal, "%d");
         jw32_dbg_jval(tstate.payload);
     }
     janet_restore(&tstate);
+}
+
+static JanetFunction *uia_load_cached_event_handler_fn(Jw32UIAEventHandler *handler)
+{
+    Janet fn = janet_table_get(uia_thread_state.cb_map, janet_wrap_pointer(handler));
+    if (janet_checktype(fn, JANET_NIL)) {
+        /* It's the first time the handler function get called in this thread, cache it */
+        fn = janet_unmarshal(handler->marshaled_cb->data, handler->marshaled_cb->count,
+                             JANET_MARSHAL_UNSAFE, NULL, NULL);
+        janet_table_put(uia_thread_state.cb_map, janet_wrap_pointer(handler), fn);
+        /* "Threaded" abstract types are marshalled as raw pointers, and tracked by ref count.
+           ref-counted memory may get freed after an unmarshal operation, so we need to marshal
+           the function again to keep the "threaded" marshalled objects alive. */
+        handler->marshaled_cb->count = 0; /* clear buffer */
+        marshal_into_buffer(fn, handler->marshaled_cb);
+        return janet_unwrap_function(fn);
+    } else {
+        return janet_unwrap_function(fn);
+    }
 }
 
 static JanetSignal uia_call_event_handler_fn(JanetFunction *fn,
@@ -693,7 +718,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleAutomationEvent(
 
     __JANET_TRY()
 
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(eventId);
 
@@ -724,7 +749,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleChangesEvent(
 
     __JANET_TRY()
 
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
 
     arr = janet_array(changesCount);
@@ -767,7 +792,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleFocusChangedEvent(
 
     __JANET_TRY()
 
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
 
     __JANET_TRY_END(hrRet)
@@ -797,7 +822,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleNotificationEvent(
 
     __JANET_TRY()
 
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(notificationKind);
     argv[2] = jw32_wrap_int(notificationProcessing);
@@ -848,7 +873,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandlePropertyChangedEvent(
     __JANET_TRY()
 
     Janet new_jval = jw32_parse_variant(&newValue, FALSE);
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     /* TODO: wrap VT_UNKNOWN values in IUnknown */
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(propertyId);
@@ -879,7 +904,7 @@ static HRESULT STDMETHODCALLTYPE Jw32UIAEventHandler_HandleStructureChangedEvent
 
     __JANET_TRY()
 
-    callback = unmarshal_handler_cb(self);
+    callback = uia_load_cached_event_handler_fn(self);
     argv[0] = jw32_com_make_object_in_env(sender, "IUIAutomationElement", env);
     argv[1] = jw32_wrap_int(changeType);
     /* opaque pointer, don't need to access its content,
@@ -3971,16 +3996,15 @@ static void define_iunknown_in_thread_state(JanetTable *IUnknown_proto)
     janet_def(uia_thread_state.env, "IUnknown", janet_wrap_table(IUnknown_proto), NULL);
 }
 
-static void init_table_protos(JanetTable *env)
+static void init_table_protos(JanetTable *env, JanetTable *uia_thread_state_env)
 {
-    uia_thread_state.env = janet_table(0);
     jw32_com_reg_proto_hook("IUnknown", define_iunknown_in_thread_state);
 
 #define __def_proto(name, parent, doc)                                  \
     do {                                                                \
         ##name##_proto = jw32_com_make_if_proto(#name, ##name##_methods, parent, &IID_##name##); \
         janet_def(env, #name, janet_wrap_table(##name##_proto), doc);   \
-        janet_def(uia_thread_state.env, #name, janet_wrap_table(##name##_proto), NULL); \
+        janet_def(uia_thread_state_env, #name, janet_wrap_table(##name##_proto), NULL); \
     } while (0)
 
     __def_proto(IUIAutomation,
@@ -4052,16 +4076,13 @@ static void init_table_protos(JanetTable *env)
 
 #undef __def_proto
 
-    janet_def(env, "uia_thread_state_env", janet_wrap_table(uia_thread_state.env),
+    janet_def(env, "uia_thread_state_env", janet_wrap_table(uia_thread_state_env),
               "Environment for UI Automation event handler functions.");
 }
 
 
 JANET_MODULE_ENTRY(JanetTable *env)
 {
-    /* we are loading this module in the "main" thread */
-    uia_thread_state.vm_initialized = 1;
-
     define_uuids(env);
     define_consts_uia_controltypeid(env);
     define_consts_uia_propertyid(env);
@@ -4076,5 +4097,6 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_windowvisualstate(env);
     define_consts_automationelementmode(env);
 
-    init_table_protos(env);
+    init_uia_thread_state(NULL);
+    init_table_protos(env, uia_thread_state.env);
 }
