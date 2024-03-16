@@ -483,10 +483,10 @@ struct Jw32UIAEventHandler {
     CONST_VTBL Jw32UIAEventHandlerVtbl *lpVtbl;
     const IID *_riid;
     LONG _refCount;
-    JanetBuffer *marshaled_cb;
-    JanetBuffer *marshaled_env;
-    JanetBuffer *marshaled_abs_reg;
-    JanetBuffer *marshaled_cfun_reg;
+    JanetBuffer *marshalled_cb;
+    JanetBuffer *marshalled_env;
+    JanetBuffer *marshalled_abs_reg;
+    JanetBuffer *marshalled_cfun_reg;
 };
 
 
@@ -505,36 +505,36 @@ static JanetBuffer *marshal_into_buffer(Janet value, JanetBuffer *buf)
 
 static JanetTable *unmarshal_handler_env(Jw32UIAEventHandler *handler)
 {
-    JanetBuffer *marshaled_env = handler->marshaled_env;
-    Janet env = janet_unmarshal(marshaled_env->data, marshaled_env->count,
+    JanetBuffer *marshalled_env = handler->marshalled_env;
+    Janet env = janet_unmarshal(marshalled_env->data, marshalled_env->count,
                                 JANET_MARSHAL_UNSAFE, NULL, NULL);
     return janet_unwrap_table(env);
 }
 
 static JanetTable *unmarshal_handler_abs_reg(Jw32UIAEventHandler *handler)
 {
-    JanetBuffer *marshaled_abs_reg = handler->marshaled_abs_reg;
-    Janet abs_reg = janet_unmarshal(marshaled_abs_reg->data, marshaled_abs_reg->count,
+    JanetBuffer *marshalled_abs_reg = handler->marshalled_abs_reg;
+    Janet abs_reg = janet_unmarshal(marshalled_abs_reg->data, marshalled_abs_reg->count,
                                     JANET_MARSHAL_UNSAFE, NULL, NULL);
     return janet_unwrap_table(abs_reg);
 }
 
 static JanetCFunRegistry *unmarshal_handler_cfun_reg(Jw32UIAEventHandler *handler, size_t *count)
 {
-    JanetBuffer *marshaled_cfun_reg = handler->marshaled_cfun_reg;
+    JanetBuffer *marshalled_cfun_reg = handler->marshalled_cfun_reg;
     uint32_t ui_count;
     size_t reg_size;
 
-    if (marshaled_cfun_reg->count < sizeof(ui_count)) {
+    if (marshalled_cfun_reg->count < sizeof(ui_count)) {
         janet_panic("received invalid cfun registry");
     }
 
-    memcpy(&ui_count, marshaled_cfun_reg->data, sizeof(ui_count));
+    memcpy(&ui_count, marshalled_cfun_reg->data, sizeof(ui_count));
     *count = (size_t)ui_count;
     reg_size = (*count) * sizeof(JanetCFunRegistry);
     jw32_dbg_val(reg_size, "%zu");
 
-    if (marshaled_cfun_reg->count - sizeof(ui_count) < reg_size) {
+    if (marshalled_cfun_reg->count - sizeof(ui_count) < reg_size) {
         janet_panic("received invalid cfun registry");
     }
 
@@ -544,7 +544,7 @@ static JanetCFunRegistry *unmarshal_handler_cfun_reg(Jw32UIAEventHandler *handle
         janet_panic("failed to allocate memory for cfun registry");
     }
 
-    memcpy(cfun_reg, marshaled_cfun_reg->data + sizeof(ui_count), reg_size);
+    memcpy(cfun_reg, marshalled_cfun_reg->data + sizeof(ui_count), reg_size);
     return cfun_reg;
 }
 
@@ -605,14 +605,14 @@ static JanetFunction *uia_load_cached_event_handler_fn(Jw32UIAEventHandler *hand
     Janet fn = janet_table_get(uia_thread_state.cb_map, janet_wrap_pointer(handler));
     if (janet_checktype(fn, JANET_NIL)) {
         /* It's the first time the handler function get called in this thread, cache it */
-        fn = janet_unmarshal(handler->marshaled_cb->data, handler->marshaled_cb->count,
+        fn = janet_unmarshal(handler->marshalled_cb->data, handler->marshalled_cb->count,
                              JANET_MARSHAL_UNSAFE, NULL, NULL);
         janet_table_put(uia_thread_state.cb_map, janet_wrap_pointer(handler), fn);
         /* "Threaded" abstract types are marshalled as raw pointers, and tracked by ref count.
            ref-counted memory may get freed after an unmarshal operation, so we need to marshal
            the function again to keep the "threaded" marshalled objects alive. */
-        handler->marshaled_cb->count = 0; /* clear buffer */
-        marshal_into_buffer(fn, handler->marshaled_cb);
+        handler->marshalled_cb->count = 0; /* clear buffer */
+        marshal_into_buffer(fn, handler->marshalled_cb);
         return janet_unwrap_function(fn);
     } else {
         return janet_unwrap_function(fn);
@@ -656,17 +656,17 @@ static ULONG STDMETHODCALLTYPE Jw32UIAEventHandler_Release(Jw32UIAEventHandler *
     ULONG ret = InterlockedDecrement(&(self->_refCount));
     jw32_dbg_val(ret, "%lu");
     if (0 == ret) {
-        janet_buffer_deinit(self->marshaled_cb);
-        janet_free(self->marshaled_cb);
+        janet_buffer_deinit(self->marshalled_cb);
+        janet_free(self->marshalled_cb);
 
-        janet_buffer_deinit(self->marshaled_env);
-        janet_free(self->marshaled_env);
+        janet_buffer_deinit(self->marshalled_env);
+        janet_free(self->marshalled_env);
 
-        janet_buffer_deinit(self->marshaled_abs_reg);
-        janet_free(self->marshaled_abs_reg);
+        janet_buffer_deinit(self->marshalled_abs_reg);
+        janet_free(self->marshalled_abs_reg);
 
-        janet_buffer_deinit(self->marshaled_cfun_reg);
-        janet_free(self->marshaled_cfun_reg);
+        janet_buffer_deinit(self->marshalled_cfun_reg);
+        janet_free(self->marshalled_cfun_reg);
 
         GlobalFree(self);
     }
@@ -977,23 +977,23 @@ static Jw32UIAEventHandler *create_uia_event_handler(
     handler->_riid = riid,
     handler->lpVtbl = pVtbl;
 
-    handler->marshaled_cb = marshal_into_buffer(janet_wrap_function(callback), NULL);
-    if (!(handler->marshaled_cb)) {
+    handler->marshalled_cb = marshal_into_buffer(janet_wrap_function(callback), NULL);
+    if (!(handler->marshalled_cb)) {
         goto error_cb;
     }
 
-    handler->marshaled_env = marshal_into_buffer(janet_wrap_table(env), NULL);
-    if (!(handler->marshaled_env)) {
+    handler->marshalled_env = marshal_into_buffer(janet_wrap_table(env), NULL);
+    if (!(handler->marshalled_env)) {
         goto error_env;
     }
 
-    handler->marshaled_abs_reg = marshal_into_buffer(janet_wrap_table(janet_local_vm()->abstract_registry), NULL);
-    if (!(handler->marshaled_abs_reg)) {
+    handler->marshalled_abs_reg = marshal_into_buffer(janet_wrap_table(janet_local_vm()->abstract_registry), NULL);
+    if (!(handler->marshalled_abs_reg)) {
         goto error_abs_reg;
     }
 
-    JanetBuffer *marshaled_cfun_reg = janet_malloc(sizeof(JanetBuffer));
-    if (!marshaled_cfun_reg) {
+    JanetBuffer *marshalled_cfun_reg = janet_malloc(sizeof(JanetBuffer));
+    if (!marshalled_cfun_reg) {
         goto error_cfun_reg;
     }
     if (janet_local_vm()->registry_count > INT32_MAX) {
@@ -1003,12 +1003,12 @@ static Jw32UIAEventHandler *create_uia_event_handler(
         exit(1);
     }
     uint32_t count = (uint32_t)(janet_local_vm()->registry_count);
-    janet_buffer_init(marshaled_cfun_reg, sizeof(count) + count * sizeof(JanetCFunRegistry));
-    janet_buffer_push_bytes(marshaled_cfun_reg, (uint8_t *)&count, sizeof(count));
-    janet_buffer_push_bytes(marshaled_cfun_reg,
+    janet_buffer_init(marshalled_cfun_reg, sizeof(count) + count * sizeof(JanetCFunRegistry));
+    janet_buffer_push_bytes(marshalled_cfun_reg, (uint8_t *)&count, sizeof(count));
+    janet_buffer_push_bytes(marshalled_cfun_reg,
                             (uint8_t *)(janet_local_vm()->registry),
                             count * sizeof(JanetCFunRegistry));
-    handler->marshaled_cfun_reg = marshaled_cfun_reg;
+    handler->marshalled_cfun_reg = marshalled_cfun_reg;
     jw32_dbg_val(count * sizeof(JanetCFunRegistry), "%zu");
 
     handler->lpVtbl->AddRef(handler);
@@ -1016,11 +1016,11 @@ static Jw32UIAEventHandler *create_uia_event_handler(
     return handler;
 
 error_cfun_reg:
-    janet_free(handler->marshaled_abs_reg);
+    janet_free(handler->marshalled_abs_reg);
 error_abs_reg:
-    janet_free(handler->marshaled_env);
+    janet_free(handler->marshalled_env);
 error_env:
-    janet_free(handler->marshaled_cb);
+    janet_free(handler->marshalled_cb);
 error_cb:
     GlobalFree(handler);
     return NULL;
