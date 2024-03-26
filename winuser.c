@@ -3236,6 +3236,17 @@ static Janet cfun_GetForegroundWindow(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_IsWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_bool(IsWindow(hWnd));
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -4379,6 +4390,12 @@ static const JanetReg cfuns[] = {
         cfun_GetForegroundWindow,
         "(" MOD_NAME "/GetForegroundWindow)\n\n"
         "Retrieves a handle to the foreground window.",
+    },
+    {
+        "IsWindow",
+        cfun_IsWindow,
+        "(" MOD_NAME "/IsWindow hWnd)\n\n"
+        "Checks whether hWnd identifies an existing window.",
     },
 
     /************************** INPUT **************************/
