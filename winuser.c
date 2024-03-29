@@ -1609,6 +1609,299 @@ static void define_consts_vk(JanetTable *env)
 }
 
 
+static void define_consts_spi(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
+              "Constant for SystemParametersInfo actions.")
+
+    __def(SPI_GETBEEP);
+    __def(SPI_SETBEEP);
+    __def(SPI_GETMOUSE);
+    __def(SPI_SETMOUSE);
+    __def(SPI_GETBORDER);
+    __def(SPI_SETBORDER);
+    __def(SPI_GETKEYBOARDSPEED);
+    __def(SPI_SETKEYBOARDSPEED);
+    __def(SPI_LANGDRIVER);
+    __def(SPI_ICONHORIZONTALSPACING);
+    __def(SPI_GETSCREENSAVETIMEOUT);
+    __def(SPI_SETSCREENSAVETIMEOUT);
+    __def(SPI_GETSCREENSAVEACTIVE);
+    __def(SPI_SETSCREENSAVEACTIVE);
+    __def(SPI_GETGRIDGRANULARITY);
+    __def(SPI_SETGRIDGRANULARITY);
+    __def(SPI_SETDESKWALLPAPER);
+    __def(SPI_SETDESKPATTERN);
+    __def(SPI_GETKEYBOARDDELAY);
+    __def(SPI_SETKEYBOARDDELAY);
+    __def(SPI_ICONVERTICALSPACING);
+    __def(SPI_GETICONTITLEWRAP);
+    __def(SPI_SETICONTITLEWRAP);
+    __def(SPI_GETMENUDROPALIGNMENT);
+    __def(SPI_SETMENUDROPALIGNMENT);
+    __def(SPI_SETDOUBLECLKWIDTH);
+    __def(SPI_SETDOUBLECLKHEIGHT);
+    __def(SPI_GETICONTITLELOGFONT);
+    __def(SPI_SETDOUBLECLICKTIME);
+    __def(SPI_SETMOUSEBUTTONSWAP);
+    __def(SPI_SETICONTITLELOGFONT);
+    __def(SPI_GETFASTTASKSWITCH);
+    __def(SPI_SETFASTTASKSWITCH);
+#if(WINVER >= 0x0400)
+    __def(SPI_SETDRAGFULLWINDOWS);
+    __def(SPI_GETDRAGFULLWINDOWS);
+    __def(SPI_GETNONCLIENTMETRICS);
+    __def(SPI_SETNONCLIENTMETRICS);
+    __def(SPI_GETMINIMIZEDMETRICS);
+    __def(SPI_SETMINIMIZEDMETRICS);
+    __def(SPI_GETICONMETRICS);
+    __def(SPI_SETICONMETRICS);
+    __def(SPI_SETWORKAREA);
+    __def(SPI_GETWORKAREA);
+    __def(SPI_SETPENWINDOWS);
+    __def(SPI_GETHIGHCONTRAST);
+    __def(SPI_SETHIGHCONTRAST);
+    __def(SPI_GETKEYBOARDPREF);
+    __def(SPI_SETKEYBOARDPREF);
+    __def(SPI_GETSCREENREADER);
+    __def(SPI_SETSCREENREADER);
+    __def(SPI_GETANIMATION);
+    __def(SPI_SETANIMATION);
+    __def(SPI_GETFONTSMOOTHING);
+    __def(SPI_SETFONTSMOOTHING);
+    __def(SPI_SETDRAGWIDTH);
+    __def(SPI_SETDRAGHEIGHT);
+    __def(SPI_SETHANDHELD);
+    __def(SPI_GETLOWPOWERTIMEOUT);
+    __def(SPI_GETPOWEROFFTIMEOUT);
+    __def(SPI_SETLOWPOWERTIMEOUT);
+    __def(SPI_SETPOWEROFFTIMEOUT);
+    __def(SPI_GETLOWPOWERACTIVE);
+    __def(SPI_GETPOWEROFFACTIVE);
+    __def(SPI_SETLOWPOWERACTIVE);
+    __def(SPI_SETPOWEROFFACTIVE);
+    __def(SPI_SETCURSORS);
+    __def(SPI_SETICONS);
+    __def(SPI_GETDEFAULTINPUTLANG);
+    __def(SPI_SETDEFAULTINPUTLANG);
+    __def(SPI_SETLANGTOGGLE);
+    __def(SPI_GETWINDOWSEXTENSION);
+    __def(SPI_SETMOUSETRAILS);
+    __def(SPI_GETMOUSETRAILS);
+    __def(SPI_SETSCREENSAVERRUNNING);
+    __def(SPI_SCREENSAVERRUNNING);
+#endif /* WINVER >= 0x0400 */
+    __def(SPI_GETFILTERKEYS);
+    __def(SPI_SETFILTERKEYS);
+    __def(SPI_GETTOGGLEKEYS);
+    __def(SPI_SETTOGGLEKEYS);
+    __def(SPI_GETMOUSEKEYS);
+    __def(SPI_SETMOUSEKEYS);
+    __def(SPI_GETSHOWSOUNDS);
+    __def(SPI_SETSHOWSOUNDS);
+    __def(SPI_GETSTICKYKEYS);
+    __def(SPI_SETSTICKYKEYS);
+    __def(SPI_GETACCESSTIMEOUT);
+    __def(SPI_SETACCESSTIMEOUT);
+#if(WINVER >= 0x0400)
+    __def(SPI_GETSERIALKEYS);
+    __def(SPI_SETSERIALKEYS);
+#endif /* WINVER >= 0x0400 */
+    __def(SPI_GETSOUNDSENTRY);
+    __def(SPI_SETSOUNDSENTRY);
+#if(_WIN32_WINNT >= 0x0400)
+    __def(SPI_GETSNAPTODEFBUTTON);
+    __def(SPI_SETSNAPTODEFBUTTON);
+#endif /* _WIN32_WINNT >= 0x0400 */
+#if (_WIN32_WINNT >= 0x0400) || (_WIN32_WINDOWS > 0x0400)
+    __def(SPI_GETMOUSEHOVERWIDTH);
+    __def(SPI_SETMOUSEHOVERWIDTH);
+    __def(SPI_GETMOUSEHOVERHEIGHT);
+    __def(SPI_SETMOUSEHOVERHEIGHT);
+    __def(SPI_GETMOUSEHOVERTIME);
+    __def(SPI_SETMOUSEHOVERTIME);
+    __def(SPI_GETWHEELSCROLLLINES);
+    __def(SPI_SETWHEELSCROLLLINES);
+    __def(SPI_GETMENUSHOWDELAY);
+    __def(SPI_SETMENUSHOWDELAY);
+#if (_WIN32_WINNT >= 0x0600)
+    __def(SPI_GETWHEELSCROLLCHARS);
+    __def(SPI_SETWHEELSCROLLCHARS);
+#endif
+    __def(SPI_GETSHOWIMEUI);
+    __def(SPI_SETSHOWIMEUI);
+#endif
+#if(WINVER >= 0x0500)
+    __def(SPI_GETMOUSESPEED);
+    __def(SPI_SETMOUSESPEED);
+    __def(SPI_GETSCREENSAVERRUNNING);
+    __def(SPI_GETDESKWALLPAPER);
+#endif /* WINVER >= 0x0500 */
+#if(WINVER >= 0x0600)
+    __def(SPI_GETAUDIODESCRIPTION);
+    __def(SPI_SETAUDIODESCRIPTION);
+    __def(SPI_GETSCREENSAVESECURE);
+    __def(SPI_SETSCREENSAVESECURE);
+#endif /* WINVER >= 0x0600 */
+#if(_WIN32_WINNT >= 0x0601)
+    __def(SPI_GETHUNGAPPTIMEOUT);
+    __def(SPI_SETHUNGAPPTIMEOUT);
+    __def(SPI_GETWAITTOKILLTIMEOUT);
+    __def(SPI_SETWAITTOKILLTIMEOUT);
+    __def(SPI_GETWAITTOKILLSERVICETIMEOUT);
+    __def(SPI_SETWAITTOKILLSERVICETIMEOUT);
+    __def(SPI_GETMOUSEDOCKTHRESHOLD);
+    __def(SPI_SETMOUSEDOCKTHRESHOLD);
+    __def(SPI_GETPENDOCKTHRESHOLD);
+    __def(SPI_SETPENDOCKTHRESHOLD);
+    __def(SPI_GETWINARRANGING);
+    __def(SPI_SETWINARRANGING);
+    __def(SPI_GETMOUSEDRAGOUTTHRESHOLD);
+    __def(SPI_SETMOUSEDRAGOUTTHRESHOLD);
+    __def(SPI_GETPENDRAGOUTTHRESHOLD);
+    __def(SPI_SETPENDRAGOUTTHRESHOLD);
+    __def(SPI_GETMOUSESIDEMOVETHRESHOLD);
+    __def(SPI_SETMOUSESIDEMOVETHRESHOLD);
+    __def(SPI_GETPENSIDEMOVETHRESHOLD);
+    __def(SPI_SETPENSIDEMOVETHRESHOLD);
+    __def(SPI_GETDRAGFROMMAXIMIZE);
+    __def(SPI_SETDRAGFROMMAXIMIZE);
+    __def(SPI_GETSNAPSIZING);
+    __def(SPI_SETSNAPSIZING);
+    __def(SPI_GETDOCKMOVING);
+    __def(SPI_SETDOCKMOVING);
+#endif /* _WIN32_WINNT >= 0x0601 */
+#if(WINVER >= 0x0602)
+    __def(SPI_GETTOUCHPREDICTIONPARAMETERS);
+    __def(SPI_SETTOUCHPREDICTIONPARAMETERS);
+    __def(SPI_GETLOGICALDPIOVERRIDE);
+    __def(SPI_SETLOGICALDPIOVERRIDE);
+    __def(SPI_GETMENURECT);
+    __def(SPI_SETMENURECT);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0500)
+    __def(SPI_GETACTIVEWINDOWTRACKING);
+    __def(SPI_SETACTIVEWINDOWTRACKING);
+    __def(SPI_GETMENUANIMATION);
+    __def(SPI_SETMENUANIMATION);
+    __def(SPI_GETCOMBOBOXANIMATION);
+    __def(SPI_SETCOMBOBOXANIMATION);
+    __def(SPI_GETLISTBOXSMOOTHSCROLLING);
+    __def(SPI_SETLISTBOXSMOOTHSCROLLING);
+    __def(SPI_GETGRADIENTCAPTIONS);
+    __def(SPI_SETGRADIENTCAPTIONS);
+    __def(SPI_GETKEYBOARDCUES);
+    __def(SPI_SETKEYBOARDCUES);
+    __def(SPI_GETMENUUNDERLINES);
+    __def(SPI_SETMENUUNDERLINES);
+    __def(SPI_GETACTIVEWNDTRKZORDER);
+    __def(SPI_SETACTIVEWNDTRKZORDER);
+    __def(SPI_GETHOTTRACKING);
+    __def(SPI_SETHOTTRACKING);
+    __def(SPI_GETMENUFADE);
+    __def(SPI_SETMENUFADE);
+    __def(SPI_GETSELECTIONFADE);
+    __def(SPI_SETSELECTIONFADE);
+    __def(SPI_GETTOOLTIPANIMATION);
+    __def(SPI_SETTOOLTIPANIMATION);
+    __def(SPI_GETTOOLTIPFADE);
+    __def(SPI_SETTOOLTIPFADE);
+    __def(SPI_GETCURSORSHADOW);
+    __def(SPI_SETCURSORSHADOW);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(SPI_GETMOUSESONAR);
+    __def(SPI_SETMOUSESONAR);
+    __def(SPI_GETMOUSECLICKLOCK);
+    __def(SPI_SETMOUSECLICKLOCK);
+    __def(SPI_GETMOUSEVANISH);
+    __def(SPI_SETMOUSEVANISH);
+    __def(SPI_GETFLATMENU);
+    __def(SPI_SETFLATMENU);
+    __def(SPI_GETDROPSHADOW);
+    __def(SPI_SETDROPSHADOW);
+    __def(SPI_GETBLOCKSENDINPUTRESETS);
+    __def(SPI_SETBLOCKSENDINPUTRESETS);
+#endif /* _WIN32_WINNT >= 0x0501 */
+    __def(SPI_GETUIEFFECTS);
+    __def(SPI_SETUIEFFECTS);
+#if(_WIN32_WINNT >= 0x0600)
+    __def(SPI_GETDISABLEOVERLAPPEDCONTENT);
+    __def(SPI_SETDISABLEOVERLAPPEDCONTENT);
+    __def(SPI_GETCLIENTAREAANIMATION);
+    __def(SPI_SETCLIENTAREAANIMATION);
+    __def(SPI_GETCLEARTYPE);
+    __def(SPI_SETCLEARTYPE);
+    __def(SPI_GETSPEECHRECOGNITION);
+    __def(SPI_SETSPEECHRECOGNITION);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(WINVER >= 0x0601)
+    __def(SPI_GETCARETBROWSING);
+    __def(SPI_SETCARETBROWSING);
+    __def(SPI_GETTHREADLOCALINPUTSETTINGS);
+    __def(SPI_SETTHREADLOCALINPUTSETTINGS);
+    __def(SPI_GETSYSTEMLANGUAGEBAR);
+    __def(SPI_SETSYSTEMLANGUAGEBAR);
+#endif /* WINVER >= 0x0601 */
+    __def(SPI_GETFOREGROUNDLOCKTIMEOUT);
+    __def(SPI_SETFOREGROUNDLOCKTIMEOUT);
+    __def(SPI_GETACTIVEWNDTRKTIMEOUT);
+    __def(SPI_SETACTIVEWNDTRKTIMEOUT);
+    __def(SPI_GETFOREGROUNDFLASHCOUNT);
+    __def(SPI_SETFOREGROUNDFLASHCOUNT);
+    __def(SPI_GETCARETWIDTH);
+    __def(SPI_SETCARETWIDTH);
+#if(_WIN32_WINNT >= 0x0501)
+    __def(SPI_GETMOUSECLICKLOCKTIME);
+    __def(SPI_SETMOUSECLICKLOCKTIME);
+    __def(SPI_GETFONTSMOOTHINGTYPE);
+    __def(SPI_SETFONTSMOOTHINGTYPE);
+    __def(SPI_GETFONTSMOOTHINGCONTRAST);
+    __def(SPI_SETFONTSMOOTHINGCONTRAST);
+    __def(SPI_GETFOCUSBORDERWIDTH);
+    __def(SPI_SETFOCUSBORDERWIDTH);
+    __def(SPI_GETFOCUSBORDERHEIGHT);
+    __def(SPI_SETFOCUSBORDERHEIGHT);
+    __def(SPI_GETFONTSMOOTHINGORIENTATION);
+    __def(SPI_SETFONTSMOOTHINGORIENTATION);
+#endif /* _WIN32_WINNT >= 0x0501 */
+#if(_WIN32_WINNT >= 0x0600)
+    __def(SPI_GETMINIMUMHITRADIUS);
+    __def(SPI_SETMINIMUMHITRADIUS);
+    __def(SPI_GETMESSAGEDURATION);
+    __def(SPI_SETMESSAGEDURATION);
+#endif /* _WIN32_WINNT >= 0x0600 */
+#if(WINVER >= 0x0602)
+    __def(SPI_GETCONTACTVISUALIZATION);
+    __def(SPI_SETCONTACTVISUALIZATION);
+    __def(SPI_GETGESTUREVISUALIZATION);
+    __def(SPI_SETGESTUREVISUALIZATION);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0602)
+    __def(SPI_GETMOUSEWHEELROUTING);
+    __def(SPI_SETMOUSEWHEELROUTING);
+#endif /* WINVER >= 0x0602 */
+#if(WINVER >= 0x0604)
+    __def(SPI_GETPENVISUALIZATION);
+    __def(SPI_SETPENVISUALIZATION);
+    __def(SPI_GETPENARBITRATIONTYPE);
+    __def(SPI_SETPENARBITRATIONTYPE);
+#endif /* WINVER >= 0x0604 */
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS3)
+    __def(SPI_GETCARETTIMEOUT);
+    __def(SPI_SETCARETTIMEOUT);
+#endif // NTDDI_VERSION >= NTDDI_WIN10_RS3
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+    __def(SPI_GETHANDEDNESS);
+    __def(SPI_SETHANDEDNESS);
+#endif // NTDDI_VERSION >= NTDDI_WIN10_RS4
+
+#endif /* WINVER >= 0x0500 */
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -4143,6 +4436,41 @@ static Janet cfun_GetSystemMetrics(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SystemParametersInfo(int32_t argc, Janet *argv)
+{
+    UINT uiAction;
+    UINT uiParam;
+    UINT fWinIni;
+
+    BOOL bSpiRet;
+
+    janet_fixarity(argc, 4);
+
+    uiAction = jw32_get_uint(argv, 0);
+    uiParam = jw32_get_uint(argv, 1);
+    /* The third argument is parsed according to uiAction below */;
+    fWinIni = jw32_get_uint(argv, 3);
+
+    switch (uiAction) {
+    case SPI_GETFOREGROUNDLOCKTIMEOUT: {
+        DWORD dwRet = 0;
+        Janet ret[2];
+        bSpiRet = SystemParametersInfo(uiAction, uiParam, &dwRet, fWinIni);
+        ret[0] = jw32_wrap_bool(bSpiRet);
+        ret[1] = jw32_wrap_dword(dwRet);
+        return janet_wrap_tuple(janet_tuple_n(ret, 2));
+    }
+    case SPI_SETFOREGROUNDLOCKTIMEOUT: {
+        UINT_PTR param = jw32_get_dword(argv, 2);
+        bSpiRet = SystemParametersInfo(uiAction, uiParam, (PVOID)param, fWinIni);
+        return jw32_wrap_bool(bSpiRet);
+    }
+    default:
+        janet_panicf("unsupported action: %x", uiAction);
+    }
+}
+
+
 static Janet cfun_SetTimer(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -4554,6 +4882,12 @@ static const JanetReg cfuns[] = {
         "Retrieves information about system settings.",
     },
     {
+        "SystemParametersInfo",
+        cfun_SystemParametersInfo,
+        "(" MOD_NAME "/SystemParametersInfo uiAction uiParam pvParam fWinIni)\n\n"
+        "Retrieves or sets the value of one of the system-wide parameters.",
+    },
+    {
         "SetTimer",
         cfun_SetTimer,
         "(" MOD_NAME "/SetTimer hWnd nIDEvent uElapse lpTimerFunc)\n\n"
@@ -4611,6 +4945,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_monitorinfof(env);
     define_consts_tpm(env);
     define_consts_vk(env);
+    define_consts_spi(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
