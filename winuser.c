@@ -3551,6 +3551,26 @@ static Janet cfun_IsWindowVisible(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetWindowThreadProcessId(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+
+    DWORD threadId = 0;
+    DWORD processId = 0;
+    Janet ret_tuple[2];
+    
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+
+    threadId = GetWindowThreadProcessId(hWnd, &processId);
+    ret_tuple[0] = jw32_wrap_dword(threadId);
+    ret_tuple[1] = jw32_wrap_dword(processId);
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -4741,6 +4761,12 @@ static const JanetReg cfuns[] = {
         cfun_IsWindowVisible,
         "(" MOD_NAME "/IsWindowVisible hWnd)\n\n"
         "Checks whether the window specified by hWnd has the WS_VISIBLE flag.",
+    },
+    {
+        "GetWindowThreadProcessId",
+        cfun_GetWindowThreadProcessId,
+        "(" MOD_NAME "/GetWindowThreadProcessId hWnd)\n\n"
+        "Retrieves the identifier of the thread and the process that created the specified window.",
     },
 
     /************************** INPUT **************************/
