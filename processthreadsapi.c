@@ -37,6 +37,32 @@ static void define_consts_token(JanetTable *env)
 }
 
 
+static void define_consts_process(JanetTable *env)
+{
+#define __def(const_name)                                       \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Process-specific access rights.")
+
+    __def(PROCESS_TERMINATE);
+    __def(PROCESS_CREATE_THREAD);
+    __def(PROCESS_SET_SESSIONID);
+    __def(PROCESS_VM_OPERATION);
+    __def(PROCESS_VM_READ);
+    __def(PROCESS_VM_WRITE);
+    __def(PROCESS_DUP_HANDLE);
+    __def(PROCESS_CREATE_PROCESS);
+    __def(PROCESS_SET_QUOTA);
+    __def(PROCESS_SET_INFORMATION);
+    __def(PROCESS_QUERY_INFORMATION);
+    __def(PROCESS_SUSPEND_RESUME);
+    __def(PROCESS_QUERY_LIMITED_INFORMATION);
+    __def(PROCESS_SET_LIMITED_INFORMATION);
+    __def(PROCESS_ALL_ACCESS);
+
+#undef __def
+}
+
+
 static Janet cfun_GetCurrentProcess(int32_t argc, Janet *argv)
 {
     (void)argv;
@@ -63,6 +89,25 @@ static Janet cfun_GetCurrentThreadId(int32_t argc, Janet *argv)
     janet_fixarity(argc, 0);
 
     return jw32_wrap_dword(GetCurrentThreadId());
+}
+
+
+static Janet cfun_OpenProcess(int32_t argc, Janet *argv)
+{
+    DWORD dwDesiredAccess;
+    BOOL  bInheritHandle;
+    DWORD dwProcessId;
+
+    HANDLE hProcess;
+
+    janet_fixarity(argc, 3);
+
+    dwDesiredAccess = jw32_get_dword(argv, 0);
+    bInheritHandle = jw32_get_bool(argv, 1);
+    dwProcessId = jw32_get_dword(argv, 2);
+
+    hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
+    return jw32_wrap_handle(hProcess);
 }
 
 
@@ -128,6 +173,12 @@ static const JanetReg cfuns[] = {
         "Returns the current thread id.",
     },
     {
+        "OpenProcess",
+        cfun_OpenProcess,
+        "(" MOD_NAME "/OpenProcess dwDesiredAccess bInheritHandle dwProcessId)\n\n"
+        "Opens an existing local process object.",
+    },
+    {
         "OpenProcessToken",
         cfun_OpenProcessToken,
         "(" MOD_NAME "/OpenProcessToken ProcessHandle DesiredAccess)\n\n"
@@ -146,6 +197,7 @@ static const JanetReg cfuns[] = {
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_token(env);
+    define_consts_process(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
