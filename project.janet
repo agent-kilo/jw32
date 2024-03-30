@@ -32,7 +32,7 @@
    :name (project-module "processthreadsapi")
    :source ["processthreadsapi.c"]
    :headers [;common-headers]
-   :ldflags [;ldflags "kernel32.lib"])
+   :ldflags [;ldflags "kernel32.lib" "advapi32.lib"])
 
   (declare-native
    :name (project-module "libloaderapi")
@@ -93,6 +93,24 @@
   (declare-native
    :name (project-module "consoleapi")
    :source ["consoleapi.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "kernel32.lib"])
+
+  (declare-native
+   :name (project-module "securitybaseapi")
+   :source ["securitybaseapi.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "advapi32.lib"])
+
+  (declare-native
+   :name (project-module "winnt")
+   :source ["winnt.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags])
+
+  (declare-native
+   :name (project-module "handleapi")
+   :source ["handleapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "kernel32.lib"])
 
