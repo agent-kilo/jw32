@@ -23,45 +23,45 @@
 (with-dyns [:cflags [;cflags ;debug-flags]
             :dynamic-cflags [;old-dynamic-cflags "/DJW32_DLL"]]
   (declare-native
-   :name (project-module "winuser")
+   :name (project-module "_winuser")
    :source ["winuser.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "user32.lib"])
   
   (declare-native
-   :name (project-module "processthreadsapi")
+   :name (project-module "_processthreadsapi")
    :source ["processthreadsapi.c"]
    :headers [;common-headers]
    :ldflags [;ldflags "kernel32.lib" "advapi32.lib"])
 
   (declare-native
-   :name (project-module "libloaderapi")
+   :name (project-module "_libloaderapi")
    :source ["libloaderapi.c"]
    :headers [;common-headers]
    :ldflags [;ldflags "user32.lib" "kernel32.lib"])
 
   (declare-native
-   :name (project-module "errhandlingapi")
+   :name (project-module "_errhandlingapi")
    :source ["errhandlingapi.c"]
    :headers [;common-headers]
    :ldflags [;ldflags "user32.lib" "kernel32.lib"])
 
   (declare-native
-   :name (project-module "winbase")
+   :name (project-module "_winbase")
    :source ["winbase.c"]
    :headers [;common-headers]
    :ldflags [;ldflags "kernel32.lib"])
   
   (declare-native
-   :name (project-module "combaseapi")
+   :name (project-module "_combaseapi")
    :source ["combaseapi.c"]
    :headers ["jw32_com.h" ;common-headers]
    :ldflags [;ldflags "ole32.lib"])
 
   (with-dyns [:dynamic-lflags [;old-dynamic-lflags
-                               (string (find-build-dir) ((dyn :project) :name) "/" "combaseapi.lib")]]
+                               (string (find-build-dir) ((dyn :project) :name) "/" "_combaseapi.lib")]]
     (declare-native
-     :name (project-module "uiautomation")
+     :name (project-module "_uiautomation")
      :source ["uiautomation.c"]
      :headers ["jw32_com.h" "debug.h" ;common-headers]
      :cflags [;(dyn :cflags)
@@ -72,11 +72,11 @@
               "/wd4200"]
      :ldflags [;ldflags "oleaut32.lib"]))
 
-  (add-dep (string (find-build-dir) ((dyn :project) :name) "/uiautomation.dll")
-           (string (find-build-dir) ((dyn :project) :name) "/combaseapi.dll"))
+  (add-dep (string (find-build-dir) ((dyn :project) :name) "/_uiautomation.dll")
+           (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
 
   (declare-native
-   :name (project-module "shellapi")
+   :name (project-module "_shellapi")
    :source ["shellapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "shell32.lib"])
@@ -85,42 +85,42 @@
                                "/manifest:embed"
                                "/manifestinput:manifest/commctrl.manifest"]]
     (declare-native
-     :name (project-module "commctrl")
+     :name (project-module "_commctrl")
      :source ["commctrl.c"]
      :headers ["debug.h" ;common-headers]
      :ldflags [;ldflags "comctl32.lib"]))
 
   (declare-native
-   :name (project-module "consoleapi")
+   :name (project-module "_consoleapi")
    :source ["consoleapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "kernel32.lib"])
 
   (declare-native
-   :name (project-module "securitybaseapi")
+   :name (project-module "_securitybaseapi")
    :source ["securitybaseapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "advapi32.lib"])
 
   (declare-native
-   :name (project-module "winnt")
+   :name (project-module "_winnt")
    :source ["winnt.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags])
 
   (declare-native
-   :name (project-module "handleapi")
+   :name (project-module "_handleapi")
    :source ["handleapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "kernel32.lib"])
 
   (declare-native
-   :name (project-module "dwmapi")
+   :name (project-module "_dwmapi")
    :source ["dwmapi.c"]
    :headers ["debug.h" ;common-headers]
    :ldflags [;ldflags "dwmapi.lib"])
 
   (declare-native
-   :name (project-module "util")
+   :name (project-module "_util")
    :source ["util.c"]
    :headers [;common-headers]))
