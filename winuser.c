@@ -1902,6 +1902,59 @@ static void define_consts_spi(JanetTable *env)
 }
 
 
+static void define_consts_gwl(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for window information offsets.")
+#ifndef _WIN64
+    __def(GWL_WNDPROC);
+    __def(GWL_HINSTANCE);
+    __def(GWL_HWNDPARENT);
+    __def(GWL_USERDATA);
+#endif
+    __def(GWL_STYLE);
+    __def(GWL_EXSTYLE);
+    __def(GWL_ID);
+#undef __def
+}
+
+
+static void define_consts_gwlp(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for window information offsets.")
+    __def(GWLP_WNDPROC);
+    __def(GWLP_HINSTANCE);
+    __def(GWLP_HWNDPARENT);
+    __def(GWLP_USERDATA);
+    __def(GWLP_ID);
+#undef __def
+}
+
+
+static void define_consts_gw(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),     \
+              "Constant for GetWindow commands.")
+
+    __def(GW_HWNDFIRST);
+    __def(GW_HWNDLAST);
+    __def(GW_HWNDNEXT);
+    __def(GW_HWNDPREV);
+    __def(GW_OWNER);
+    __def(GW_CHILD);
+#if(WINVER > 0x0400)
+    __def(GW_ENABLEDPOPUP);
+#endif
+    __def(GW_MAX);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -3509,6 +3562,44 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_GetWindow(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    UINT uCmd;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    uCmd = jw32_get_uint(argv, 1);
+
+    return jw32_wrap_handle(GetWindow(hWnd, uCmd));
+}
+
+static Janet cfun_GetWindowLong(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    int nIndex;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIndex = jw32_get_int(argv, 1);
+
+    return jw32_wrap_long(GetWindowLong(hWnd, nIndex));
+}
+
+static Janet cfun_GetWindowLongPtr(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    int nIndex;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIndex = jw32_get_int(argv, 1);
+
+    return jw32_wrap_long_ptr(GetWindowLong(hWnd, nIndex));
+}
 
 static Janet cfun_SetForegroundWindow(int32_t argc, Janet *argv)
 {
@@ -4739,6 +4830,24 @@ static const JanetReg cfuns[] = {
         "Sets a window property",
     },
     {
+        "GetWindow",
+        cfun_GetWindow,
+        "(" MOD_NAME "/GetWindow hWnd uCmd)\n\n"
+        "Retrieves a handle to a window that has the specified relationship to the specified window.",
+    },
+    {
+        "GetWindowLong",
+        cfun_GetWindowLong,
+        "(" MOD_NAME "/GetWindowLong hWnd nIndex)\n\n"
+        "Retrieves information about the specified window.",
+    },
+    {
+        "GetWindowLongPtr",
+        cfun_GetWindowLongPtr,
+        "(" MOD_NAME "/GetWindowLongPtr hWnd nIndex)\n\n"
+        "Retrieves information about the specified window.",
+    },
+    {
         "SetForegroundWindow",
         cfun_SetForegroundWindow,
         "(" MOD_NAME "/SetForegroundWindow hWnd)\n\n"
@@ -4989,6 +5098,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_tpm(env);
     define_consts_vk(env);
     define_consts_spi(env);
+    define_consts_gwl(env);
+    define_consts_gwlp(env);
+    define_consts_gw(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
