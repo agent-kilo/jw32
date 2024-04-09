@@ -3014,7 +3014,7 @@ static Janet PROPERTY_GETTER(IUIAutomationElement, CurrentBoundingRectangle)(int
     self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->get_CurrentBoundingRectangle(self, &out);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_table(jw32_rect_to_table(&out)));
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_struct(jw32_rect_to_struct(&out)));
 }
 
 static Janet PROPERTY_GETTER(IUIAutomationElement, CachedBoundingRectangle)(int32_t argc, Janet *argv)
@@ -3028,7 +3028,7 @@ static Janet PROPERTY_GETTER(IUIAutomationElement, CachedBoundingRectangle)(int3
     self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->get_CachedBoundingRectangle(self, &out);
 
-    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_table(jw32_rect_to_table(&out)));
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_struct(jw32_rect_to_struct(&out)));
 }
 
 DEFINE_BSTR_PROPERTY_GETTER(IUIAutomationElement, CurrentClassName)

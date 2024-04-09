@@ -296,6 +296,16 @@ static inline JanetTable *jw32_rect_to_table(const RECT *rect)
     return rect_tb;
 }
 
+static inline const JanetKV *jw32_rect_to_struct(const RECT *rect)
+{
+    JanetKV *rect_st = janet_struct_begin(4);
+    janet_struct_put(rect_st, janet_ckeywordv("left"), jw32_wrap_long(rect->left));
+    janet_struct_put(rect_st, janet_ckeywordv("top"), jw32_wrap_long(rect->top));
+    janet_struct_put(rect_st, janet_ckeywordv("right"), jw32_wrap_long(rect->right));
+    janet_struct_put(rect_st, janet_ckeywordv("bottom"), jw32_wrap_long(rect->bottom));
+    return janet_struct_end(rect_st);
+}
+
 static inline JanetTuple jw32_point_to_tuple(const POINT *point)
 {
     Janet tuple[2] = {
