@@ -2315,7 +2315,7 @@ BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, 
     Janet argv[3] = {
         jw32_wrap_handle(hMonitor),
         jw32_wrap_handle(hdc),
-        janet_wrap_table(jw32_rect_to_table(lpRect)),
+        janet_wrap_struct(jw32_rect_to_struct(lpRect)),
         /* janet has closures, doesn't need lParam */
     };
     Janet ret;
@@ -4452,8 +4452,8 @@ static int MONITORINFOEX_get(void *p, Janet key, Janet *out)
     }
 
     __get_member("cbSize", jw32_wrap_dword(lpmi->cbSize));
-    __get_member("rcMonitor", janet_wrap_table(jw32_rect_to_table(&(lpmi->rcMonitor))));
-    __get_member("rcWork", janet_wrap_table(jw32_rect_to_table(&(lpmi->rcWork))));
+    __get_member("rcMonitor", janet_wrap_struct(jw32_rect_to_struct(&(lpmi->rcMonitor))));
+    __get_member("rcWork", janet_wrap_struct(jw32_rect_to_struct(&(lpmi->rcWork))));
     __get_member("dwFlags", jw32_wrap_dword(lpmi->dwFlags));
     __get_member("szDevice", janet_cstringv(lpmi->szDevice));
 
