@@ -55,6 +55,28 @@ static Janet cfun_GET_Y_LPARAM(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_signed_to_unsigned(int32_t argc, Janet *argv)
+{
+    LONG_PTR n;
+
+    janet_fixarity(argc, 1);
+
+    n = jw32_get_long_ptr(argv, 0);
+    return jw32_wrap_ulong_ptr((ULONG_PTR)n);
+}
+
+
+static Janet cfun_unsigned_to_signed(int32_t argc, Janet *argv)
+{
+    ULONG_PTR n;
+
+    janet_fixarity(argc, 1);
+
+    n = jw32_get_ulong_ptr(argv, 0);
+    return jw32_wrap_long_ptr((LONG_PTR)n);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "null?",
@@ -85,6 +107,18 @@ static const JanetReg cfuns[] = {
         cfun_GET_Y_LPARAM,
         "(" MOD_NAME "/GET_Y_LPARAM lparam)\n\n"
         "Retrieves the signed y-coordinate from the specified value.",
+    },
+    {
+        "signed-to-unsigned",
+        cfun_signed_to_unsigned,
+        "(" MOD_NAME "/signed-to-unsigned n)\n\n"
+        "Converts a signed integer to an unsigned integer."
+    },
+    {
+        "unsigned-to-signed",
+        cfun_unsigned_to_signed,
+        "(" MOD_NAME "/unsigned-to-signed n)\n\n"
+        "Converts an unsigned integer to a signed integer."
     },
     {NULL, NULL, NULL},
 };
