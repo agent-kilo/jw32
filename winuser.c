@@ -2328,6 +2328,23 @@ BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, 
     }
 }
 
+BOOL CALLBACK jw32_child_window_enum_proc(HWND hwnd, LPARAM lParam)
+{
+    JanetFunction *enum_fn = (JanetFunction *)lParam;
+    Janet argv[1] = {
+        jw32_wrap_handle(hwnd),
+        /* janet has closures, doesn't need lParam */
+    };
+    Janet ret;
+
+    if (jw32_pcall_fn(enum_fn, 1, argv, &ret)) {
+        return jw32_unwrap_bool(ret);
+    } else {
+        jw32_dbg_msg("jw32_pcall_fn() failed, stop child window enumeration");
+        return FALSE;
+    }
+}
+
 static int PKBDLLHOOKSTRUCT_get(void *p, Janet key, Janet *out)
 {
     PKBDLLHOOKSTRUCT *ppHookStruct = (PKBDLLHOOKSTRUCT *)p;
@@ -3662,6 +3679,26 @@ static Janet cfun_GetWindowThreadProcessId(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_EnumChildWindows(int32_t argc, Janet *argv)
+{
+    HWND hWndParent;
+    JanetFunction *enum_fn;
+    /* janet has closures, we don't need this */
+    //LPARAM lParam;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hWndParent = jw32_get_handle(argv, 0);
+    enum_fn = janet_getfunction(argv, 1);
+
+    bRet = EnumChildWindows(hWndParent, jw32_child_window_enum_proc, (LPARAM)enum_fn);
+
+    return jw32_wrap_bool(bRet);
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -4876,6 +4913,12 @@ static const JanetReg cfuns[] = {
         cfun_GetWindowThreadProcessId,
         "(" MOD_NAME "/GetWindowThreadProcessId hWnd)\n\n"
         "Retrieves the identifier of the thread and the process that created the specified window.",
+    },
+    {
+        "EnumChildWindows",
+        cfun_EnumChildWindows,
+        "(" MOD_NAME "/EnumChildWindows hWndParent lpEnumFunc)\n\n"
+        "Enumerates child windows.",
     },
 
     /************************** INPUT **************************/
