@@ -165,6 +165,51 @@ static Janet cfun_SetDllDirectory(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_QueryFullProcessImageName(int32_t argc, Janet *argv)
+{
+    HANDLE hProcess;
+    DWORD dwFlags;
+
+    BOOL bRet;
+
+    JanetBuffer *buf;
+    DWORD dwSize;
+
+    janet_fixarity(argc, 2);
+
+    hProcess = jw32_get_handle(argv, 0);
+    dwFlags = jw32_get_dword(argv, 1);
+
+    buf = janet_buffer(MAX_PATH);
+    dwSize = buf->capacity;
+
+    while (1) {
+        bRet = QueryFullProcessImageName(hProcess, dwFlags, (LPSTR)buf->data, &dwSize);
+        if (0 == bRet) {
+            break;
+        }
+        /* plus one NULL byte */
+        if ((dwSize + 1) <= (DWORD)buf->capacity) {
+            /* We have the full path */
+            break;
+        }
+        if (buf->capacity * 2 > INT_MAX) {
+            /* We don't have the full path, but can't expand buf any further */
+            break;
+        }
+
+        janet_buffer_ensure(buf, buf->capacity * 2, 1);
+        dwSize = buf->capacity;
+    }
+
+    if (bRet) {
+        return janet_wrap_buffer(buf);
+    } else {
+        return janet_wrap_nil();
+    }
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "AddAtom",
@@ -219,6 +264,12 @@ static const JanetReg cfuns[] = {
         cfun_SetDllDirectory,
         "(" MOD_NAME "/SetDllDirectory lpPathName)\n\n"
         "Adds a directory to the DLL search path.",
+    },
+    {
+        "QueryFullProcessImageName",
+        cfun_QueryFullProcessImageName,
+        "(" MOD_NAME "/QueryFullProcessImageName hProcess dwFlags)\n\n"
+        "Retrieves the full name of the executable image for the specified process.",
     },
     {NULL, NULL, NULL},
 };
