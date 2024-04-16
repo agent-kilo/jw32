@@ -185,19 +185,18 @@ static Janet cfun_QueryFullProcessImageName(int32_t argc, Janet *argv)
 
     while (1) {
         bRet = QueryFullProcessImageName(hProcess, dwFlags, (LPSTR)buf->data, &dwSize);
-        if (0 == bRet) {
-            break;
-        }
-        /* plus one NULL byte */
-        if ((dwSize + 1) < (DWORD)buf->capacity) {
+        if (bRet) {
             /* We have the full path */
             break;
         }
-        if (buf->capacity * 2 > INT_MAX) {
-            /* We don't have the full path, but can't expand buf any further */
+        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
             break;
         }
 
+        /* Failed due to insufficient buffer size, expand it and try again */
+        if (buf->capacity * 2 > INT_MAX) {
+            janet_panicf("cannot expand buffer for path string");
+        }
         janet_buffer_ensure(buf, buf->capacity * 2, 1);
         dwSize = buf->capacity;
     }
