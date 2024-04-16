@@ -1955,6 +1955,19 @@ static void define_consts_gw(JanetTable *env)
 }
 
 
+static void define_consts_lwa(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),   \
+              "Constant for layered window attributes.")
+
+    __def(LWA_COLORKEY);
+    __def(LWA_ALPHA);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -3605,6 +3618,21 @@ static Janet cfun_GetWindowLong(int32_t argc, Janet *argv)
     return jw32_wrap_long(GetWindowLong(hWnd, nIndex));
 }
 
+static Janet cfun_SetWindowLong(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    int nIndex;
+    LONG dwNewLong;
+
+    janet_fixarity(argc, 3);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIndex = jw32_get_int(argv, 1);
+    dwNewLong = jw32_get_long(argv, 2);
+
+    return jw32_wrap_long(SetWindowLong(hWnd, nIndex, dwNewLong));
+}
+
 static Janet cfun_GetWindowLongPtr(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -3615,7 +3643,22 @@ static Janet cfun_GetWindowLongPtr(int32_t argc, Janet *argv)
     hWnd = jw32_get_handle(argv, 0);
     nIndex = jw32_get_int(argv, 1);
 
-    return jw32_wrap_long_ptr(GetWindowLong(hWnd, nIndex));
+    return jw32_wrap_long_ptr(GetWindowLongPtr(hWnd, nIndex));
+}
+
+static Janet cfun_SetWindowLongPtr(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    int nIndex;
+    LONG_PTR dwNewLong;
+
+    janet_fixarity(argc, 3);
+
+    hWnd = jw32_get_handle(argv, 0);
+    nIndex = jw32_get_int(argv, 1);
+    dwNewLong = jw32_get_long_ptr(argv, 2);
+
+    return jw32_wrap_long_ptr(SetWindowLongPtr(hWnd, nIndex, dwNewLong));
 }
 
 static Janet cfun_SetForegroundWindow(int32_t argc, Janet *argv)
@@ -3694,6 +3737,34 @@ static Janet cfun_EnumChildWindows(int32_t argc, Janet *argv)
     enum_fn = janet_getfunction(argv, 1);
 
     bRet = EnumChildWindows(hWndParent, jw32_child_window_enum_proc, (LPARAM)enum_fn);
+
+    return jw32_wrap_bool(bRet);
+}
+
+
+static Janet cfun_SetLayeredWindowAttributes(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    COLORREF crKey;
+    BYTE bAlpha;
+    DWORD dwFlags;
+
+    int32_t alpha_val;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 4);
+
+    hwnd = jw32_get_handle(argv, 0);
+    crKey = jw32_get_dword(argv, 1);
+    alpha_val = jw32_get_int(argv, 2);
+    if (alpha_val < 0 || alpha_val > 255) {
+        janet_panicf("bad slot #2: expected an unsigned 8-bit integer, got %v", argv[2]);
+    }
+    bAlpha = (BYTE)alpha_val;
+    dwFlags = jw32_get_dword(argv, 3);
+
+    bRet = SetLayeredWindowAttributes(hwnd, crKey, bAlpha, dwFlags);
 
     return jw32_wrap_bool(bRet);
 }
@@ -4879,10 +4950,22 @@ static const JanetReg cfuns[] = {
         "Retrieves information about the specified window.",
     },
     {
+        "SetWindowLong",
+        cfun_SetWindowLong,
+        "(" MOD_NAME "/SetWindowLong hWnd nIndex dwNewLong)\n\n"
+        "Changes an attribute of the specified window.",
+    },
+    {
         "GetWindowLongPtr",
         cfun_GetWindowLongPtr,
         "(" MOD_NAME "/GetWindowLongPtr hWnd nIndex)\n\n"
         "Retrieves information about the specified window.",
+    },
+    {
+        "SetWindowLongPtr",
+        cfun_SetWindowLongPtr,
+        "(" MOD_NAME "/SetWindowLongPtr hWnd nIndex dwNewLong)\n\n"
+        "Changes an attribute of the specified window.",
     },
     {
         "SetForegroundWindow",
@@ -4919,6 +5002,12 @@ static const JanetReg cfuns[] = {
         cfun_EnumChildWindows,
         "(" MOD_NAME "/EnumChildWindows hWndParent lpEnumFunc)\n\n"
         "Enumerates child windows.",
+    },
+    {
+        "SetLayeredWindowAttributes",
+        cfun_SetLayeredWindowAttributes,
+        "(" MOD_NAME "/SetLayeredWindowAttributes hwnd crKey bAlpha dwFlags)\n\n"
+        "Sets the opacity and transparency color key of a layered window.",
     },
 
     /************************** INPUT **************************/
@@ -5144,6 +5233,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_gwl(env);
     define_consts_gwlp(env);
     define_consts_gw(env);
+    define_consts_lwa(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);

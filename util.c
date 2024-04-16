@@ -55,25 +55,50 @@ static Janet cfun_GET_Y_LPARAM(int32_t argc, Janet *argv)
 }
 
 
-static Janet cfun_signed_to_unsigned(int32_t argc, Janet *argv)
+static Janet cfun_signed_to_unsigned_64(int32_t argc, Janet *argv)
 {
-    LONG_PTR n;
+    int64_t n;
 
     janet_fixarity(argc, 1);
 
-    n = jw32_get_long_ptr(argv, 0);
-    return jw32_wrap_ulong_ptr((ULONG_PTR)n);
+    n = janet_getinteger64(argv, 0);
+    return janet_wrap_u64((uint64_t)n);
 }
 
 
-static Janet cfun_unsigned_to_signed(int32_t argc, Janet *argv)
+static Janet cfun_unsigned_to_signed_64(int32_t argc, Janet *argv)
 {
-    ULONG_PTR n;
+    uint64_t n;
 
     janet_fixarity(argc, 1);
 
-    n = jw32_get_ulong_ptr(argv, 0);
-    return jw32_wrap_long_ptr((LONG_PTR)n);
+    n = janet_getuinteger64(argv, 0);
+    return janet_wrap_s64((int64_t)n);
+}
+
+
+static Janet cfun_signed_to_unsigned_32(int32_t argc, Janet *argv)
+{
+    int32_t n;
+
+    janet_fixarity(argc, 1);
+
+    n = janet_getinteger(argv, 0);
+    return janet_wrap_u64((uint32_t)n);
+}
+
+
+static Janet cfun_unsigned_to_signed_32(int32_t argc, Janet *argv)
+{
+    uint64_t n;
+
+    janet_fixarity(argc, 1);
+
+    n = janet_getuinteger64(argv, 0);
+    if (n > UINT_MAX) {
+        janet_panicf("bad slop #0: expected 32 bit unsigned integer, got %v", argv[0]);
+    }
+    return janet_wrap_integer((int32_t)((uint32_t)n));
 }
 
 
@@ -109,15 +134,27 @@ static const JanetReg cfuns[] = {
         "Retrieves the signed y-coordinate from the specified value.",
     },
     {
-        "signed-to-unsigned",
-        cfun_signed_to_unsigned,
-        "(" MOD_NAME "/signed-to-unsigned n)\n\n"
+        "signed-to-unsigned-64",
+        cfun_signed_to_unsigned_64,
+        "(" MOD_NAME "/signed-to-unsigned-64 n)\n\n"
         "Converts a signed integer to an unsigned integer."
     },
     {
-        "unsigned-to-signed",
-        cfun_unsigned_to_signed,
-        "(" MOD_NAME "/unsigned-to-signed n)\n\n"
+        "unsigned-to-signed-64",
+        cfun_unsigned_to_signed_64,
+        "(" MOD_NAME "/unsigned-to-signed-64 n)\n\n"
+        "Converts an unsigned integer to a signed integer."
+    },
+    {
+        "signed-to-unsigned-32",
+        cfun_signed_to_unsigned_32,
+        "(" MOD_NAME "/signed-to-unsigned-32 n)\n\n"
+        "Converts a signed integer to an unsigned integer."
+    },
+    {
+        "unsigned-to-signed-32",
+        cfun_unsigned_to_signed_32,
+        "(" MOD_NAME "/unsigned-to-signed-32 n)\n\n"
         "Converts an unsigned integer to a signed integer."
     },
     {NULL, NULL, NULL},
