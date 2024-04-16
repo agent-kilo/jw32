@@ -189,7 +189,7 @@ static Janet cfun_QueryFullProcessImageName(int32_t argc, Janet *argv)
             break;
         }
         /* plus one NULL byte */
-        if ((dwSize + 1) <= (DWORD)buf->capacity) {
+        if ((dwSize + 1) < (DWORD)buf->capacity) {
             /* We have the full path */
             break;
         }
@@ -203,6 +203,7 @@ static Janet cfun_QueryFullProcessImageName(int32_t argc, Janet *argv)
     }
 
     if (bRet) {
+        buf->count = dwSize;  /* Sans the trailing NULL byte */
         return janet_wrap_buffer(buf);
     } else {
         return janet_wrap_nil();
