@@ -3770,6 +3770,33 @@ static Janet cfun_SetLayeredWindowAttributes(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetLayeredWindowAttributes(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+
+    BOOL bRet;
+
+    COLORREF crKey;
+    BYTE bAlpha;
+    DWORD dwFlags;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    bRet = GetLayeredWindowAttributes(hwnd, &crKey, &bAlpha, &dwFlags);
+
+    if (bRet) {
+        Janet ret_tuple[3] = {
+            jw32_wrap_dword(crKey),
+            jw32_wrap_int(bAlpha),
+            jw32_wrap_dword(dwFlags),
+        };
+        return janet_wrap_tuple(janet_tuple_n(ret_tuple, 3));
+    }
+    return janet_wrap_nil();
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -5008,6 +5035,12 @@ static const JanetReg cfuns[] = {
         cfun_SetLayeredWindowAttributes,
         "(" MOD_NAME "/SetLayeredWindowAttributes hwnd crKey bAlpha dwFlags)\n\n"
         "Sets the opacity and transparency color key of a layered window.",
+    },
+    {
+        "GetLayeredWindowAttributes",
+        cfun_GetLayeredWindowAttributes,
+        "(" MOD_NAME "/GetLayeredWindowAttributes hwnd)\n\n"
+        "Retrieves the opacity and transparency color key of a layered window.",
     },
 
     /************************** INPUT **************************/
