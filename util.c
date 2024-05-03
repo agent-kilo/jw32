@@ -129,7 +129,11 @@ static Janet cfun_unmarshal_and_free(int32_t argc, Janet *argv)
 
     janet_fixarity(argc, 1);
 
-    buf = (JanetBuffer *)janet_getpointer(argv, 0);
+    if (janet_checktype(argv[0], JANET_POINTER)) {
+        buf = (JanetBuffer *)janet_getpointer(argv, 0);
+    } else {
+        buf = (JanetBuffer *)jw32_get_ulong_ptr(argv, 0);
+    }
 
     ret = janet_unmarshal(buf->data, buf->count, JANET_MARSHAL_UNSAFE, NULL, NULL);
     janet_free(buf);
