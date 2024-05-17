@@ -2828,7 +2828,10 @@ static Janet cfun_SetWindowsHookEx(int32_t argc, Janet *argv)
         HHOOK hOldHook = jw32_unwrap_handle(proc_n_hhook[1]);
         BOOL bUnhook = UnhookWindowsHookEx(hOldHook);
         if (!bUnhook) {
-            janet_panicf("failed to remove old hook proc: 0x%x", GetLastError());
+            if (GetLastError() != ERROR_INVALID_HOOK_HANDLE) {
+                janet_panicf("failed to remove old hook proc: 0x%x", GetLastError());
+            }
+            /* Otherwise assume the hook is already removed. */
         }
     }
 
