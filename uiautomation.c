@@ -1448,6 +1448,25 @@ static void define_consts_automationelementmode(JanetTable *env)
 }
 
 
+static void define_consts_uia_e(JanetTable *env)
+{
+#define __def(const_name, value)                                \
+    janet_def(env, #const_name, jw32_wrap_hresult(value),       \
+              "Constant for UI Automation error codes.")
+
+    /* These error codes are in UIAutomationCoreApi.h which can't be included in C code. */
+    __def(UIA_E_ELEMENTNOTENABLED, 0x80040200);
+    __def(UIA_E_ELEMENTNOTAVAILABLE, 0x80040201);
+    __def(UIA_E_NOCLICKABLEPOINT, 0x80040202);
+    __def(UIA_E_PROXYASSEMBLYNOTLOADED, 0x80040203);
+    __def(UIA_E_NOTSUPPORTED, 0x80040204);
+    __def(UIA_E_INVALIDOPERATION, 0x80131509);
+    __def(UIA_E_TIMEOUT, 0x80131505);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * IUIAutomation
@@ -4096,6 +4115,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_windowinteractionstate(env);
     define_consts_windowvisualstate(env);
     define_consts_automationelementmode(env);
+    define_consts_uia_e(env);
 
     init_uia_thread_state(NULL);
     init_table_protos(env, uia_thread_state.env);
