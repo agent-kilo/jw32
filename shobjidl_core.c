@@ -25,7 +25,7 @@ static Janet IVirtualDesktopManager_GetWindowDesktopId(int32_t argc, Janet *argv
     HRESULT hrRet;
     GUID desktopId;
 
-    janet_fixarity(argc, 3);
+    janet_fixarity(argc, 2);
 
     self = (IVirtualDesktopManager *)jw32_com_get_obj_ref(argv, 0);
     toplevelWindow = jw32_get_handle(argv, 1);
@@ -47,18 +47,44 @@ static Janet IVirtualDesktopManager_GetWindowDesktopId(int32_t argc, Janet *argv
 static Janet IVirtualDesktopManager_IsWindowOnCurrentVirtualDesktop(int32_t argc, Janet *argv)
 {
     IVirtualDesktopManager *self;
+    HWND toplevelWindow;
 
-    // TODO
-    return janet_wrap_nil();
+    HRESULT hrRet;
+    BOOL onCurrentDesktop;
+
+    janet_fixarity(argc, 2);
+
+    self = (IVirtualDesktopManager *)jw32_com_get_obj_ref(argv, 0);
+    toplevelWindow = jw32_get_handle(argv, 1);
+
+    hrRet = self->lpVtbl->IsWindowOnCurrentVirtualDesktop(self, toplevelWindow, &onCurrentDesktop);
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_bool(onCurrentDesktop));
 }
 
 
 static Janet IVirtualDesktopManager_MoveWindowToDesktop(int32_t argc, Janet *argv)
 {
     IVirtualDesktopManager *self;
+    HWND toplevelWindow;
+    JanetString desktop_id_str;
 
-    // TODO
-    return janet_wrap_nil();
+    GUID desktopId;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IVirtualDesktopManager *)jw32_com_get_obj_ref(argv, 0);
+    toplevelWindow = jw32_get_handle(argv, 1);
+    desktop_id_str = janet_getstring(argv, 2);
+    
+    if (jw32_string_to_guid(desktop_id_str, &desktopId)) {
+        hrRet = self->lpVtbl->MoveWindowToDesktop(self, toplevelWindow, &desktopId);
+        JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+    } else {
+        /* XXX: always raise E_INVALIDARG when failed */
+        janet_panicv(JW32_HRESULT_ERRORV(E_INVALIDARG));
+    }
 }
 
 
