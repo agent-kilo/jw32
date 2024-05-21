@@ -70,9 +70,18 @@
               # disable warning C4200: nonstandard extension used: zero-sized array in struct/union
               # this warning is triggered by stuff in state.h, can't disable it with #pragma
               "/wd4200"]
-     :ldflags [;ldflags "oleaut32.lib"]))
+     :ldflags [;ldflags "oleaut32.lib"])
+
+    (declare-native
+     :name (project-module "_shobjidl_core")
+     :source ["shobjidl_core.c"]
+     :headers ["jw32_com.h" "debug.h" ;common-headers]
+     :ldflags [;ldflags "ole32.lib"]))
 
   (add-dep (string (find-build-dir) ((dyn :project) :name) "/_uiautomation.dll")
+           (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
+
+  (add-dep (string (find-build-dir) ((dyn :project) :name) "/_shobjidl_core.dll")
            (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
 
   (declare-native

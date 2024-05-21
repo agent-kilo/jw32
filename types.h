@@ -380,6 +380,60 @@ static inline BSTR jw32_string_to_bstr(JanetString from)
     }
 }
 
+static inline JanetString jw32_guid_to_string(const GUID *from)
+{
+    wchar_t szwGuid[40];
+    int ret = StringFromGUID2(from, szwGuid, 40);
+    if (ret) {
+        int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, szwGuid, -1, NULL, 0, NULL, NULL);
+        if (count <= 0) {
+            return NULL;
+        } else {
+            uint8_t *to = janet_string_begin(count - 1);
+            to[0] = 0;
+            int count_again = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                                  szwGuid, -1, (LPSTR)to, count,
+                                                  NULL, NULL);
+            if (count_again != count) {
+                /* wait for gc to claim it */
+                janet_string_end(to);
+                return NULL;
+            }
+            return janet_string_end(to);
+        }
+    } else {
+        return NULL;
+    }
+}
+
+static inline int jw32_string_to_guid(JanetString from, GUID *to)
+{
+    int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, (const char *)from, -1, NULL, 0);
+
+    if (count <= 0) {
+        return 0;
+    } else {
+#define __buf_len 40
+        wchar_t szwGuid[__buf_len];
+        if (count > __buf_len) {
+            return 0;
+        } else {
+            int count_again = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                                                  (const char *)from, -1, (LPWSTR)szwGuid, count);
+            if (count_again != count) {
+                return 0;
+            }
+            /* Docs for GUIDFromString() suggested to use CLSIDFromString() or IIDFromString() instead */
+            if (NOERROR == CLSIDFromString(szwGuid, (LPCLSID)to)) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+#undef __buf_len
+    }
+}
+
 static inline Janet jw32_parse_variant_safearray(SAFEARRAY *psa, VARTYPE vt, int cleanup)
 {
 #define __CLEANUP() do {                        \
