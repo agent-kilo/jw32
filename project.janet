@@ -73,12 +73,21 @@
      :ldflags [;ldflags "oleaut32.lib"])
 
     (declare-native
+     :name (project-module "_oaidl")
+     :source ["oaidl.c"]
+     :headers ["jw32_com.h" "debug.h" ;common-headers]
+     :ldflags [;ldflags])
+
+    (declare-native
      :name (project-module "_shobjidl_core")
      :source ["shobjidl_core.c"]
      :headers ["jw32_com.h" "debug.h" ;common-headers]
      :ldflags [;ldflags "ole32.lib"]))
 
   (add-dep (string (find-build-dir) ((dyn :project) :name) "/_uiautomation.dll")
+           (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
+
+  (add-dep (string (find-build-dir) ((dyn :project) :name) "/_oaidl.dll")
            (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
 
   (add-dep (string (find-build-dir) ((dyn :project) :name) "/_shobjidl_core.dll")
