@@ -2,6 +2,7 @@
 #define __JW32_TYPES_H
 
 #include <windows.h>
+#include <assert.h>
 #include <janet.h>
 
 
@@ -52,6 +53,44 @@ static inline LPCSTR jw32_get_lpcstr(const Janet *argv, int32_t n)
     default:
         janet_panicf("bad slot #%d, expected %T, %T or %T, got %v",
                      n, JANET_TFLAG_STRING, JANET_TFLAG_POINTER, JANET_TFLAG_NIL, x);
+    }
+}
+
+
+/* LPSTR: mutable string pointers */
+static inline Janet jw32_wrap_lpstr(LPSTR x)
+{
+    size_t buf_size = strlen(x) + 1; /* Plus one null byte */
+    assert(buf_size <= INT32_MAX);
+    JanetBuffer *buf = janet_buffer((int32_t)buf_size);
+    memcpy(buf->data, x, buf_size);
+    return janet_wrap_buffer(buf);
+}
+
+static inline LPSTR jw32_unwrap_lpstr(Janet x)
+{
+    JanetBuffer *buf = janet_unwrap_buffer(x);
+    return (LPSTR)(buf->data);
+}
+
+static inline LPSTR jw32_get_lpstr(const Janet *argv, int32_t n)
+{
+    Janet x = argv[n];
+    
+    switch(janet_type(x)) {
+    case JANET_BUFFER:
+        return jw32_unwrap_lpstr(x);
+    case JANET_POINTER:
+        return (LPSTR)janet_unwrap_pointer(x);
+    case JANET_NUMBER:
+    case JANET_ABSTRACT: /* u64 types */
+        /* janet_unwrap_u64() does its own type & range checks */
+        return (LPSTR)janet_unwrap_u64(x);
+    case JANET_NIL:
+        return NULL;
+    default:
+        janet_panicf("bad slot #%d, expected %T, %T or %T, got %v",
+                     n, JANET_TFLAG_BUFFER, JANET_TFLAG_POINTER, JANET_TFLAG_NIL, x);
     }
 }
 
