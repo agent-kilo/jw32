@@ -105,6 +105,52 @@ static void define_consts_ttf(JanetTable *env)
 }
 
 
+static void define_consts_ttm(JanetTable *env)
+{
+#define __def(const_name)                                  \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name), \
+              "ToolTip window message.")
+
+    __def(TTM_ACTIVATE);
+    __def(TTM_SETDELAYTIME);
+    __def(TTM_ADDTOOL);
+    __def(TTM_DELTOOL);
+    __def(TTM_NEWTOOLRECT);
+    __def(TTM_RELAYEVENT);
+    __def(TTM_GETTOOLINFO);
+    __def(TTM_SETTOOLINFO);
+    __def(TTM_HITTEST);
+    __def(TTM_GETTEXT);
+    __def(TTM_UPDATETIPTEXT);
+    __def(TTM_GETTOOLCOUNT);
+    __def(TTM_ENUMTOOLS);
+    __def(TTM_GETCURRENTTOOL);
+    __def(TTM_WINDOWFROMPOINT);
+    __def(TTM_TRACKACTIVATE);  // wParam = TRUE/FALSE start end  lparam = LPTOOLINFO
+    __def(TTM_TRACKPOSITION);  // lParam = dwPos
+    __def(TTM_SETTIPBKCOLOR);
+    __def(TTM_SETTIPTEXTCOLOR);
+    __def(TTM_GETDELAYTIME);
+    __def(TTM_GETTIPBKCOLOR);
+    __def(TTM_GETTIPTEXTCOLOR);
+    __def(TTM_SETMAXTIPWIDTH);
+    __def(TTM_GETMAXTIPWIDTH);
+    __def(TTM_SETMARGIN);  // lParam = lprc
+    __def(TTM_GETMARGIN);  // lParam = lprc
+    __def(TTM_POP);
+    __def(TTM_UPDATE);
+    __def(TTM_GETBUBBLESIZE);
+    __def(TTM_ADJUSTRECT);
+    __def(TTM_SETTITLE);  // wParam = TTI_*, lParam = char* szTitle
+#if (NTDDI_VERSION >= NTDDI_WINXP)
+    __def(TTM_POPUP);
+    __def(TTM_GETTITLE); // wParam = 0, lParam = TTGETTITLE*
+#endif
+
+#undef __def
+}
+
+
 static Janet cfun_LoadIconMetric(int32_t argc, Janet *argv)
 {
     HINSTANCE hInst;
@@ -239,6 +285,7 @@ static Janet cfun_TTTOOLINFO(int32_t argc, Janet *argv)
             } else {
                 ti->uId = jw32_get_uint_ptr(argv, v);
             }
+            continue;
         }
         __set_member(rect, rect)
         __set_member(hinst, handle)
@@ -289,6 +336,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_lim(env);
     define_consts_tts(env);
     define_consts_ttf(env);
+    define_consts_ttm(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
