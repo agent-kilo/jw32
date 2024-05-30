@@ -1968,6 +1968,20 @@ static void define_consts_lwa(JanetTable *env)
 }
 
 
+static void define_consts_ga(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for GetAncestor flags.")
+
+    __def(GA_PARENT);
+    __def(GA_ROOT);
+    __def(GA_ROOTOWNER);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -3182,6 +3196,28 @@ static Janet cfun_GetDesktopWindow(int32_t argc, Janet *argv)
     janet_fixarity(argc, 0);
 
     return jw32_wrap_handle(GetDesktopWindow());
+}
+
+static Janet cfun_GetAncestor(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    UINT gaFlags;
+
+    janet_fixarity(argc, 2);
+
+    hwnd = jw32_get_handle(argv, 0);
+    gaFlags = jw32_get_uint(argv, 1);
+    return jw32_wrap_handle(GetAncestor(hwnd, gaFlags));
+}
+
+static Janet cfun_GetParent(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_handle(GetParent(hwnd));
 }
 
 static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
@@ -4908,6 +4944,18 @@ static const JanetReg cfuns[] = {
         "Win32 function wrapper.",
     },
     {
+        "GetAncestor",
+        cfun_GetAncestor,
+        "(" MOD_NAME "/GetAncestor hwnd gaFlags)\n\n"
+        "Retrieves the handle to the ancestor of the specified window.",
+    },
+    {
+        "GetParent",
+        cfun_GetParent,
+        "(" MOD_NAME "/GetParent hwnd)\n\n"
+        "Retrieves the handle to the specified window's parent or owner.",
+    },
+    {
         "CreateWindowEx",
         cfun_CreateWindowEx,
         "(" MOD_NAME "/CreateWindowEx dwExStyle lpClassName lpWindowName dwStyle x y nWidth nHeight hWndParent hMenu hInstance lpParam)\n\n"
@@ -5270,6 +5318,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_gwlp(env);
     define_consts_gw(env);
     define_consts_lwa(env);
+    define_consts_ga(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
