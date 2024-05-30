@@ -56,7 +56,7 @@ static void define_consts_token_information_class(JanetTable *env)
     __def(TokenChildProcessFlags);
     __def(TokenIsLessPrivilegedAppContainer);
     __def(TokenIsSandboxed);
-    __def(TokenOriginatingProcessTrustLevel);
+    __def(TokenIsAppSilo);
     __def(MaxTokenInfoClass);
 
 #undef __def
