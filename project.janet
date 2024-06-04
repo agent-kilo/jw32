@@ -1,6 +1,12 @@
 (declare-project :name "jw32")
 
-(def janet-src-tree "D:/w/janet_code/janet")
+(def env (os/environ))
+
+(def janet-src-tree
+  (when-let [src-path (in env "JANET_SOURCE_PATH")]
+    src-path
+    (error "environment variable JANET_SOURCE_PATH not defined")))
+
 (def cflags
   [;(dyn :cflags) "/W4"])
 (def ldflags
