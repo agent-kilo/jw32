@@ -3,7 +3,7 @@
 (def env (os/environ))
 
 (def janet-src-tree
-  (when-let [src-path (in env "JANET_SOURCE_PATH")]
+  (if-let [src-path (in env "JANET_SOURCE_PATH")]
     src-path
     (error "environment variable JANET_SOURCE_PATH not defined")))
 
