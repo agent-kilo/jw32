@@ -146,6 +146,12 @@ static Janet cfun_alloc_console_and_reopen_streams(int32_t argc, Janet *argv)
     janet_fixarity(argc, 0);
     (void)argv;
 
+    HWND h_con = GetConsoleWindow();
+    if (NULL != h_con) {
+        /* We already have a console attached */
+        return janet_wrap_boolean(0);
+    }
+
     if (!AllocConsole()) {
         janet_panic("AllocConsole() failed");
     }
@@ -170,7 +176,7 @@ static Janet cfun_alloc_console_and_reopen_streams(int32_t argc, Janet *argv)
         janet_panicf("freopen_s() failed for stderr: %n", err);
     }
 
-    return janet_wrap_nil();
+    return janet_wrap_boolean(1);
 }
 
 
