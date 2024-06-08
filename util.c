@@ -141,6 +141,39 @@ static Janet cfun_unmarshal_and_free(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_alloc_console_and_reopen_streams(int32_t argc, Janet *argv)
+{
+    janet_fixarity(argc, 0);
+    (void)argv;
+
+    if (!AllocConsole()) {
+        janet_panic("AllocConsole() failed");
+    }
+
+    errno_t err = 0;
+    FILE *con_stdin;
+    FILE *con_stdout;
+    FILE *con_stderr;
+
+    err = freopen_s(&con_stdin, "CONIN$", "r", stdin);
+    if (err) {
+        janet_panicf("freopen_s() failed for stdin: %n", err);
+    }
+
+    err = freopen_s(&con_stdout, "CONOUT$", "w", stdout);
+    if (err) {
+        janet_panicf("freopen_s() failed for stdout: %n", err);
+    }
+
+    err = freopen_s(&con_stderr, "CONOUT$", "w", stderr);
+    if (err) {
+        janet_panicf("freopen_s() failed for stderr: %n", err);
+    }
+
+    return janet_wrap_nil();
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "null?",
@@ -207,6 +240,12 @@ static const JanetReg cfuns[] = {
         cfun_unmarshal_and_free,
         "(" MOD_NAME "/unmarshal-and-free ptr)\n\n"
         "Unmarshals a Janet object from the buffer pointed to by ptr, and then frees the buffer."
+    },
+    {
+        "alloc-console-and-reopen-streams",
+        cfun_alloc_console_and_reopen_streams,
+        "(" MOD_NAME "/alloc-console-and-reopen-streams)\n\n"
+        "Opens a console and redirect stdin, stdout and stderr."
     },
     {NULL, NULL, NULL},
 };
