@@ -62,6 +62,11 @@ static Janet cfun_DwmGetWindowAttribute(int32_t argc, Janet *argv)
         hRes = DwmGetWindowAttribute(hwnd, dwAttribute, &cloaked, sizeof(cloaked));
         JW32_HR_RETURN_OR_PANIC(hRes, jw32_wrap_int(cloaked));
     }
+    case DWMWA_EXTENDED_FRAME_BOUNDS: {
+        RECT rect;
+        hRes = DwmGetWindowAttribute(hwnd, dwAttribute, &rect, sizeof(rect));
+        JW32_HR_RETURN_OR_PANIC(hRes, janet_wrap_struct(jw32_rect_to_struct(&rect)));
+    }
     default:
         janet_panicf("unsupported attribute: %d", dwAttribute);
     }
