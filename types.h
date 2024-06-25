@@ -303,6 +303,15 @@ static inline RECT jw32_get_rect(const Janet *argv, int32_t n)
         break;
     }
 
+    case JANET_STRUCT: {
+        JanetStruct rc_struct = janet_getstruct(argv, n);
+        __get_member(janet_struct_get(rc_struct, janet_ckeywordv("left")), left);
+        __get_member(janet_struct_get(rc_struct, janet_ckeywordv("top")), top);
+        __get_member(janet_struct_get(rc_struct, janet_ckeywordv("right")), right);
+        __get_member(janet_struct_get(rc_struct, janet_ckeywordv("bottom")), bottom);
+        break;
+    }
+
     case JANET_ARRAY:
     case JANET_TUPLE: {
         JanetView rc_view = janet_getindexed(argv, n);
@@ -317,7 +326,7 @@ static inline RECT jw32_get_rect(const Janet *argv, int32_t n)
     }
 
     default:
-        janet_panicf("bad slot #%d: expected a table, a tuple or an array, got %v", n, argv[n]);
+        janet_panicf("bad slot #%d: expected a table, a struct, a tuple or an array, got %v", n, argv[n]);
     }
 
 #undef __get_member
