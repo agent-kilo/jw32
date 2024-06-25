@@ -1313,6 +1313,16 @@ static void define_consts_monitorinfof(JanetTable *env)
               "Constant for moniter info flags.");
 }
 
+static void define_consts_monitor(JanetTable *env)
+{
+    janet_def(env, "MONITOR_DEFAULTTONEAREST", jw32_wrap_dword(MONITOR_DEFAULTTONEAREST),
+              "Constant for MonitorFrom* flags.");
+    janet_def(env, "MONITOR_DEFAULTTONULL", jw32_wrap_dword(MONITOR_DEFAULTTONULL),
+              "Constant for MonitorFrom* flags.");
+    janet_def(env, "MONITOR_DEFAULTTOPRIMARY", jw32_wrap_dword(MONITOR_DEFAULTTOPRIMARY),
+              "Constant for MonitorFrom* flags.");
+}
+
 static void define_consts_tpm(JanetTable *env)
 {
 #define __def(const_name)                                      \
@@ -4741,6 +4751,61 @@ static Janet cfun_GetMonitorInfo(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_MonitorFromPoint(int32_t argc, Janet *argv)
+{
+    JanetView pt_view;
+    DWORD dwFlags;
+
+    HMONITOR hMonitor;
+
+    POINT pt;
+
+    janet_fixarity(argc, 2);
+
+    pt_view = janet_getindexed(argv, 0);
+    dwFlags = jw32_get_dword(argv, 1);
+
+    pt = jw32_view_to_point(pt_view);
+
+    hMonitor = MonitorFromPoint(pt, dwFlags);
+    return jw32_wrap_handle(hMonitor);
+}
+
+
+static Janet cfun_MonitorFromRect(int32_t argc, Janet *argv)
+{
+    RECT rect;
+    DWORD dwFlags;
+
+    HMONITOR hMonitor;
+
+    janet_fixarity(argc, 2);
+
+    rect = jw32_get_rect(argv, 0);
+    dwFlags = jw32_get_dword(argv, 1);
+
+    hMonitor = MonitorFromRect(&rect, dwFlags);
+    return jw32_wrap_handle(hMonitor);
+}
+
+
+static Janet cfun_MonitorFromWindow(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    DWORD dwFlags;
+
+    HMONITOR hMonitor;
+
+    janet_fixarity(argc, 2);
+
+    hwnd = jw32_get_handle(argv, 0);
+    dwFlags = jw32_get_dword(argv, 1);
+
+    hMonitor = MonitorFromWindow(hwnd, dwFlags);
+    return jw32_wrap_handle(hMonitor);
+}
+
+
 static Janet cfun_GetSystemMetrics(int32_t argc, Janet *argv)
 {
     int nIndex;
@@ -5268,6 +5333,24 @@ static const JanetReg cfuns[] = {
         "Retrieves information about a display monitor.",
     },
     {
+        "MonitorFromPoint",
+        cfun_MonitorFromPoint,
+        "(" MOD_NAME "/MonitorFromPoint pt dwFlags)\n\n"
+        "Retrieves a handle to the monitor that contains the specified point.",
+    },
+    {
+        "MonitorFromRect",
+        cfun_MonitorFromRect,
+        "(" MOD_NAME "/MonitorFromRect lprc dwFlags)\n\n"
+        "Retrieves a handle to the monitor that has the largest area of intersection with the specified rectangle.",
+    },
+    {
+        "MonitorFromWindow",
+        cfun_MonitorFromWindow,
+        "(" MOD_NAME "/MonitorFromWindow hwnd dwFlags)\n\n"
+        "Retrieves a handle to the monitor that has the largest area of intersection with the specified window.",
+    },
+    {
         "GetSystemMetrics",
         cfun_GetSystemMetrics,
         "(" MOD_NAME "/GetSystemMetrics nIndex)\n\n"
@@ -5335,6 +5418,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_mouseeventf(env);
     define_consts_keyeventf(env);
     define_consts_monitorinfof(env);
+    define_consts_monitor(env);
     define_consts_tpm(env);
     define_consts_vk(env);
     define_consts_spi(env);
