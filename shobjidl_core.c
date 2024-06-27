@@ -99,6 +99,59 @@ static const JanetMethod IVirtualDesktopManager_methods[] = {
 };
 
 
+static Janet IDesktopWallpaper_GetMonitorDevicePathAt(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    UINT monitorIndex;
+
+    HRESULT hrRet;
+    JanetString monitor_id_str = NULL;
+
+    LPWSTR monitorID = NULL;
+
+    janet_fixarity(argc, 2);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    monitorIndex = jw32_get_uint(argv, 1);
+
+    hrRet = self->lpVtbl->GetMonitorDevicePathAt(self, monitorIndex, &monitorID);
+    if (S_OK == hrRet) {
+        monitor_id_str = jw32_bstr_to_string((BSTR)monitorID);
+        if (!monitor_id_str) {
+            hrRet = E_UNEXPECTED;
+        }
+    }
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_string(monitor_id_str));
+}
+
+
+static Janet IDesktopWallpaper_GetMonitorDevicePathCount(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+
+    HRESULT hrRet;
+    UINT count = 0;
+    INT iCount = 0;
+
+    janet_fixarity(argc, 1);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    
+    hrRet = self->lpVtbl->GetMonitorDevicePathCount(self, &count);
+    if (S_OK == hrRet) {
+        /* The return value from C API is a UINT, but we return
+           an INT number, for ease of processing. There can't be
+           that many monitors, right? */
+        if (count > INT_MAX) {
+            hrRet = E_BOUNDS;
+        } else {
+            iCount = (INT)count;
+        }
+    }
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_int(iCount));
+}
+
+
 static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
@@ -197,8 +250,8 @@ static const JanetMethod IDesktopWallpaper_methods[] = {
     //{"AdvanceSlideshow", IDesktopWallpaper_AdvanceSlideshow},
     //{"Enable", IDesktopWallpaper_Enable},
     //{"GetBackgroundColor", IDesktopWallpaper_GetBackgroundColor},
-    //{"GetMonitorDevicePathAt", IDesktopWallpaper_GetMonitorDevicePathAt},
-    //{"GetMonitorDevicePathCount", IDesktopWallpaper_GetMonitorDevicePathCount},
+    {"GetMonitorDevicePathAt", IDesktopWallpaper_GetMonitorDevicePathAt},
+    {"GetMonitorDevicePathCount", IDesktopWallpaper_GetMonitorDevicePathCount},
     //{"GetMonitorRECT", IDesktopWallpaper_GetMonitorRECT},
     //{"GetPosition", IDesktopWallpaper_GetPosition},
     //{"GetSlideshow", IDesktopWallpaper_GetSlideshow},
