@@ -20,6 +20,19 @@ static void define_uuids(JanetTable *env)
 }
 
 
+static void define_consts_dsd(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),              \
+              "Constant for AdvanceSlideshow method of DesktopWallpaper objects.")
+
+    __def(DSD_FORWARD);
+    __def(DSD_BACKWARD);
+
+#undef __def
+}
+
+
 static Janet IVirtualDesktopManager_GetWindowDesktopId(int32_t argc, Janet *argv)
 {
     IVirtualDesktopManager *self;
@@ -97,6 +110,59 @@ static const JanetMethod IVirtualDesktopManager_methods[] = {
     {"MoveWindowToDesktop", IVirtualDesktopManager_MoveWindowToDesktop},
     {NULL, NULL},
 };
+
+
+static Janet IDesktopWallpaper_AdvanceSlideshow(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    JanetString monitor_id_str;
+    DESKTOP_SLIDESHOW_DIRECTION direction;
+
+    HRESULT hrRet;
+    BSTR monitorID = NULL;
+
+    janet_fixarity(argc, 3);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    if (janet_checktype(argv[1], JANET_NIL)) {
+        monitor_id_str = NULL;
+    } else {
+        monitor_id_str = janet_getstring(argv, 1);
+    }
+    direction = jw32_get_int(argv, 2);
+
+    if (monitor_id_str) {
+        monitorID = jw32_string_to_bstr(monitor_id_str);
+        if (!monitorID) {
+            janet_panicv(JW32_HRESULT_ERRORV(E_INVALIDARG));
+        }
+    } else {
+        monitorID = NULL;
+    }
+
+    hrRet = self->lpVtbl->AdvanceSlideshow(self, monitorID, direction);
+
+    SysFreeString(monitorID);
+
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+
+static Janet IDesktopWallpaper_Enable(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    BOOL enable;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    enable = jw32_get_bool(argv, 1);
+
+    hrRet = self->lpVtbl->Enable(self, enable);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
 
 
 static Janet IDesktopWallpaper_GetMonitorDevicePathAt(int32_t argc, Janet *argv)
@@ -247,8 +313,8 @@ free_and_return:
 
 
 static const JanetMethod IDesktopWallpaper_methods[] = {
-    //{"AdvanceSlideshow", IDesktopWallpaper_AdvanceSlideshow},
-    //{"Enable", IDesktopWallpaper_Enable},
+    {"AdvanceSlideshow", IDesktopWallpaper_AdvanceSlideshow},
+    {"Enable", IDesktopWallpaper_Enable},
     //{"GetBackgroundColor", IDesktopWallpaper_GetBackgroundColor},
     {"GetMonitorDevicePathAt", IDesktopWallpaper_GetMonitorDevicePathAt},
     {"GetMonitorDevicePathCount", IDesktopWallpaper_GetMonitorDevicePathCount},
@@ -288,6 +354,8 @@ static void init_table_protos(JanetTable *env)
 
 JANET_MODULE_ENTRY(JanetTable *env)
 {
+    define_consts_dsd(env);
+
     define_uuids(env);
 
     init_table_protos(env);
