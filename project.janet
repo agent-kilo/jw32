@@ -88,7 +88,7 @@
      :name (project-module "_shobjidl_core")
      :source ["shobjidl_core.c"]
      :headers ["jw32_com.h" "debug.h" ;common-headers]
-     :ldflags [;ldflags "ole32.lib"]))
+     :ldflags [;ldflags "ole32.lib" "oleaut32.lib"]))
 
   (add-dep (string (find-build-dir) ((dyn :project) :name) "/_uiautomation.dll")
            (string (find-build-dir) ((dyn :project) :name) "/_combaseapi.dll"))
