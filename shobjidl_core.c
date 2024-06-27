@@ -33,6 +33,23 @@ static void define_consts_dsd(JanetTable *env)
 }
 
 
+static void define_consts_dwpos(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),              \
+              "Constant for wallpaper positions.")
+
+    __def(DWPOS_CENTER);
+    __def(DWPOS_TILE);
+    __def(DWPOS_STRETCH);
+    __def(DWPOS_FIT);
+    __def(DWPOS_FILL);
+    __def(DWPOS_SPAN);
+
+#undef __def
+}
+
+
 static Janet IVirtualDesktopManager_GetWindowDesktopId(int32_t argc, Janet *argv)
 {
     IVirtualDesktopManager *self;
@@ -165,6 +182,22 @@ static Janet IDesktopWallpaper_Enable(int32_t argc, Janet *argv)
 }
 
 
+static Janet IDesktopWallpaper_GetBackgroundColor(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    COLORREF color;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 1);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+
+    hrRet = self->lpVtbl->GetBackgroundColor(self, &color);
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_dword(color));
+}
+
+
 static Janet IDesktopWallpaper_GetMonitorDevicePathAt(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
@@ -218,6 +251,46 @@ static Janet IDesktopWallpaper_GetMonitorDevicePathCount(int32_t argc, Janet *ar
 }
 
 
+static Janet IDesktopWallpaper_GetMonitorRECT(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    JanetString monitor_id_str;
+
+    HRESULT hrRet;
+    BSTR monitorID = NULL;
+    RECT displayRect = {0, 0, 0, 0};
+
+    janet_fixarity(argc, 2);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    monitor_id_str = janet_getstring(argv, 1);
+
+    monitorID = jw32_string_to_bstr(monitor_id_str);
+    if (!monitorID) {
+        janet_panicv(JW32_HRESULT_ERRORV(E_INVALIDARG));
+    }
+
+    hrRet = self->lpVtbl->GetMonitorRECT(self, monitorID, &displayRect);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_struct(jw32_rect_to_struct(&displayRect)));
+}
+
+
+static Janet IDesktopWallpaper_GetPosition(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+
+    HRESULT hrRet;
+    DESKTOP_WALLPAPER_POSITION position;
+
+    janet_fixarity(argc, 1);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+
+    hrRet = self->lpVtbl->GetPosition(self, &position);
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_int(position));
+}
+
+
 static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
@@ -261,6 +334,23 @@ static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
     }
 
     JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_string(wallpaper_str));
+}
+
+
+static Janet IDesktopWallpaper_SetPosition(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    DESKTOP_WALLPAPER_POSITION position;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    position = jw32_get_int(argv, 1);
+
+    hrRet = self->lpVtbl->SetPosition(self, position);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
 
@@ -315,17 +405,17 @@ free_and_return:
 static const JanetMethod IDesktopWallpaper_methods[] = {
     {"AdvanceSlideshow", IDesktopWallpaper_AdvanceSlideshow},
     {"Enable", IDesktopWallpaper_Enable},
-    //{"GetBackgroundColor", IDesktopWallpaper_GetBackgroundColor},
+    {"GetBackgroundColor", IDesktopWallpaper_GetBackgroundColor},
     {"GetMonitorDevicePathAt", IDesktopWallpaper_GetMonitorDevicePathAt},
     {"GetMonitorDevicePathCount", IDesktopWallpaper_GetMonitorDevicePathCount},
-    //{"GetMonitorRECT", IDesktopWallpaper_GetMonitorRECT},
-    //{"GetPosition", IDesktopWallpaper_GetPosition},
+    {"GetMonitorRECT", IDesktopWallpaper_GetMonitorRECT},
+    {"GetPosition", IDesktopWallpaper_GetPosition},
     //{"GetSlideshow", IDesktopWallpaper_GetSlideshow},
     //{"GetSlideshowOptions", IDesktopWallpaper_GetSlideshowOptions},
     //{"GetStatus", IDesktopWallpaper_GetStatus},
     {"GetWallpaper", IDesktopWallpaper_GetWallpaper},
     //{"SetBackgroundColor", IDesktopWallpaper_SetBackgroundColor},
-    //{"SetPosition", IDesktopWallpaper_SetPosition},
+    {"SetPosition", IDesktopWallpaper_SetPosition},
     //{"SetSlideshow", IDesktopWallpaper_SetSlideshow},
     //{"SetSlideshowOptions", IDesktopWallpaper_SetSlideshowOptions},
     {"SetWallpaper", IDesktopWallpaper_SetWallpaper},
@@ -355,6 +445,7 @@ static void init_table_protos(JanetTable *env)
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_dsd(env);
+    define_consts_dwpos(env);
 
     define_uuids(env);
 
