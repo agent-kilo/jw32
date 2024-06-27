@@ -50,6 +50,32 @@ static void define_consts_dwpos(JanetTable *env)
 }
 
 
+static void define_consts_dso(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),              \
+              "Constant for slideshow options.")
+
+    __def(DSO_SHUFFLEIMAGES);
+
+#undef __def
+}
+
+
+static void define_consts_dss(JanetTable *env)
+{
+#define __def(const_name)                                               \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),              \
+              "Constant for slideshow states.")
+
+    __def(DSS_ENABLED);
+    __def(DSS_SLIDESHOW);
+    __def(DSS_DISABLED_BY_REMOTE_SESSION);
+
+#undef __def
+}
+
+
 static Janet IVirtualDesktopManager_GetWindowDesktopId(int32_t argc, Janet *argv)
 {
     IVirtualDesktopManager *self;
@@ -185,9 +211,9 @@ static Janet IDesktopWallpaper_Enable(int32_t argc, Janet *argv)
 static Janet IDesktopWallpaper_GetBackgroundColor(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
-    COLORREF color;
 
     HRESULT hrRet;
+    COLORREF color;
 
     janet_fixarity(argc, 1);
 
@@ -291,6 +317,44 @@ static Janet IDesktopWallpaper_GetPosition(int32_t argc, Janet *argv)
 }
 
 
+static Janet IDesktopWallpaper_GetSlideshowOptions(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+
+    HRESULT hrRet;
+    DESKTOP_SLIDESHOW_OPTIONS options;
+    UINT slideshowTick;
+    Janet ret_tuple[2] = {janet_wrap_nil(), janet_wrap_nil()};
+
+    janet_fixarity(argc, 1);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+
+    hrRet = self->lpVtbl->GetSlideshowOptions(self, &options, &slideshowTick);
+    if (S_OK == hrRet) {
+        ret_tuple[0] = jw32_wrap_int(options);
+        ret_tuple[1] = jw32_wrap_uint(slideshowTick);
+    }
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_tuple(janet_tuple_n(ret_tuple, 2)));
+}
+
+
+static Janet IDesktopWallpaper_GetStatus(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+
+    HRESULT hrRet;
+    DESKTOP_SLIDESHOW_STATE state;
+
+    janet_fixarity(argc, 1);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+
+    hrRet = self->lpVtbl->GetStatus(self, &state);
+    JW32_HR_RETURN_OR_PANIC(hrRet, jw32_wrap_int(state));
+}
+
+
 static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
@@ -337,6 +401,23 @@ static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
 }
 
 
+static Janet IDesktopWallpaper_SetBackgroundColor(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    COLORREF color;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 2);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    color = jw32_get_dword(argv, 1);
+
+    hrRet = self->lpVtbl->SetBackgroundColor(self, color);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+
 static Janet IDesktopWallpaper_SetPosition(int32_t argc, Janet *argv)
 {
     IDesktopWallpaper *self;
@@ -350,6 +431,25 @@ static Janet IDesktopWallpaper_SetPosition(int32_t argc, Janet *argv)
     position = jw32_get_int(argv, 1);
 
     hrRet = self->lpVtbl->SetPosition(self, position);
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
+}
+
+
+static Janet IDesktopWallpaper_SetSlideshowOptions(int32_t argc, Janet *argv)
+{
+    IDesktopWallpaper *self;
+    DESKTOP_SLIDESHOW_OPTIONS options;
+    UINT slideshowTick;
+
+    HRESULT hrRet;
+
+    janet_fixarity(argc, 3);
+
+    self = (IDesktopWallpaper *)jw32_com_get_obj_ref(argv, 0);
+    options = jw32_get_int(argv, 1);
+    slideshowTick = jw32_get_uint(argv, 2);
+
+    hrRet = self->lpVtbl->SetSlideshowOptions(self, options, slideshowTick);
     JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_nil());
 }
 
@@ -411,13 +511,13 @@ static const JanetMethod IDesktopWallpaper_methods[] = {
     {"GetMonitorRECT", IDesktopWallpaper_GetMonitorRECT},
     {"GetPosition", IDesktopWallpaper_GetPosition},
     //{"GetSlideshow", IDesktopWallpaper_GetSlideshow},
-    //{"GetSlideshowOptions", IDesktopWallpaper_GetSlideshowOptions},
-    //{"GetStatus", IDesktopWallpaper_GetStatus},
+    {"GetSlideshowOptions", IDesktopWallpaper_GetSlideshowOptions},
+    {"GetStatus", IDesktopWallpaper_GetStatus},
     {"GetWallpaper", IDesktopWallpaper_GetWallpaper},
-    //{"SetBackgroundColor", IDesktopWallpaper_SetBackgroundColor},
+    {"SetBackgroundColor", IDesktopWallpaper_SetBackgroundColor},
     {"SetPosition", IDesktopWallpaper_SetPosition},
     //{"SetSlideshow", IDesktopWallpaper_SetSlideshow},
-    //{"SetSlideshowOptions", IDesktopWallpaper_SetSlideshowOptions},
+    {"SetSlideshowOptions", IDesktopWallpaper_SetSlideshowOptions},
     {"SetWallpaper", IDesktopWallpaper_SetWallpaper},
     {NULL, NULL},
 };
@@ -446,6 +546,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_dsd(env);
     define_consts_dwpos(env);
+    define_consts_dso(env);
+    define_consts_dss(env);
 
     define_uuids(env);
 
