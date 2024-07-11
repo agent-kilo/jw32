@@ -3769,6 +3769,28 @@ static Janet cfun_IsWindowVisible(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_IsIconic(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_bool(IsIconic(hWnd));
+}
+
+
+static Janet cfun_IsZoomed(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_bool(IsZoomed(hWnd));
+}
+
+
 static Janet cfun_GetWindowThreadProcessId(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -5157,6 +5179,18 @@ static const JanetReg cfuns[] = {
         cfun_IsWindowVisible,
         "(" MOD_NAME "/IsWindowVisible hWnd)\n\n"
         "Checks whether the window specified by hWnd has the WS_VISIBLE flag.",
+    },
+    {
+        "IsIconic",
+        cfun_IsIconic,
+        "(" MOD_NAME "/IsIconic hWnd)\n\n"
+        "Checks whether the window specified by hWnd is minimized.",
+    },
+    {
+        "IsZoomed",
+        cfun_IsZoomed,
+        "(" MOD_NAME "/IsZoomed hWnd)\n\n"
+        "Checks whether the window specified by hWnd is maximized.",
     },
     {
         "GetWindowThreadProcessId",
