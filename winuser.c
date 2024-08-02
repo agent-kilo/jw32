@@ -1,6 +1,8 @@
 #include "jw32.h"
 #include "debug.h"
 
+#include <shellscalingapi.h>
+
 #define MOD_NAME "winuser"
 
 
@@ -1987,6 +1989,21 @@ static void define_consts_ga(JanetTable *env)
     __def(GA_PARENT);
     __def(GA_ROOT);
     __def(GA_ROOTOWNER);
+
+#undef __def
+}
+
+
+static void define_consts_mdt(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),     \
+              "Constant for monitor DPI types.")
+
+    __def(MDT_EFFECTIVE_DPI);
+    __def(MDT_ANGULAR_DPI);
+    __def(MDT_RAW_DPI);
+    __def(MDT_DEFAULT);
 
 #undef __def
 }
@@ -4917,6 +4934,62 @@ static Janet cfun_GetAsyncKeyState(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetDpiForSystem(int32_t argc, Janet *argv)
+{
+    (void)argv;
+
+    janet_fixarity(argc, 0);
+
+    return jw32_wrap_uint(GetDpiForSystem());
+}
+
+
+static Janet cfun_GetDpiForMonitor(int32_t argc, Janet *argv)
+{
+    HMONITOR hmonitor;
+    MONITOR_DPI_TYPE dpiType;
+
+    HRESULT hrRet;
+    UINT dpiX, dpiY;
+
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 2);
+
+    hmonitor = jw32_get_handle(argv, 0);
+    dpiType = jw32_get_int(argv, 1);
+
+    hrRet = GetDpiForMonitor(hmonitor, dpiType, &dpiX, &dpiY);
+    if (S_OK == hrRet) {
+        ret_tuple[0] = jw32_wrap_uint(dpiX);
+        ret_tuple[1] = jw32_wrap_uint(dpiY);
+    }
+    JW32_HR_RETURN_OR_PANIC(hrRet, janet_wrap_tuple(janet_tuple_n(ret_tuple, 2)));
+}
+
+
+static Janet cfun_GetDpiForWindow(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_uint(GetDpiForWindow(hwnd));
+}
+
+
+static Janet cfun_GetSystemDpiForProcess(int32_t argc, Janet *argv)
+{
+    HANDLE hProcess;
+
+    janet_fixarity(argc, 1);
+
+    hProcess = jw32_get_handle(argv, 0);
+    return jw32_wrap_uint(GetSystemDpiForProcess(hProcess));
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -5414,6 +5487,30 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetAsyncKeyState vKey)\n\n"
         "Gets the current key state.",
     },
+    {
+        "GetDpiForSystem",
+        cfun_GetDpiForSystem,
+        "(" MOD_NAME "/GetDpiForSystem)\n\n"
+        "Gets the system DPI.",
+    },
+    {
+        "GetDpiForMonitor",
+        cfun_GetDpiForMonitor,
+        "(" MOD_NAME "/GetDpiForMonitor hMonitor dpiType)\n\n"
+        "Gets the DPI value for a display monitor.",
+    },
+    {
+        "GetDpiForWindow",
+        cfun_GetDpiForWindow,
+        "(" MOD_NAME "/GetDpiForWindow hwnd)\n\n"
+        "Gets the DPI value for a window.",
+    },
+    {
+        "GetSystemDpiForProcess",
+        cfun_GetSystemDpiForProcess,
+        "(" MOD_NAME "/GetSystemDpiForProcess hProcess)\n\n"
+        "Gets the system DPI value for a process.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -5461,6 +5558,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_gw(env);
     define_consts_lwa(env);
     define_consts_ga(env);
+    define_consts_mdt(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
