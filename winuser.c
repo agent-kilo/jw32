@@ -2009,6 +2009,34 @@ static void define_consts_mdt(JanetTable *env)
 }
 
 
+static void define_consts_swp(JanetTable *env)
+{
+#define __def(const_name)                                      \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),    \
+              "Constant SetWindowPos flags.")
+
+    __def(SWP_NOSIZE);
+    __def(SWP_NOMOVE);
+    __def(SWP_NOZORDER);
+    __def(SWP_NOREDRAW);
+    __def(SWP_NOACTIVATE);
+    __def(SWP_FRAMECHANGED);
+    __def(SWP_SHOWWINDOW);
+    __def(SWP_HIDEWINDOW);
+    __def(SWP_NOCOPYBITS);
+    __def(SWP_NOOWNERZORDER);
+    __def(SWP_NOSENDCHANGING);
+    __def(SWP_DRAWFRAME);
+    __def(SWP_NOREPOSITION);
+#if(WINVER >= 0x0400)
+    __def(SWP_DEFERERASE);
+    __def(SWP_ASYNCWINDOWPOS);
+#endif /* WINVER >= 0x0400 */
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -3808,6 +3836,27 @@ static Janet cfun_IsZoomed(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SetWindowPos(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    HWND hWndInsertAfter;
+    int X, Y, cx, cy;
+    UINT uFlags;
+
+    janet_fixarity(argc, 7);
+
+    hWnd = jw32_get_handle(argv, 0);
+    hWndInsertAfter = jw32_get_handle(argv, 1);
+    X = jw32_get_int(argv, 2);
+    Y = jw32_get_int(argv, 3);
+    cx = jw32_get_int(argv, 4);
+    cy = jw32_get_int(argv, 5);
+    uFlags = jw32_get_uint(argv, 6);
+
+    return jw32_wrap_bool(SetWindowPos(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags));
+}
+
+
 static Janet cfun_GetWindowThreadProcessId(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -5264,6 +5313,12 @@ static const JanetReg cfuns[] = {
         cfun_IsZoomed,
         "(" MOD_NAME "/IsZoomed hWnd)\n\n"
         "Checks whether the window specified by hWnd is maximized.",
+    },
+    {
+        "SetWindowPos",
+        cfun_SetWindowPos,
+        "(" MOD_NAME "/SetWindowPos hWnd hWndInsertAfter X Y cx cy uFlags)\n\n"
+        "Changes the size, position, and z-order of a window.",
     },
     {
         "GetWindowThreadProcessId",
