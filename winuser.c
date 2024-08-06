@@ -5614,6 +5614,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_lwa(env);
     define_consts_ga(env);
     define_consts_mdt(env);
+    define_consts_swp(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
