@@ -76,7 +76,7 @@
               # disable warning C4200: nonstandard extension used: zero-sized array in struct/union
               # this warning is triggered by stuff in state.h, can't disable it with #pragma
               "/wd4200"]
-     :ldflags [;ldflags "oleaut32.lib"])
+     :ldflags [;ldflags "ole32.lib" "oleaut32.lib"])
 
     (declare-native
      :name (project-module "_oaidl")

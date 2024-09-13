@@ -428,7 +428,7 @@ static inline BSTR jw32_string_to_bstr(JanetString from)
     }
 }
 
-static inline JanetString jw32_guid_to_string(const GUID *from)
+static inline JanetString jw32_guid_to_string(const GUID * const from)
 {
     wchar_t szwGuid[40];
     int ret = StringFromGUID2(from, szwGuid, 40);

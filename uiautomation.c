@@ -2820,6 +2820,8 @@ static Janet IUIAutomationElement_GetCurrentPatternAs(int32_t argc, Janet *argv)
     PATTERNID patternId;
     JanetTable *if_proto;
 
+    GUID iid;
+
     HRESULT hrRet;
     void *patternObject = NULL;
 
@@ -2828,7 +2830,7 @@ static Janet IUIAutomationElement_GetCurrentPatternAs(int32_t argc, Janet *argv)
     patternId = jw32_get_int(argv, 1);
     if_proto = janet_gettable(argv, 2);
 
-    REFIID riid = jw32_com_normalize_iid(if_proto);
+    REFIID riid = jw32_com_normalize_iid(if_proto, &iid);
 
     hrRet = self->lpVtbl->GetCurrentPatternAs(self, patternId, riid, &patternObject);
 
@@ -2841,6 +2843,8 @@ static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
     PATTERNID patternId;
     JanetTable *if_proto;
 
+    GUID iid;
+
     HRESULT hrRet;
     void *patternObject = NULL;
 
@@ -2849,7 +2853,7 @@ static Janet IUIAutomationElement_GetCachedPatternAs(int32_t argc, Janet *argv)
     patternId = jw32_get_int(argv, 1);
     if_proto = janet_gettable(argv, 2);
 
-    REFIID riid = jw32_com_normalize_iid(if_proto);
+    REFIID riid = jw32_com_normalize_iid(if_proto, &iid);
 
     hrRet = self->lpVtbl->GetCachedPatternAs(self, patternId, riid, &patternObject);
 

@@ -33,16 +33,44 @@ __declspec(dllexport) jw32_com_proto_registry_t jw32_com_proto_registry = {
 };
 #endif /* !JW32_COM_IUNKNOWN_EXPORT */
 
+
+static inline GUID *jw32_unwrap_guid(Janet x, GUID *pguid)
+{
+    switch (janet_type(x)) {
+    case JANET_STRING: {
+        JanetString guid_str = janet_unwrap_string(x);
+        if (jw32_string_to_guid(guid_str, pguid)) {
+            return pguid;
+        } else {
+            janet_panicf("invalid guid string: %v", x);
+        }
+    }
+    case JANET_POINTER:
+        return jw32_unwrap_lpvoid(x);
+    default:
+        janet_panicf("invalid guid value, expected %T or %T, got %v",
+                     JANET_TFLAG_STRING, JANET_TFLAG_POINTER, x);
+    }
+}
+
+
+static inline GUID *jw32_get_guid(const Janet *argv, int32_t n, GUID *pguid)
+{
+    Janet x = argv[n];
+    return jw32_unwrap_guid(x, pguid);
+}
+
+
 /* REFCLSID: pointer to class UUID struct */
 #define jw32_wrap_refclsid(x) jw32_wrap_lpvoid((void *)x)
 #define jw32_unwrap_refclsid(x) ((REFCLSID)jw32_unwrap_lpvoid(x))
-#define jw32_get_refclsid(argv, n) ((REFCLSID)jw32_get_lpvoid(argv, n))
+#define jw32_get_refclsid(argv, n, pguid) ((REFCLSID)jw32_get_guid(argv, n, pguid))
 
 
 /* REFIID: pointer to interface UUID struct */
 #define jw32_wrap_refiid(x) jw32_wrap_lpvoid((void *)x)
 #define jw32_unwrap_refiid(x) ((REFIID)jw32_unwrap_lpvoid(x))
-#define jw32_get_refiid(argv, n) ((REFIID)jw32_get_lpvoid(argv, n))
+#define jw32_get_refiid(argv, n, pguid) ((REFIID)jw32_get_guid(argv, n, pguid))
 
 
 /* LPUNKNOWN: pointer to IUnknown interface */
@@ -75,14 +103,10 @@ static inline void *jw32_com_get_obj_ref(Janet *argv, int32_t n)
     return ref;
 }
 
-static inline REFIID jw32_com_normalize_iid(JanetTable *proto)
+static inline REFIID jw32_com_normalize_iid(JanetTable *proto, GUID *pguid)
 {
     Janet maybe_iid = janet_table_get(proto, janet_ckeywordv(JW32_COM_IID_NAME));
-    if (!janet_checktype(maybe_iid, JANET_POINTER)) {
-        janet_panicf("invalid interface ID: %v", maybe_iid);
-    }
-
-    return (REFIID)janet_unwrap_pointer(maybe_iid);
+    return (REFIID)jw32_unwrap_guid(maybe_iid, pguid);
 }
 
 static inline JanetTable *jw32_com_find_if_proto(const char* name)
