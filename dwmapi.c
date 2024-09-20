@@ -73,12 +73,42 @@ static Janet cfun_DwmGetWindowAttribute(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_DwmSetWindowAttribute(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    DWORD dwAttribute;
+
+    HRESULT hRes;
+
+    janet_fixarity(argc, 3);
+
+    hwnd = jw32_get_handle(argv, 0);
+    dwAttribute = jw32_get_dword(argv, 1);
+
+    switch (dwAttribute) {
+    case DWMWA_CLOAK: {
+        BOOL cloak = jw32_get_bool(argv, 2);
+        hRes = DwmSetWindowAttribute(hwnd, dwAttribute, &cloak, sizeof(cloak));
+        JW32_HR_RETURN_OR_PANIC(hRes, janet_wrap_nil());
+    }
+    default:
+        janet_panicf("unsupported attribute: %d", dwAttribute);
+    }
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "DwmGetWindowAttribute",
         cfun_DwmGetWindowAttribute,
         "(" MOD_NAME "/DwmGetWindowAttribute hwnd dwAttribute)\n\n"
         "Retrieves the current value of a specified DWM attribute applied to a window.",
+    },
+    {
+        "DwmSetWindowAttribute",
+        cfun_DwmSetWindowAttribute,
+        "(" MOD_NAME "/DwmSetWindowAttribute hwnd dwAttribute pvAttribute)\n\n"
+        "Sets the value of a specified DWM attribute for a window.",
     },
     {NULL, NULL, NULL},
 };
