@@ -26,6 +26,14 @@ static void define_consts_dwmwa(JanetTable *env)
     __def(DWMWA_CLOAKED);
     __def(DWMWA_FREEZE_REPRESENTATION);
     __def(DWMWA_PASSIVE_UPDATE_MODE);
+    __def(DWMWA_USE_HOSTBACKDROPBRUSH);
+    __def(DWMWA_USE_IMMERSIVE_DARK_MODE);
+    __def(DWMWA_WINDOW_CORNER_PREFERENCE);
+    __def(DWMWA_BORDER_COLOR);
+    __def(DWMWA_CAPTION_COLOR);
+    __def(DWMWA_TEXT_COLOR);
+    __def(DWMWA_VISIBLE_FRAME_BORDER_THICKNESS);
+    __def(DWMWA_SYSTEMBACKDROP_TYPE);
     __def(DWMWA_LAST);
 
 #undef __def
@@ -40,6 +48,19 @@ static void define_consts_dwm_cloaked(JanetTable *env)
     __def(DWM_CLOAKED_APP);
     __def(DWM_CLOAKED_SHELL);
     __def(DWM_CLOAKED_INHERITED);
+#undef __def
+}
+
+
+static void define_consts_dwmwcp(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),    \
+              "Constant for DWM window corner preference.")
+    __def(DWMWCP_DEFAULT);
+    __def(DWMWCP_DONOTROUND);
+    __def(DWMWCP_ROUND);
+    __def(DWMWCP_ROUNDSMALL);
 #undef __def
 }
 
@@ -91,6 +112,11 @@ static Janet cfun_DwmSetWindowAttribute(int32_t argc, Janet *argv)
         hRes = DwmSetWindowAttribute(hwnd, dwAttribute, &cloak, sizeof(cloak));
         JW32_HR_RETURN_OR_PANIC(hRes, janet_wrap_nil());
     }
+    case DWMWA_WINDOW_CORNER_PREFERENCE: {
+        DWM_WINDOW_CORNER_PREFERENCE corner_pref = (DWM_WINDOW_CORNER_PREFERENCE)jw32_get_int(argv, 2);
+        hRes = DwmSetWindowAttribute(hwnd, dwAttribute, &corner_pref, sizeof(corner_pref));
+        JW32_HR_RETURN_OR_PANIC(hRes, janet_wrap_nil());
+    }
     default:
         janet_panicf("unsupported attribute: %d", dwAttribute);
     }
@@ -118,6 +144,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_dwmwa(env);
     define_consts_dwm_cloaked(env);
+    define_consts_dwmwcp(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
