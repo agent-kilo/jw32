@@ -2037,6 +2037,21 @@ static void define_consts_swp(JanetTable *env)
 }
 
 
+static void define_consts_dpi_awareness(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),    \
+              "Constants from enum DPI_AWARENESS.")
+
+    __def(DPI_AWARENESS_INVALID);
+    __def(DPI_AWARENESS_UNAWARE);
+    __def(DPI_AWARENESS_SYSTEM_AWARE);
+    __def(DPI_AWARENESS_PER_MONITOR_AWARE);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -5039,6 +5054,28 @@ static Janet cfun_GetSystemDpiForProcess(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetWindowDpiAwarenessContext(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    return jw32_wrap_handle(GetWindowDpiAwarenessContext(hwnd));
+}
+
+
+static Janet cfun_GetAwarenessFromDpiAwarenessContext(int32_t argc, Janet *argv)
+{
+    DPI_AWARENESS_CONTEXT value;
+
+    janet_fixarity(argc, 1);
+
+    value = jw32_get_handle(argv, 0);
+    return jw32_wrap_int(GetAwarenessFromDpiAwarenessContext(value));
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -5566,6 +5603,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetSystemDpiForProcess hProcess)\n\n"
         "Gets the system DPI value for a process.",
     },
+    {
+        "GetWindowDpiAwarenessContext",
+        cfun_GetWindowDpiAwarenessContext,
+        "(" MOD_NAME "/GetWindowDpiAwarenessContext hwnd)\n\n"
+        "Gets the DPI awareness context associated with a window.",
+    },
+    {
+        "GetAwarenessFromDpiAwarenessContext",
+        cfun_GetAwarenessFromDpiAwarenessContext,
+        "(" MOD_NAME "/GetAwarenessFromDpiAwarenessContext context)\n\n"
+        "Gets the DPI awareness value from a DPI awareness context.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -5615,6 +5664,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_ga(env);
     define_consts_mdt(env);
     define_consts_swp(env);
+    define_consts_dpi_awareness(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
