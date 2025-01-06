@@ -3969,6 +3969,67 @@ static Janet cfun_GetLayeredWindowAttributes(int32_t argc, Janet *argv)
 
 /*******************************************************************
  *
+ * GDI
+ *
+ *******************************************************************/
+
+static Janet cfun_GetDC(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    HDC hRet;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    hRet = GetDC(hwnd);
+    return jw32_wrap_handle(hRet);
+}
+
+static Janet cfun_ReleaseDC(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    HDC hdc;
+
+    int iRet;
+
+    janet_fixarity(argc, 2);
+
+    hwnd = jw32_get_handle(argv, 0);
+    hdc = jw32_get_handle(argv, 1);
+
+    iRet = ReleaseDC(hwnd, hdc);
+    return jw32_wrap_int(iRet);
+}
+
+static Janet cfun_CreateCompatibleDC(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+
+    HDC hRet;
+
+    janet_fixarity(argc, 1);
+
+    hdc = jw32_get_handle(argv, 0);
+    hRet = CreateCompatibleDC(hdc);
+    return jw32_wrap_handle(hRet);
+}
+
+static Janet cfun_DeleteDC(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 1);
+
+    hdc = jw32_get_handle(argv, 0);
+    bRet = DeleteDC(hdc);
+    return jw32_wrap_bool(bRet);
+}
+
+
+/*******************************************************************
+ *
  * INPUT
  *
  *******************************************************************/
@@ -5380,6 +5441,32 @@ static const JanetReg cfuns[] = {
         cfun_GetLayeredWindowAttributes,
         "(" MOD_NAME "/GetLayeredWindowAttributes hwnd)\n\n"
         "Retrieves the opacity and transparency color key of a layered window.",
+    },
+
+    /*********************** GDI ************************/
+    {
+        "GetDC",
+        cfun_GetDC,
+        "(" MOD_NAME "/GetDC hwnd)\n\n"
+        "Retrieves a device context for the client area of a specified window.",
+    },
+    {
+        "ReleaseDC",
+        cfun_ReleaseDC,
+        "(" MOD_NAME "/ReleaseDC hwnd hdc)\n\n"
+        "Releases a device context.",
+    },
+    {
+        "CreateCompatibleDC",
+        cfun_CreateCompatibleDC,
+        "(" MOD_NAME "/CreateCompatibleDC hdc)\n\n"
+        "Creates a memory device context compatible with the specified one.",
+    },
+    {
+        "DeleteDC",
+        cfun_DeleteDC,
+        "(" MOD_NAME "/DeleteDC hdc)\n\n"
+        "Deletes a device context.",
     },
 
     /************************** INPUT **************************/

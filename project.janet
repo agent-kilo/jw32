@@ -32,7 +32,7 @@
    :name (project-module "_winuser")
    :source ["winuser.c"]
    :headers ["debug.h" ;common-headers]
-   :ldflags [;ldflags "user32.lib" "shcore.lib"])
+   :ldflags [;ldflags "user32.lib" "shcore.lib" "gdi32.lib"])
 
   (declare-native
    :name (project-module "_processthreadsapi")
