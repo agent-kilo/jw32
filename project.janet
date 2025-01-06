@@ -1,5 +1,10 @@
 (declare-project :name "jw32")
 
+
+(import ./script/util)
+(import ./script/vcs)
+
+
 (def env (os/environ))
 
 (def janet-src-tree
@@ -147,4 +152,30 @@
   (declare-native
    :name (project-module "_util")
    :source ["util.c"]
-   :headers [;common-headers]))
+   :headers [;common-headers]
+   :cflags [;(dyn :cflags)
+            # for vcs-version.h
+            (string "/I" (find-build-dir))]))
+
+
+(task "vcs-version" []
+  (def vcs-version-file (string (find-build-dir) "vcs-version.h"))
+  (def vcs-version (vcs/get-vcs-version))
+  (printf "Detected source version: %n" vcs-version)
+
+  (def cur-version-def
+    (string/format ```#define JW32_VCS_VERSION "%s"```
+                   (vcs/format-vcs-version-string vcs-version 10)))
+  (def old-version-def
+    (try
+      (string/trim (slurp vcs-version-file))
+      ((_err _fib)
+       nil)))
+
+  (printf "Old vcs-version-def: %n" old-version-def)
+  (printf "Current vcs-version-def: %n" cur-version-def)
+
+  (when (and cur-version-def
+             (not= cur-version-def old-version-def))
+    (util/ensure-dir (find-build-dir))
+    (spit vcs-version-file cur-version-def)))

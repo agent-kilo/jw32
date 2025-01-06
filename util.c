@@ -1,6 +1,10 @@
 #include "jw32.h"
 #include <windowsx.h>
 
+#if __has_include("vcs-version.h")
+#include "vcs-version.h"
+#endif
+
 #define MOD_NAME "util"
 
 
@@ -267,4 +271,12 @@ JANET_MODULE_ENTRY(JanetTable *env)
               "TRUE value, for comparison with API return values.");
     janet_def(env, "FALSE", jw32_wrap_bool(FALSE),
               "FALSE value, for comparison with API return values.");
+
+#ifdef JW32_VCS_VERSION
+    janet_def(env, "_jw32-vcs-version", janet_cstringv(JW32_VCS_VERSION),
+              "The current JW32 version, from the VCS (fossil or git).");
+#else
+    janet_def(env, "_jw32-vcs-version", janet_wrap_nil(),
+              "The current JW32 version, from the VCS (fossil or git).");
+#endif
 }
