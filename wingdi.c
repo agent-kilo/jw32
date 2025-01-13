@@ -160,6 +160,62 @@ static Janet cfun_GetStockObject(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CreateFont(int32_t argc, Janet *argv)
+{
+    int cHeight,
+        cWidth,
+        cEscapement,
+        cOrientation,
+        cWeight;
+    DWORD bItalic,
+        bUnderline,
+        bStrikeOut,
+        iCharSet,
+        iOutPrecision,
+        iClipPrecision,
+        iQuality,
+        iPitchAndFamily;
+    LPCSTR pszFaceName;
+
+    HFONT hRet;
+
+    janet_fixarity(argc, 14);
+
+    cHeight = jw32_get_int(argv, 0);
+    cWidth = jw32_get_int(argv, 1);
+    cEscapement = jw32_get_int(argv, 2);
+    cOrientation = jw32_get_int(argv, 3);
+    cWeight = jw32_get_int(argv, 4);
+
+    bItalic = jw32_get_dword(argv, 5);
+    bUnderline = jw32_get_dword(argv, 6);
+    bStrikeOut = jw32_get_dword(argv, 7);
+    iCharSet = jw32_get_dword(argv, 8);
+    iOutPrecision = jw32_get_dword(argv, 9);
+    iClipPrecision = jw32_get_dword(argv, 10);
+    iQuality = jw32_get_dword(argv, 11);
+    iPitchAndFamily = jw32_get_dword(argv, 12);
+
+    pszFaceName = jw32_get_lpcstr(argv, 13);
+
+    hRet = CreateFont(cHeight,
+                      cWidth,
+                      cEscapement,
+                      cOrientation,
+                      cWeight,
+                      bItalic,
+                      bUnderline,
+                      bStrikeOut,
+                      iCharSet,
+                      iOutPrecision,
+                      iClipPrecision,
+                      iQuality,
+                      iPitchAndFamily,
+                      pszFaceName);
+    return jw32_wrap_handle(hRet);
+}
+
+
 static Janet cfun_SetDCBrushColor(int32_t argc, Janet *argv)
 {
     HDC hdc;
@@ -356,6 +412,12 @@ static const JanetReg cfuns[] = {
         cfun_GetStockObject,
         "(" MOD_NAME "/GetStockObject i)\n\n"
         "Retrieves a handle to one of the stock GDI objects.",
+    },
+    {
+        "CreateFont",
+        cfun_CreateFont,
+        "(" MOD_NAME "/CreateFont cHeight cWidth cEscapement cOrientation cWeight bItalic bUnderline bStrikeOut iCharSet iOutPrecision iClipPrecision iQuality iPitchAndFamily pszFaceName)\n\n"
+        "Creates a logical font with the specified characteristics.",
     },
     {
         "SetDCBrushColor",
