@@ -5164,6 +5164,135 @@ static Janet cfun_GetSystemMetrics(int32_t argc, Janet *argv)
 }
 
 
+static int LOGFONT_get(void *p, Janet key, Janet *out)
+{
+    LOGFONT *plf = (LOGFONT *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(plf->member);        \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(lfHeight, long);
+    __get_member(lfWidth, long);
+    __get_member(lfEscapement, long);
+    __get_member(lfOrientation, long);
+    __get_member(lfWeight, long);
+    __get_member(lfItalic, int); /* BYTE */
+    __get_member(lfUnderline, int); /* BYTE */
+    __get_member(lfStrikeOut, int); /* BYTE */
+    __get_member(lfCharSet, int); /* BYTE */
+    __get_member(lfOutPrecision, int); /* BYTE */
+    __get_member(lfClipPrecision, int); /* BYTE */
+    __get_member(lfQuality, int); /* BYTE */
+    __get_member(lfPitchAndFamily, int); /* BYTE */
+    if (!janet_cstrcmp(kw, "lfFaceName")) {
+        *out = janet_cstringv(plf->lfFaceName);
+        return 1;
+    }
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_LOGFONT = {
+    .name = MOD_NAME "/LOGFONT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = LOGFONT_get,
+    JANET_ATEND_GET
+};
+
+
+static int NONCLIENTMETRICS_get(void *p, Janet key, Janet *out)
+{
+    NONCLIENTMETRICS *pncm = (NONCLIENTMETRICS *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(pncm->member);        \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(cbSize, uint);
+    __get_member(iBorderWidth, int);
+    __get_member(iScrollWidth, int);
+    __get_member(iScrollHeight, int);
+    __get_member(iCaptionWidth, int);
+    __get_member(iCaptionHeight, int);
+    if (!janet_cstrcmp(kw, "lfCaptionFont")) {
+        size_t copy_size = sizeof(LOGFONT);
+        LOGFONT *lfp = janet_abstract(&jw32_at_LOGFONT, copy_size);
+        memcpy(lfp, &(pncm->lfCaptionFont), copy_size);
+        *out = janet_wrap_abstract(lfp);
+        return 1;
+    }
+    __get_member(iSmCaptionWidth, int);
+    __get_member(iSmCaptionHeight, int);
+    if (!janet_cstrcmp(kw, "lfSmCaptionFont")) {
+        size_t copy_size = sizeof(LOGFONT);
+        LOGFONT *lfp = janet_abstract(&jw32_at_LOGFONT, copy_size);
+        memcpy(lfp, &(pncm->lfSmCaptionFont), copy_size);
+        *out = janet_wrap_abstract(lfp);
+        return 1;
+    }
+    __get_member(iMenuWidth, int);
+    __get_member(iMenuHeight, int);
+    if (!janet_cstrcmp(kw, "lfMenuFont")) {
+        size_t copy_size = sizeof(LOGFONT);
+        LOGFONT *lfp = janet_abstract(&jw32_at_LOGFONT, copy_size);
+        memcpy(lfp, &(pncm->lfMenuFont), copy_size);
+        *out = janet_wrap_abstract(lfp);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "lfStatusFont")) {
+        size_t copy_size = sizeof(LOGFONT);
+        LOGFONT *lfp = janet_abstract(&jw32_at_LOGFONT, copy_size);
+        memcpy(lfp, &(pncm->lfStatusFont), copy_size);
+        *out = janet_wrap_abstract(lfp);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "lfMessageFont")) {
+        size_t copy_size = sizeof(LOGFONT);
+        LOGFONT *lfp = janet_abstract(&jw32_at_LOGFONT, copy_size);
+        memcpy(lfp, &(pncm->lfMessageFont), copy_size);
+        *out = janet_wrap_abstract(lfp);
+        return 1;
+    }
+#if(WINVER >= 0x0600)
+    __get_member(iPaddedBorderWidth, int);
+#endif /* WINVER >= 0x0600 */
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_NONCLIENTMETRICS = {
+    .name = MOD_NAME "/NONCLIENTMETRICS",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = NONCLIENTMETRICS_get,
+    JANET_ATEND_GET
+};
+
+
 static Janet cfun_SystemParametersInfo(int32_t argc, Janet *argv)
 {
     UINT uiAction;
@@ -5192,6 +5321,18 @@ static Janet cfun_SystemParametersInfo(int32_t argc, Janet *argv)
         UINT_PTR param = jw32_get_dword(argv, 2);
         bSpiRet = SystemParametersInfo(uiAction, uiParam, (PVOID)param, fWinIni);
         return jw32_wrap_bool(bSpiRet);
+    }
+    case SPI_GETNONCLIENTMETRICS: {
+        Janet ret[2];
+        size_t cbSize = sizeof(NONCLIENTMETRICS);
+        NONCLIENTMETRICS *pncm = janet_abstract(&jw32_at_NONCLIENTMETRICS, cbSize);
+        memset(pncm, 0, cbSize);
+        pncm->cbSize = (UINT)cbSize;
+        /* uiParam is ignored here */
+        bSpiRet = SystemParametersInfo(uiAction, (UINT)cbSize, pncm, fWinIni);
+        ret[0] = jw32_wrap_bool(bSpiRet);
+        ret[1] = janet_wrap_abstract(pncm);
+        return janet_wrap_tuple(janet_tuple_n(ret, 2));
     }
     default:
         janet_panicf("unsupported action: %x", uiAction);
@@ -5959,6 +6100,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_register_abstract_type(&jw32_at_MONITORINFOEX);
     janet_register_abstract_type(&jw32_at_PKBDLLHOOKSTRUCT);
     janet_register_abstract_type(&jw32_at_PAINTSTRUCT);
+    janet_register_abstract_type(&jw32_at_NONCLIENTMETRICS);
+    janet_register_abstract_type(&jw32_at_LOGFONT);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
