@@ -2052,6 +2052,48 @@ static void define_consts_dpi_awareness(JanetTable *env)
 }
 
 
+static void define_consts_dt(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_uint(const_name),   \
+              "Constants for DrawText formats.")
+
+    __def(DT_TOP);
+    __def(DT_LEFT);
+    __def(DT_CENTER);
+    __def(DT_RIGHT);
+    __def(DT_VCENTER);
+    __def(DT_BOTTOM);
+    __def(DT_WORDBREAK);
+    __def(DT_SINGLELINE);
+    __def(DT_EXPANDTABS);
+    __def(DT_TABSTOP);
+    __def(DT_NOCLIP);
+    __def(DT_EXTERNALLEADING);
+    __def(DT_CALCRECT);
+    __def(DT_NOPREFIX);
+    __def(DT_INTERNAL);
+
+#if(WINVER >= 0x0400)
+    __def(DT_EDITCONTROL);
+    __def(DT_PATH_ELLIPSIS);
+    __def(DT_END_ELLIPSIS);
+    __def(DT_MODIFYSTRING);
+    __def(DT_RTLREADING);
+    __def(DT_WORD_ELLIPSIS);
+#if(WINVER >= 0x0500)
+    __def(DT_NOFULLWIDTHCHARBREAK);
+#if(_WIN32_WINNT >= 0x0500)
+    __def(DT_HIDEPREFIX);
+    __def(DT_PREFIXONLY);
+#endif /* _WIN32_WINNT >= 0x0500 */
+#endif /* WINVER >= 0x0500 */
+#endif /* WINVER >= 0x0400 */
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -4001,30 +4043,173 @@ static Janet cfun_ReleaseDC(int32_t argc, Janet *argv)
     return jw32_wrap_int(iRet);
 }
 
-static Janet cfun_CreateCompatibleDC(int32_t argc, Janet *argv)
+static int PAINTSTRUCT_get(void *p, Janet key, Janet *out)
 {
-    HDC hdc;
+    PAINTSTRUCT *ps = (PAINTSTRUCT *)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(ps->member);        \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(hdc, handle);
+    __get_member(fErase, bool);
+    if (!janet_cstrcmp(kw, "rcPaint")) {
+        *out = janet_wrap_struct(jw32_rect_to_struct(&(ps->rcPaint)));
+        return 1;
+    }
+    __get_member(fRestore, bool);
+    __get_member(fIncUpdate, bool);
+    if (!janet_cstrcmp(kw, "rgbReserved")) {
+        int32_t count = sizeof(ps->rgbReserved);
+        JanetBuffer *buf = janet_buffer(count);
+        memcpy(buf->data, &(ps->rgbReserved), count);
+        buf->count = count;
+        *out = janet_wrap_buffer(buf);
+        return 1;
+    }
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_PAINTSTRUCT = {
+    .name = MOD_NAME "/PAINTSTRUCT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = PAINTSTRUCT_get,
+    JANET_ATEND_GET
+};
+
+static Janet cfun_PAINTSTRUCT(int32_t argc, Janet *argv)
+{
+    if ((argc & 1) != 0) {
+        janet_panicf("expected even number of arguments, got %d", argc);
+    }
+
+    PAINTSTRUCT *ps = janet_abstract(&jw32_at_PAINTSTRUCT, sizeof(PAINTSTRUCT));
+    memset(ps, 0, sizeof(PAINTSTRUCT));
+
+    for (int32_t k = 0, v = 1; k < argc; k += 2, v += 2) {
+        const uint8_t *kw = janet_getkeyword(argv, k);
+
+#define __set_member(member, type)                  \
+        if (!janet_cstrcmp(kw, #member)) {          \
+            ps->member = jw32_get_##type(argv, v); \
+        } else
+
+        __set_member(hdc, handle)
+        __set_member(fErase, bool)
+        __set_member(rcPaint, rect)
+        __set_member(fRestore, bool)
+        __set_member(fIncUpdate, bool)
+        if (!janet_cstrcmp(kw, "rgbReserved")) {
+            JanetBuffer *buf = janet_getbuffer(argv, v);
+            if (buf->count > sizeof(ps->rgbReserved)) {
+                janet_panicf("expected a buffer with no more than %d elements for rgbReserved, got %d",
+                             sizeof(ps->rgbReserved),
+                             buf->count);
+            }
+            memcpy(&(ps->rgbReserved), buf->data, buf->count);
+        } else
+#undef __set_member
+        {
+            janet_panicf("unknown key %v", argv[k]);
+        }
+    }
+
+    return janet_wrap_abstract(ps);
+}
+
+static Janet cfun_BeginPaint(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    LPPAINTSTRUCT lpPaint;
 
     HDC hRet;
 
-    janet_fixarity(argc, 1);
+    janet_fixarity(argc, 2);
 
-    hdc = jw32_get_handle(argv, 0);
-    hRet = CreateCompatibleDC(hdc);
+    hWnd = jw32_get_handle(argv, 0);
+    lpPaint = janet_getabstract(argv, 1, &jw32_at_PAINTSTRUCT);
+    hRet = BeginPaint(hWnd, lpPaint);
     return jw32_wrap_handle(hRet);
 }
 
-static Janet cfun_DeleteDC(int32_t argc, Janet *argv)
+static Janet cfun_EndPaint(int32_t argc, Janet *argv)
 {
-    HDC hdc;
+    HWND hWnd;
+    const PAINTSTRUCT *lpPaint;
 
     BOOL bRet;
 
-    janet_fixarity(argc, 1);
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    lpPaint = janet_getabstract(argv, 1, &jw32_at_PAINTSTRUCT);
+    bRet = EndPaint(hWnd, lpPaint);
+    return jw32_wrap_bool(bRet);
+}
+
+static Janet cfun_DrawText(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+    LPCSTR lpchText;
+    RECT rc;
+    UINT format;
+
+    JanetString text_str = NULL;
+    JanetBuffer *text_buf = NULL;
+    const uint8_t *text_data = NULL;
+    int32_t text_len;
+
+    int iRet;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 4);
 
     hdc = jw32_get_handle(argv, 0);
-    bRet = DeleteDC(hdc);
-    return jw32_wrap_bool(bRet);
+
+#define __TEXT_SLOT 1
+    switch (janet_type(argv[__TEXT_SLOT])) {
+    case JANET_STRING:
+        text_str = janet_unwrap_string(argv[__TEXT_SLOT]);
+        text_data = text_str;
+        text_len = janet_string_length(text_str);
+        break;
+    case JANET_BUFFER:
+        text_buf = janet_unwrap_buffer(argv[__TEXT_SLOT]);
+        text_data = text_buf->data;
+        text_len = text_buf->count;
+        break;
+    default:
+        janet_panicf("bad slot #%d, expected %T or %T, got %v",
+                     __TEXT_SLOT,
+                     JANET_TFLAG_STRING,
+                     JANET_TFLAG_BUFFER,
+                     argv[__TEXT_SLOT]);
+    }
+#undef __TEXT_SLOT
+    lpchText = (LPCSTR)text_data;
+
+    rc = jw32_get_rect(argv, 2);
+    format = jw32_get_uint(argv, 3);
+
+    iRet = DrawText(hdc, lpchText, text_len, &rc, format);
+
+    ret_tuple[0] = jw32_wrap_int(iRet);
+    ret_tuple[1] = janet_wrap_struct(jw32_rect_to_struct(&rc));
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
 
@@ -5457,16 +5642,28 @@ static const JanetReg cfuns[] = {
         "Releases a device context.",
     },
     {
-        "CreateCompatibleDC",
-        cfun_CreateCompatibleDC,
-        "(" MOD_NAME "/CreateCompatibleDC hdc)\n\n"
-        "Creates a memory device context compatible with the specified one.",
+        "PAINTSTRUCT",
+        cfun_PAINTSTRUCT,
+        "(" MOD_NAME "/PAINTSTRUCT ...)\n\n"
+        "Builds a PAINTSTRUCT.",
     },
     {
-        "DeleteDC",
-        cfun_DeleteDC,
-        "(" MOD_NAME "/DeleteDC hdc)\n\n"
-        "Deletes a device context.",
+        "BeginPaint",
+        cfun_BeginPaint,
+        "(" MOD_NAME "/BeginPaint hWnd lpPaint)\n\n"
+        "Prepares the specified window for painting.",
+    },
+    {
+        "EndPaint",
+        cfun_EndPaint,
+        "(" MOD_NAME "/EndPaint hWnd lpPaint)\n\n"
+        "Marks the end of painting in the specified window.",
+    },
+    {
+        "DrawText",
+        cfun_DrawText,
+        "(" MOD_NAME "/DrawText hdc text rect format)\n\n"
+        "Draws formatted text in the specified rectangle.",
     },
 
     /************************** INPUT **************************/
@@ -5752,6 +5949,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_mdt(env);
     define_consts_swp(env);
     define_consts_dpi_awareness(env);
+    define_consts_dt(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
@@ -5760,6 +5958,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_register_abstract_type(&jw32_at_INPUT);
     janet_register_abstract_type(&jw32_at_MONITORINFOEX);
     janet_register_abstract_type(&jw32_at_PKBDLLHOOKSTRUCT);
+    janet_register_abstract_type(&jw32_at_PAINTSTRUCT);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
