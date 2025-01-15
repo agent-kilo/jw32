@@ -5489,6 +5489,17 @@ static Janet cfun_GetAwarenessFromDpiAwarenessContext(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetSysColor(int32_t argc, Janet *argv)
+{
+    int nIndex;
+
+    janet_fixarity(argc, 1);
+
+    nIndex = jw32_get_int(argv, 0);
+    return jw32_wrap_dword(GetSysColor(nIndex));
+}
+
+
 static const JanetReg cfuns[] = {
 
     /************************* MESSAGING ***************************/
@@ -6071,6 +6082,12 @@ static const JanetReg cfuns[] = {
         cfun_GetAwarenessFromDpiAwarenessContext,
         "(" MOD_NAME "/GetAwarenessFromDpiAwarenessContext context)\n\n"
         "Gets the DPI awareness value from a DPI awareness context.",
+    },
+    {
+        "GetSysColor",
+        cfun_GetSysColor,
+        "(" MOD_NAME "/GetSysColor nIndex)\n\n"
+        "Retrieves the current color of specified display element.",
     },
 
     {NULL, NULL, NULL},
