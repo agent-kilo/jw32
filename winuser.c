@@ -4213,6 +4213,32 @@ static Janet cfun_DrawText(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_InvalidateRect(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    RECT *lpRect;
+    BOOL bErase;
+
+    BOOL bRet;
+
+    RECT rect;
+
+    janet_fixarity(argc, 3);
+
+    hWnd = jw32_get_handle(argv, 0);
+    if (janet_checktype(argv[1], JANET_NIL)) {
+        lpRect = NULL;
+    } else {
+        rect = jw32_get_rect(argv, 1);
+        lpRect = &rect;
+    }
+    bErase = jw32_get_bool(argv, 2);
+
+    bRet = InvalidateRect(hWnd, lpRect, bErase);
+    return jw32_wrap_bool(bRet);
+}
+
+
 /*******************************************************************
  *
  * INPUT
@@ -5805,6 +5831,12 @@ static const JanetReg cfuns[] = {
         cfun_DrawText,
         "(" MOD_NAME "/DrawText hdc text rect format)\n\n"
         "Draws formatted text in the specified rectangle.",
+    },
+    {
+        "InvalidateRect",
+        cfun_InvalidateRect,
+        "(" MOD_NAME "/InvalidateRect hwnd lpRect bErase)\n\n"
+        "Invalidates an area in the specified window.",
     },
 
     /************************** INPUT **************************/
