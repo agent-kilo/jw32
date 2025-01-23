@@ -376,6 +376,20 @@ static Janet cfun_GetBkMode(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CreateSolidBrush(int32_t argc, Janet *argv)
+{
+    COLORREF color;
+
+    HBRUSH hRet;
+
+    janet_fixarity(argc, 1);
+
+    color = jw32_get_dword(argv, 0);
+    hRet = CreateSolidBrush(color);
+    return jw32_wrap_handle(hRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -478,6 +492,12 @@ static const JanetReg cfuns[] = {
         cfun_GetBkMode,
         "(" MOD_NAME "/GetBkMode hdc)\n\n"
         "Retrieves the DC background mode.",
+    },
+    {
+        "CreateSolidBrush",
+        cfun_CreateSolidBrush,
+        "(" MOD_NAME "/CreateSolidBrush color)\n\n"
+        "Creates a solid color brush.",
     },
 
     {NULL, NULL, NULL},
