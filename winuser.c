@@ -4741,6 +4741,21 @@ static Janet cfun_GetPhysicalCursorPos(int32_t argc, Janet *argv)
     return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
 }
 
+static Janet cfun_SetPhysicalCursorPos(int32_t argc, Janet *argv)
+{
+    int x, y;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    x = jw32_get_int(argv, 0);
+    y = jw32_get_int(argv, 1);
+
+    bRet = SetPhysicalCursorPos(x, y);
+    return jw32_wrap_bool(bRet);
+}
+
 static Janet cfun_GetCursorPos(int32_t argc, Janet *argv)
 {
     (void)argv;
@@ -5904,6 +5919,12 @@ static const JanetReg cfuns[] = {
         cfun_GetPhysicalCursorPos,
         "(" MOD_NAME "/GetPhysicalCursorPos)\n\n"
         "Retrieves the position of the cursor in physical coordinates.",
+    },
+    {
+        "SetPhysicalCursorPos",
+        cfun_SetPhysicalCursorPos,
+        "(" MOD_NAME "/SetPhysicalCursorPos x y)\n\n"
+        "Moves the cursor to the specified physical coordinates.",
     },
     {
         "GetCursorPos",
