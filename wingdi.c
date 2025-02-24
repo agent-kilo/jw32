@@ -408,6 +408,69 @@ static Janet cfun_CreateSolidBrush(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_BitBlt(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+    int x, y;
+    int cx, cy;
+    HDC hdcSrc;
+    int x1, y1;
+    DWORD rop;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 9);
+
+    hdc = jw32_get_handle(argv, 0);
+    x = jw32_get_int(argv, 1);
+    y = jw32_get_int(argv, 2);
+    cx = jw32_get_int(argv, 3);
+    cy = jw32_get_int(argv, 4);
+    hdcSrc = jw32_get_handle(argv, 5);
+    x1 = jw32_get_int(argv, 6);
+    y1 = jw32_get_int(argv, 7);
+    rop = jw32_get_dword(argv, 8);
+
+    bRet = BitBlt(hdc, x, y, cx, cy, hdcSrc, x1, y1, rop);
+    return jw32_wrap_bool(bRet);
+}
+
+
+static Janet cfun_StretchBlt(int32_t argc, Janet *argv)
+{
+    HDC hdcDest;
+    int xDest, yDest;
+    int wDest, hDest;
+    HDC hdcSrc;
+    int xSrc, ySrc;
+    int wSrc, hSrc;
+    DWORD rop;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 11);
+
+    hdcDest = jw32_get_handle(argv, 0);
+    xDest = jw32_get_int(argv, 1);
+    yDest = jw32_get_int(argv, 2);
+    wDest = jw32_get_int(argv, 3);
+    hDest = jw32_get_int(argv, 4);
+
+    hdcSrc = jw32_get_handle(argv, 5);
+    xSrc = jw32_get_int(argv, 6);
+    ySrc = jw32_get_int(argv, 7);
+    wSrc = jw32_get_int(argv, 8);
+    hSrc = jw32_get_int(argv, 9);
+
+    rop = jw32_get_dword(argv, 10);
+
+    bRet = StretchBlt(hdcDest, xDest, yDest, wDest, hDest,
+                      hdcSrc,  xSrc,  ySrc,  wSrc,  hSrc,
+                      rop);
+    return jw32_wrap_bool(bRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -522,6 +585,18 @@ static const JanetReg cfuns[] = {
         cfun_CreateSolidBrush,
         "(" MOD_NAME "/CreateSolidBrush color)\n\n"
         "Creates a solid color brush.",
+    },
+    {
+        "BitBlt",
+        cfun_BitBlt,
+        "(" MOD_NAME "/BitBlt hdc x y cx cy hdcSrc x1 y1 rop)\n\n"
+        "Performs a bit-block transfer.",
+    },
+    {
+        "StretchBlt",
+        cfun_StretchBlt,
+        "(" MOD_NAME "/StretchBlt hdcDest xDest yDest wDest hDest hdcSrc xSrc ySrc wSrc hSrc rop)\n\n"
+        "Stretches or compresses a bitmap from a source rectangle, and fill the resulting bitmap into a destination rectangle.",
     },
 
     {NULL, NULL, NULL},
