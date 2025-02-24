@@ -95,6 +95,24 @@ static Janet cfun_DeleteDC(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CreateCompatibleBitmap(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+    int cx, cy;
+
+    HBITMAP hRet;
+
+    janet_fixarity(argc, 3);
+
+    hdc = jw32_get_handle(argv, 0);
+    cx = jw32_get_int(argv, 1);
+    cy = jw32_get_int(argv, 2);
+
+    hRet = CreateCompatibleBitmap(hdc, cx, cy);
+    return jw32_wrap_handle(hRet);
+}
+
+
 static Janet cfun_SelectObject(int32_t argc, Janet *argv)
 {
     HDC hdc;
@@ -402,6 +420,12 @@ static const JanetReg cfuns[] = {
         cfun_DeleteDC,
         "(" MOD_NAME "/DeleteDC hdc)\n\n"
         "Deletes a device context.",
+    },
+    {
+        "CreateCompatibleBitmap",
+        cfun_CreateCompatibleBitmap,
+        "(" MOD_NAME "/CreateCompatibleBitmap hdc cx cy)\n\n"
+        "Creates a bitmap compatible with the device that is associated with the specified device context.",
     },
     {
         "SelectObject",
