@@ -471,6 +471,38 @@ static Janet cfun_StretchBlt(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SetStretchBltMode(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+    int mode;
+
+    int iRet;
+
+    janet_fixarity(argc, 2);
+
+    hdc = jw32_get_handle(argv, 0);
+    mode = jw32_get_int(argv, 1);
+
+    iRet = SetStretchBltMode(hdc, mode);
+    return jw32_wrap_int(iRet);
+}
+
+
+static Janet cfun_GetStretchBltMode(int32_t argc, Janet *argv)
+{
+    HDC hdc;
+
+    int iRet;
+
+    janet_fixarity(argc, 1);
+
+    hdc = jw32_get_handle(argv, 0);
+
+    iRet = GetStretchBltMode(hdc);
+    return jw32_wrap_int(iRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -597,6 +629,18 @@ static const JanetReg cfuns[] = {
         cfun_StretchBlt,
         "(" MOD_NAME "/StretchBlt hdcDest xDest yDest wDest hDest hdcSrc xSrc ySrc wSrc hSrc rop)\n\n"
         "Stretches or compresses a bitmap from a source rectangle, and fill the resulting bitmap into a destination rectangle.",
+    },
+    {
+        "SetStretchBltMode",
+        cfun_SetStretchBltMode,
+        "(" MOD_NAME "/SetStretchBltMode hdc mode)\n\n"
+        "Sets the DC bitmap stretching mode.",
+    },
+    {
+        "GetStretchBltMode",
+        cfun_GetStretchBltMode,
+        "(" MOD_NAME "/GetStretchBltMode hdc)\n\n"
+        "Retrieves the DC bitmap stretching mode.",
     },
 
     {NULL, NULL, NULL},
