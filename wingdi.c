@@ -57,11 +57,83 @@ static void define_consts_bk_mode(JanetTable *env)
 {
 #define __def(const_name)                                    \
     janet_def(env, #const_name, jw32_wrap_int(const_name),   \
-              "Constants for background modes.")
+              "Constant for background modes.")
 
     __def(OPAQUE);
     __def(TRANSPARENT);
     __def(BKMODE_LAST);
+
+#undef __def
+}
+
+
+static void define_consts_stretch_blt_mode(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constant for StretchBlt modes.")
+
+    __def(BLACKONWHITE);
+    __def(WHITEONBLACK);
+    __def(COLORONCOLOR);
+    __def(HALFTONE);
+    __def(MAXSTRETCHBLTMODE);
+#if(WINVER >= 0x0400)
+    __def(STRETCH_ANDSCANS);
+    __def(STRETCH_ORSCANS);
+    __def(STRETCH_DELETESCANS);
+    __def(STRETCH_HALFTONE);
+#endif /* WINVER >= 0x0400 */
+
+#undef __def
+}
+
+
+static void define_consts_raster_operation_code(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constant for raster-operation codes.")
+
+    /* Binary raster ops */
+    __def(R2_BLACK);
+    __def(R2_NOTMERGEPEN);
+    __def(R2_MASKNOTPEN);
+    __def(R2_NOTCOPYPEN);
+    __def(R2_MASKPENNOT);
+    __def(R2_NOT);
+    __def(R2_XORPEN);
+    __def(R2_NOTMASKPEN);
+    __def(R2_MASKPEN);
+    __def(R2_NOTXORPEN);
+    __def(R2_NOP);
+    __def(R2_MERGENOTPEN);
+    __def(R2_COPYPEN);
+    __def(R2_MERGEPENNOT);
+    __def(R2_MERGEPEN);
+    __def(R2_WHITE);
+    __def(R2_LAST);
+
+    /* Ternary raster operations */
+    __def(SRCCOPY);
+    __def(SRCPAINT);
+    __def(SRCAND);
+    __def(SRCINVERT);
+    __def(SRCERASE);
+    __def(NOTSRCCOPY);
+    __def(NOTSRCERASE);
+    __def(MERGECOPY);
+    __def(MERGEPAINT);
+    __def(PATCOPY);
+    __def(PATPAINT);
+    __def(PATINVERT);
+    __def(DSTINVERT);
+    __def(BLACKNESS);
+    __def(WHITENESS);
+#if(WINVER >= 0x0500)
+    __def(NOMIRRORBITMAP);
+    __def(CAPTUREBLT);
+#endif /* WINVER >= 0x0500 */
 
 #undef __def
 }
@@ -652,6 +724,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_stock_object(env);
     define_consts_clr(env);
     define_consts_bk_mode(env);
+    define_consts_stretch_blt_mode(env);
+    define_consts_raster_operation_code(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
