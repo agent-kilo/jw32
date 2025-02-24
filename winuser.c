@@ -3830,6 +3830,24 @@ static Janet cfun_GetWindowRect(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_GetClientRect(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+
+    RECT rect = {0, 0, 0, 0};
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    hWnd = jw32_get_handle(argv, 0);
+
+    ret_tuple[0] = jw32_wrap_bool(GetClientRect(hWnd, &rect));
+    ret_tuple[1] = janet_wrap_struct(jw32_rect_to_struct(&rect));
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+
 static Janet cfun_SetForegroundWindow(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -5753,6 +5771,12 @@ static const JanetReg cfuns[] = {
         cfun_GetWindowRect,
         "(" MOD_NAME "/GetWindowRect hWnd)\n\n"
         "Returns the dimensions of a window's bounding rectangle.",
+    },
+    {
+        "GetClientRect",
+        cfun_GetClientRect,
+        "(" MOD_NAME "/GetClientRect hWnd)\n\n"
+        "Returns the coordinates of a window's client area.",
     },
     {
         "SetForegroundWindow",
