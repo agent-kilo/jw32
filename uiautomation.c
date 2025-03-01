@@ -2990,12 +2990,37 @@ static Janet IUIAutomationElement_GetRuntimeId(int32_t argc, Janet *argv)
     self = (IUIAutomationElement *)jw32_com_get_obj_ref(argv, 0);
     hrRet = self->lpVtbl->GetRuntimeId(self, &runtimeId);
 
-    /* TODO: the value returned is different from GetCurrentPropertyValue() */
-    JW32_HR_RETURN_OR_PANIC(
-        hrRet,
-        /* opaque pointer, don't need to access its content,
-           use IUIAutomation::CompareRuntimeIds() to compare */
-        janet_wrap_pointer(runtimeId));
+    if (S_OK != hrRet) {
+        goto panic;
+    }
+
+    LONG lLbound = runtimeId->rgsabound[0].lLbound;
+    ULONG cElements = runtimeId->rgsabound[0].cElements;
+    /* Runtime ID values are 32 bit signed integers. I arbitrarily chose LONG here. */
+    LONG val = 0;
+
+    Janet *tuple = janet_tuple_begin(cElements - lLbound);
+
+    for (LONG i = lLbound; i < (LONG)(lLbound + cElements); i++) {
+        hrRet = SafeArrayGetElement(runtimeId, &i, &val);
+        if (S_OK == hrRet) {
+            tuple[i] = jw32_wrap_long(val);
+        } else {
+            goto cleanup; 
+        }
+    }
+
+cleanup:
+    /* In the case of failure, wait for GC to free it */
+    janet_tuple_end(tuple);
+    SafeArrayDestroy(runtimeId);
+
+    if (S_OK == hrRet) {
+        return janet_wrap_tuple(tuple);
+    }
+
+panic:
+    janet_panicv(JW32_HRESULT_ERRORV(hrRet));
 }
 
 static Janet IUIAutomationElement_SetFocus(int32_t argc, Janet *argv)
