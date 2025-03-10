@@ -2448,6 +2448,28 @@ void CALLBACK jw32_win_event_proc(HWINEVENTHOOK hWinEventHook, DWORD event,
     }
 }
 
+static inline BOOL check_enum_fn_bool_ret_val(Janet x, const char *fn_name)
+{
+    switch (janet_type(x)) {
+    case JANET_NIL:
+        return FALSE;
+    case JANET_BOOLEAN:
+        return janet_unwrap_boolean(x) ? TRUE : FALSE;
+    case JANET_NUMBER:
+        if (janet_checkintrange(janet_unwrap_number(x))) {
+            return jw32_unwrap_bool(x);
+        } else {
+            jw32_dbg("enum_fn in %s did not return a boolean value", fn_name);
+            /* any value other than nil and false is treated as true */
+            return TRUE;
+        }
+    default:
+        jw32_dbg("enum_fn in %s did not return a boolean value", fn_name);
+        /* any value other than nil and false is treated as true */
+        return TRUE;
+    }
+}
+
 BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, LPARAM lParam)
 {
     JanetFunction *enum_fn = (JanetFunction *)lParam;
@@ -2460,7 +2482,7 @@ BOOL CALLBACK jw32_monitor_enum_proc(HMONITOR hMonitor, HDC hdc, LPRECT lpRect, 
     Janet ret;
 
     if (jw32_pcall_fn(enum_fn, 3, argv, &ret)) {
-        return jw32_unwrap_bool(ret);
+        return check_enum_fn_bool_ret_val(ret, "jw32_monitor_enum_proc");
     } else {
         jw32_dbg_msg("jw32_pcall_fn() failed, stop monitor enumeration");
         return FALSE;
@@ -2477,7 +2499,7 @@ BOOL CALLBACK jw32_child_window_enum_proc(HWND hwnd, LPARAM lParam)
     Janet ret;
 
     if (jw32_pcall_fn(enum_fn, 1, argv, &ret)) {
-        return jw32_unwrap_bool(ret);
+        return check_enum_fn_bool_ret_val(ret, "jw32_child_window_enum_proc");
     } else {
         jw32_dbg_msg("jw32_pcall_fn() failed, stop child window enumeration");
         return FALSE;
@@ -2499,24 +2521,7 @@ BOOL CALLBACK jw32_window_prop_enum_proc(HWND hwnd, LPSTR lpMaybeAtom, HANDLE hD
     argv[2] = jw32_wrap_handle(hData);
 
     if (jw32_pcall_fn(enum_fn, 3, argv, &ret)) {
-        switch (janet_type(ret)) {
-        case JANET_NIL:
-            return FALSE;
-        case JANET_BOOLEAN:
-            return janet_unwrap_boolean(ret) ? TRUE : FALSE;
-        case JANET_NUMBER:
-            if (janet_checkintrange(janet_unwrap_number(ret))) {
-                return jw32_unwrap_bool(ret);
-            } else {
-                jw32_dbg_msg("enum_fn did not return a boolean value");
-                /* any value other than nil and false is treated as true */
-                return TRUE;
-            }
-        default:
-            jw32_dbg_msg("enum_fn did not return a boolean value");
-            /* any value other than nil and false is treated as true */
-            return TRUE;
-        }
+        return check_enum_fn_bool_ret_val(ret, "jw32_window_prop_enum_proc");
     } else {
         jw32_dbg_msg("jw32_pcall_fn() failed, stop window property enumeration");
         return FALSE;
