@@ -3743,6 +3743,22 @@ static Janet cfun_SetProp(int32_t argc, Janet *argv)
     return jw32_wrap_bool(bRet);
 }
 
+static Janet cfun_RemoveProp(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    LPCSTR lpMaybeAtom;
+
+    HANDLE hRet;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    lpMaybeAtom = jw32_get_lpcstr(argv, 1);
+
+    hRet = RemoveProp(hWnd, lpMaybeAtom);
+    return jw32_wrap_handle(hRet);
+}
+
 static Janet cfun_GetWindow(int32_t argc, Janet *argv)
 {
     HWND hWnd;
@@ -5735,6 +5751,12 @@ static const JanetReg cfuns[] = {
         cfun_SetProp,
         "(" MOD_NAME "/SetProp hWnd lpString hData)\n\n"
         "Sets a window property",
+    },
+    {
+        "RemoveProp",
+        cfun_RemoveProp,
+        "(" MOD_NAME "/RemoveProp hWnd lpString)\n\n"
+        "Removes a window property",
     },
     {
         "GetWindow",
