@@ -2484,6 +2484,45 @@ BOOL CALLBACK jw32_child_window_enum_proc(HWND hwnd, LPARAM lParam)
     }
 }
 
+BOOL CALLBACK jw32_window_prop_enum_proc(HWND hwnd, LPSTR lpMaybeAtom, HANDLE hData, ULONG_PTR lParam)
+{
+    JanetFunction *enum_fn = (JanetFunction *)lParam;
+    Janet argv[3];
+    Janet ret;
+
+    argv[0] = jw32_wrap_handle(hwnd);
+    if (check_atom(lpMaybeAtom)) {
+        argv[1] = jw32_wrap_atom(lpcstr_to_atom(lpMaybeAtom));
+    } else {
+        argv[1] = janet_cstringv(lpMaybeAtom);
+    }
+    argv[2] = jw32_wrap_handle(hData);
+
+    if (jw32_pcall_fn(enum_fn, 3, argv, &ret)) {
+        switch (janet_type(ret)) {
+        case JANET_NIL:
+            return FALSE;
+        case JANET_BOOLEAN:
+            return janet_unwrap_boolean(ret) ? TRUE : FALSE;
+        case JANET_NUMBER:
+            if (janet_checkintrange(janet_unwrap_number(ret))) {
+                return jw32_unwrap_bool(ret);
+            } else {
+                jw32_dbg_msg("enum_fn did not return a boolean value");
+                /* any value other than nil and false is treated as true */
+                return TRUE;
+            }
+        default:
+            jw32_dbg_msg("enum_fn did not return a boolean value");
+            /* any value other than nil and false is treated as true */
+            return TRUE;
+        }
+    } else {
+        jw32_dbg_msg("jw32_pcall_fn() failed, stop window property enumeration");
+        return FALSE;
+    }
+}
+
 static int PKBDLLHOOKSTRUCT_get(void *p, Janet key, Janet *out)
 {
     PKBDLLHOOKSTRUCT *ppHookStruct = (PKBDLLHOOKSTRUCT *)p;
@@ -3757,6 +3796,25 @@ static Janet cfun_RemoveProp(int32_t argc, Janet *argv)
 
     hRet = RemoveProp(hWnd, lpMaybeAtom);
     return jw32_wrap_handle(hRet);
+}
+
+static Janet cfun_EnumPropsEx(int32_t argc, Janet *argv)
+{
+    HWND hWnd;
+    JanetFunction *enum_fn;
+    /* janet has closures, we don't need this */
+    //LPARAM lParam
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hWnd = jw32_get_handle(argv, 0);
+    enum_fn = janet_getfunction(argv, 1);
+
+    bRet = EnumPropsEx(hWnd, jw32_window_prop_enum_proc, (LPARAM)enum_fn);
+
+    return jw32_wrap_bool(bRet);
 }
 
 static Janet cfun_GetWindow(int32_t argc, Janet *argv)
@@ -5757,6 +5815,12 @@ static const JanetReg cfuns[] = {
         cfun_RemoveProp,
         "(" MOD_NAME "/RemoveProp hWnd lpString)\n\n"
         "Removes a window property",
+    },
+    {
+        "EnumPropsEx",
+        cfun_EnumPropsEx,
+        "(" MOD_NAME "/EnumPropsEx hWnd lpEnumFunc)\n\n"
+        "Enumerates all properties of a window.",
     },
     {
         "GetWindow",
