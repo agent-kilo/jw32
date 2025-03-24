@@ -109,17 +109,23 @@ static Janet cfun_unsigned_to_signed_32(int32_t argc, Janet *argv)
 static Janet cfun_alloc_and_marshal(int32_t argc, Janet *argv)
 {
     Janet x;
+    JanetTable *rlookup;
 
-    janet_fixarity(argc, 1);
+    janet_arity(argc, 1, 2);
 
     x = argv[0];
+    if (argc <= 1) {
+        rlookup = NULL;
+    } else {
+        rlookup = janet_gettable(argv, 1);
+    }
 
     JanetBuffer *buf = janet_malloc(sizeof(JanetBuffer));
     if (!buf) {
         janet_panicf("out of memory");
     }
     janet_buffer_init(buf, 0);
-    janet_marshal(buf, x, NULL, JANET_MARSHAL_UNSAFE);
+    janet_marshal(buf, x, rlookup, JANET_MARSHAL_UNSAFE);
 
     return janet_wrap_pointer((void *)buf);
 }
@@ -128,18 +134,24 @@ static Janet cfun_alloc_and_marshal(int32_t argc, Janet *argv)
 static Janet cfun_unmarshal_and_free(int32_t argc, Janet *argv)
 {
     JanetBuffer *buf;
+    JanetTable *lookup;
 
     Janet ret;
 
-    janet_fixarity(argc, 1);
+    janet_arity(argc, 1, 2);
 
     if (janet_checktype(argv[0], JANET_POINTER)) {
         buf = (JanetBuffer *)janet_getpointer(argv, 0);
     } else {
         buf = (JanetBuffer *)jw32_get_ulong_ptr(argv, 0);
     }
+    if (argc <= 1) {
+        lookup = NULL;
+    } else {
+        lookup = janet_gettable(argv, 1);
+    }
 
-    ret = janet_unmarshal(buf->data, buf->count, JANET_MARSHAL_UNSAFE, NULL, NULL);
+    ret = janet_unmarshal(buf->data, buf->count, JANET_MARSHAL_UNSAFE, lookup, NULL);
     janet_free(buf);
     return ret;
 }
@@ -242,14 +254,14 @@ static const JanetReg cfuns[] = {
     {
         "alloc-and-marshal",
         cfun_alloc_and_marshal,
-        "(" MOD_NAME "/alloc-and-marshal x)\n\n"
-        "Marshals a Janet object into a newly allocated buffer, and returns a pointer pointing to the buffer."
+        "(" MOD_NAME "/alloc-and-marshal x &opt rlookup-table)\n\n"
+        "Marshals a Janet object into a newly allocated buffer, and returns a pointer pointing to the buffer. Accepts an optional reverse lookup table rlookup-table."
     },
     {
         "unmarshal-and-free",
         cfun_unmarshal_and_free,
-        "(" MOD_NAME "/unmarshal-and-free ptr)\n\n"
-        "Unmarshals a Janet object from the buffer pointed to by ptr, and then frees the buffer."
+        "(" MOD_NAME "/unmarshal-and-free ptr &opt lookup)\n\n"
+        "Unmarshals a Janet object from the buffer pointed to by ptr, and then frees the buffer. Accepts an optional lookup table lookup-table."
     },
     {
         "alloc-console-and-reopen-streams",
