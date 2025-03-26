@@ -47,3 +47,9 @@
 
 (add-deps (out-path (project-module "_winuser") ".dll")
           "debug.h" ;COMMON-HEADERS)
+
+(def install-dest-dir (path/join (dyn *syspath*) PROJECT-NAME))
+(rule install-dest-dir []
+  (os/mkdir install-dest-dir))
+
+(add-deps "install" install-dest-dir)
