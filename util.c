@@ -152,6 +152,7 @@ static Janet cfun_unmarshal_and_free(int32_t argc, Janet *argv)
     }
 
     ret = janet_unmarshal(buf->data, buf->count, JANET_MARSHAL_UNSAFE, lookup, NULL);
+    janet_buffer_deinit(buf);
     janet_free(buf);
     return ret;
 }
