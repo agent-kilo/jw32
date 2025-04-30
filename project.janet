@@ -156,6 +156,12 @@
    :ldflags [;ldflags "dwmapi.lib"])
 
   (declare-native
+   :name (project-module "_heapapi")
+   :source ["heapapi.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "kernel32.lib"])
+
+  (declare-native
    :name (project-module "_util")
    :source ["util.c"]
    :headers [;common-headers]
