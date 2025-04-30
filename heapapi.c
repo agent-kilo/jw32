@@ -151,6 +151,25 @@ static Janet cfun_HeapFree(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_HeapSize(int32_t argc, Janet *argv)
+{
+    HANDLE hHeap;
+    DWORD dwFlags;
+    LPVOID lpMem;
+
+    SIZE_T sRet;
+
+    janet_fixarity(argc, 3);
+
+    hHeap = jw32_get_handle(argv, 0);
+    dwFlags = jw32_get_dword(argv, 1);
+    lpMem = jw32_get_lpvoid(argv, 2);
+
+    sRet = HeapSize(hHeap, dwFlags, lpMem);
+    return jw32_wrap_ulong_ptr(sRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "GetProcessHeap",
@@ -181,6 +200,12 @@ static const JanetReg cfuns[] = {
         cfun_HeapFree,
         "(" MOD_NAME "/HeapFree hHeap dwFlags lpMem)\n\n"
         "Frees a memory block allocated from a heap."
+    },
+    {
+        "HeapSize",
+        cfun_HeapSize,
+        "(" MOD_NAME "/HeapSize hHeap dwFlags lpMem)\n\n"
+        "Retrieves the size of a memory block."
     },
     {NULL, NULL, NULL},
 };
