@@ -200,6 +200,125 @@ static Janet cfun_alloc_console_and_reopen_streams(int32_t argc, Janet *argv)
 }
 
 
+#define __JANET_MEMORY_TYPE_COUNT (JANET_MEMORY_ARRAY_WEAK + 1)
+
+static const char *mem_type_names[__JANET_MEMORY_TYPE_COUNT] = {
+    "none",
+    "string",
+    "symbol",
+    "array",
+    "tuple",
+    "table",
+    "struct",
+    "fiber",
+    "buffer",
+    "function",
+    "abstract",
+    "funcenv",
+    "funcdef",
+    "threaded-abstract",
+    "table-weakk",
+    "table-weakv",
+    "table-weakkv",
+    "array-weak",
+};
+
+
+/* See src/core/table.c in Janet source tree */
+#define JANET_TABLE_FLAG_STACK 0x10000
+
+static size_t calc_memory_size(JanetGCObject *mem, HANDLE hHeap)
+{
+    switch (mem->flags & JANET_MEM_TYPEBITS) {
+    default:
+    case JANET_MEMORY_NONE:
+    case JANET_MEMORY_STRING:
+    case JANET_MEMORY_SYMBOL:
+    case JANET_MEMORY_TUPLE:
+    case JANET_MEMORY_STRUCT:
+    case JANET_MEMORY_FUNCTION:
+    case JANET_MEMORY_ABSTRACT:
+    case JANET_MEMORY_THREADED_ABSTRACT:
+    {
+        return HeapSize(hHeap, 0, mem);
+    }
+    case JANET_MEMORY_ARRAY:
+    case JANET_MEMORY_ARRAY_WEAK:
+    {
+        JanetArray *arr = (JanetArray *)mem;
+        size_t data_size = 0;
+        if (arr->data) {
+            data_size = HeapSize(hHeap, 0, arr->data);
+        }
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    case JANET_MEMORY_TABLE:
+    case JANET_MEMORY_TABLE_WEAKK:
+    case JANET_MEMORY_TABLE_WEAKV:
+    case JANET_MEMORY_TABLE_WEAKKV:
+    {
+        JanetTable *tab = (JanetTable *)mem;
+        size_t data_size = 0;
+        if (tab->data && !(mem->flags & JANET_TABLE_FLAG_STACK)) {
+            data_size = HeapSize(hHeap, 0, tab->data);
+        }
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    case JANET_MEMORY_FIBER:
+    {
+        JanetFiber *fib = (JanetFiber *)mem;
+        size_t data_size = HeapSize(hHeap, 0, fib->data);
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    case JANET_MEMORY_BUFFER:
+    {
+        JanetBuffer *buf = (JanetBuffer *)mem;
+        size_t data_size = 0;
+        if (!(mem->flags & JANET_BUFFER_FLAG_NO_REALLOC)) {
+            data_size = HeapSize(hHeap, 0, buf->data);
+        }
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    case JANET_MEMORY_FUNCENV:
+    {
+        JanetFuncEnv *env = (JanetFuncEnv *)mem;
+        size_t data_size = 0;
+        if (!(env->offset)) {
+            data_size = HeapSize(hHeap, 0, env->as.values);
+        }
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    case JANET_MEMORY_FUNCDEF:
+    {
+        JanetFuncDef *def = (JanetFuncDef *)mem;
+        size_t data_size = 0;
+        if (def->constants) {
+            data_size += HeapSize(hHeap, 0, def->constants);
+        }
+        if (def->symbolmap) {
+            data_size += HeapSize(hHeap, 0, def->symbolmap);
+        }
+        if (def->bytecode) {
+            data_size += HeapSize(hHeap, 0, def->bytecode);
+        }
+        if (def->environments) {
+            data_size += HeapSize(hHeap, 0, def->environments);
+        }
+        if (def->defs) {
+            data_size += HeapSize(hHeap, 0, def->defs);
+        }
+        if (def->sourcemap) {
+            data_size += HeapSize(hHeap, 0, def->sourcemap);
+        }
+        if (def->closure_bitset) {
+            data_size += HeapSize(hHeap, 0, def->closure_bitset);
+        }
+        return HeapSize(hHeap, 0, mem) + data_size;
+    }
+    }
+}
+
+
 static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
 {
     (void)argv;
@@ -210,11 +329,13 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
     size_t weak_disabled_block_count = 0;
     size_t weak_reachable_block_count = 0;
     size_t weak_heap_size = 0;
+    size_t weak_heap_type_counts[__JANET_MEMORY_TYPE_COUNT] = { 0 };
 
     size_t block_count = 0;
     size_t disabled_block_count = 0;
     size_t reachable_block_count = 0;
     size_t heap_size = 0;
+    size_t heap_type_counts[__JANET_MEMORY_TYPE_COUNT] = { 0 };
 
     size_t threaded_block_count = 0;
     size_t threaded_non_abstract_block_count = 0;
@@ -231,6 +352,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
     JanetGCObject *current = janet_local_vm()->weak_blocks;
     while (NULL != current) {
         weak_block_count++;
+        weak_heap_type_counts[janet_gc_type(current)]++;
 
         add_to_heap_size = 1;
 
@@ -245,7 +367,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
         }
 
         if (add_to_heap_size) {
-            weak_heap_size += HeapSize(hHeap, 0, current);
+            weak_heap_size += calc_memory_size(current, hHeap);
         }
 
         current = current->data.next;
@@ -254,6 +376,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
     current = janet_local_vm()->blocks;
     while (NULL != current) {
         block_count++;
+        heap_type_counts[janet_gc_type(current)]++;
 
         add_to_heap_size = 1;
 
@@ -268,7 +391,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
         }
 
         if (add_to_heap_size) {
-            heap_size += HeapSize(hHeap, 0, current);
+            heap_size += calc_memory_size(current, hHeap);
         }
 
         current = current->data.next;
@@ -296,7 +419,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
 
         if (add_to_heap_size) {
             void *p = janet_unwrap_abstract(items[i].key);
-            threaded_heap_size += HeapSize(hHeap, 0, janet_abstract_head(p));
+            threaded_heap_size += calc_memory_size((JanetGCObject *)(janet_abstract_head(p)), hHeap);
         }
     }
 
@@ -307,11 +430,21 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
     janet_table_put(ret_table, janet_ckeywordv("weak_disabled_block_count"), jw32_wrap_ulong_ptr(weak_disabled_block_count));
     janet_table_put(ret_table, janet_ckeywordv("weak_reachable_block_count"), jw32_wrap_ulong_ptr(weak_reachable_block_count));
     janet_table_put(ret_table, janet_ckeywordv("weak_heap_size"), jw32_wrap_ulong_ptr(weak_heap_size));
+    JanetTable *weak_heap_type_count_table = janet_table(__JANET_MEMORY_TYPE_COUNT);
+    for (int i = 0; i < __JANET_MEMORY_TYPE_COUNT; i++) {
+        janet_table_put(weak_heap_type_count_table, janet_ckeywordv(mem_type_names[i]), jw32_wrap_ulong_ptr(weak_heap_type_counts[i]));
+    }
+    janet_table_put(ret_table, janet_ckeywordv("weak_heap_type_counts"), janet_wrap_table(weak_heap_type_count_table));
 
     janet_table_put(ret_table, janet_ckeywordv("block_count"), jw32_wrap_ulong_ptr(block_count));
     janet_table_put(ret_table, janet_ckeywordv("disabled_block_count"), jw32_wrap_ulong_ptr(disabled_block_count));
     janet_table_put(ret_table, janet_ckeywordv("reachable_block_count"), jw32_wrap_ulong_ptr(reachable_block_count));
     janet_table_put(ret_table, janet_ckeywordv("heap_size"), jw32_wrap_ulong_ptr(heap_size));
+    JanetTable *heap_type_count_table = janet_table(__JANET_MEMORY_TYPE_COUNT);
+    for (int i = 0; i < __JANET_MEMORY_TYPE_COUNT; i++) {
+        janet_table_put(heap_type_count_table, janet_ckeywordv(mem_type_names[i]), jw32_wrap_ulong_ptr(heap_type_counts[i]));
+    }
+    janet_table_put(ret_table, janet_ckeywordv("heap_type_counts"), janet_wrap_table(heap_type_count_table));
 
     janet_table_put(ret_table, janet_ckeywordv("threaded_block_count"), jw32_wrap_ulong_ptr(threaded_block_count));
     janet_table_put(ret_table, janet_ckeywordv("threaded_non_abstract_block_count"), jw32_wrap_ulong_ptr(threaded_non_abstract_block_count));
