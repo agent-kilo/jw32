@@ -166,8 +166,11 @@
    :source ["util.c"]
    :headers [;common-headers]
    :cflags [;(dyn :cflags)
+            # for accessing JanetVM internals defined in state.h, and GC constants in gc.h
+            (string "/I" janet-src-tree "/src/core")
             # for vcs-version.h
-            (string "/I" (find-build-dir))]))
+            (string "/I" (find-build-dir))
+            "/wd4200"]))
 
 
 (task "vcs-version" []

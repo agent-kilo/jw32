@@ -1,6 +1,9 @@
 #include "jw32.h"
 #include <windowsx.h>
 
+#include "gc.h"       /* for JANET_MEM_* constants */
+#include "state.h"    /* for JanetVM internals */
+
 #if __has_include("vcs-version.h")
 #include "vcs-version.h"
 #endif
@@ -197,6 +200,128 @@ static Janet cfun_alloc_console_and_reopen_streams(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
+{
+    (void)argv;
+
+    janet_fixarity(argc, 0);
+
+    size_t weak_block_count = 0;
+    size_t weak_disabled_block_count = 0;
+    size_t weak_reachable_block_count = 0;
+    size_t weak_heap_size = 0;
+
+    size_t block_count = 0;
+    size_t disabled_block_count = 0;
+    size_t reachable_block_count = 0;
+    size_t heap_size = 0;
+
+    size_t threaded_block_count = 0;
+    size_t threaded_non_abstract_block_count = 0;
+    size_t threaded_reachable_block_count = 0;
+    size_t threaded_heap_size = 0;
+
+    int add_to_heap_size = 1;
+
+    HANDLE hHeap = GetProcessHeap();
+    if (!hHeap) {
+        janet_panic("failed to retrieve default heap handle");
+    }
+
+    JanetGCObject *current = janet_local_vm()->weak_blocks;
+    while (NULL != current) {
+        weak_block_count++;
+
+        add_to_heap_size = 1;
+
+        if (current->flags & JANET_MEM_REACHABLE) {
+            weak_reachable_block_count++;
+        }
+        if (current->flags & JANET_MEM_DISABLED) {
+            weak_disabled_block_count++;
+            /* Currently only janet_malloc'ed buffers have this flag,
+               and they SHOULD NOT appear in the heap */
+            add_to_heap_size = 0;
+        }
+
+        if (add_to_heap_size) {
+            weak_heap_size += HeapSize(hHeap, 0, current);
+        }
+
+        current = current->data.next;
+    }
+
+    current = janet_local_vm()->blocks;
+    while (NULL != current) {
+        block_count++;
+
+        add_to_heap_size = 1;
+
+        if (current->flags & JANET_MEM_REACHABLE) {
+            reachable_block_count++;
+        }
+        if (current->flags & JANET_MEM_DISABLED) {
+            disabled_block_count++;
+            /* Currently only janet_malloc'ed buffers have this flag,
+               and they SHOULD NOT appear in the heap */
+            add_to_heap_size = 0;
+        }
+
+        if (add_to_heap_size) {
+            heap_size += HeapSize(hHeap, 0, current);
+        }
+
+        current = current->data.next;
+    }
+
+    JanetKV *items = janet_local_vm()->threaded_abstracts.data;
+    for (int32_t i = 0; i < janet_local_vm()->threaded_abstracts.capacity; i++) {
+        if (janet_checktype(items[i].key, JANET_NIL)) {
+            /* Hit a tombstone */
+            continue;
+        }
+
+        threaded_block_count++;
+
+        add_to_heap_size = 1;
+
+        if (!janet_checktype(items[i].key, JANET_ABSTRACT)) {
+            threaded_non_abstract_block_count++;
+            /* Currently there're only abstract types in the threaded heap */
+            add_to_heap_size = 0;
+        }
+        if (janet_truthy(items[i].value)) {
+            threaded_reachable_block_count++;
+        }
+
+        if (add_to_heap_size) {
+            void *p = janet_unwrap_abstract(items[i].key);
+            threaded_heap_size += HeapSize(hHeap, 0, janet_abstract_head(p));
+        }
+    }
+
+
+    JanetTable *ret_table = janet_table(12);
+
+    janet_table_put(ret_table, janet_ckeywordv("weak_block_count"), jw32_wrap_ulong_ptr(weak_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("weak_disabled_block_count"), jw32_wrap_ulong_ptr(weak_disabled_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("weak_reachable_block_count"), jw32_wrap_ulong_ptr(weak_reachable_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("weak_heap_size"), jw32_wrap_ulong_ptr(weak_heap_size));
+
+    janet_table_put(ret_table, janet_ckeywordv("block_count"), jw32_wrap_ulong_ptr(block_count));
+    janet_table_put(ret_table, janet_ckeywordv("disabled_block_count"), jw32_wrap_ulong_ptr(disabled_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("reachable_block_count"), jw32_wrap_ulong_ptr(reachable_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("heap_size"), jw32_wrap_ulong_ptr(heap_size));
+
+    janet_table_put(ret_table, janet_ckeywordv("threaded_block_count"), jw32_wrap_ulong_ptr(threaded_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("threaded_non_abstract_block_count"), jw32_wrap_ulong_ptr(threaded_non_abstract_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("threaded_reachable_block_count"), jw32_wrap_ulong_ptr(threaded_reachable_block_count));
+    janet_table_put(ret_table, janet_ckeywordv("threaded_heap_size"), jw32_wrap_ulong_ptr(threaded_heap_size));
+
+    return janet_wrap_table(ret_table);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "null?",
@@ -269,6 +394,12 @@ static const JanetReg cfuns[] = {
         cfun_alloc_console_and_reopen_streams,
         "(" MOD_NAME "/alloc-console-and-reopen-streams)\n\n"
         "Opens a console and redirect stdin, stdout and stderr."
+    },
+    {
+        "local-heap-info",
+        cfun_local_heap_info,
+        "(" MOD_NAME "/local-heap-info)\n\n"
+        "Retrieves debug info for the thread-local heap."
     },
     {NULL, NULL, NULL},
 };
