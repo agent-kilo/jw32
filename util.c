@@ -463,6 +463,7 @@ static Janet cfun_local_heap_info(int32_t argc, Janet *argv)
 
     janet_table_put(ret_table, janet_ckeywordv("gc_interval"), jw32_wrap_ulong_ptr(janet_local_vm()->gc_interval));
     janet_table_put(ret_table, janet_ckeywordv("next_collection"), jw32_wrap_ulong_ptr(janet_local_vm()->next_collection));
+    janet_table_put(ret_table, janet_ckeywordv("root_count"), jw32_wrap_ulong_ptr(janet_local_vm()->root_count));
 
     return janet_wrap_table(ret_table);
 }
