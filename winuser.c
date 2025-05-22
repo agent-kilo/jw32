@@ -4124,6 +4124,18 @@ static Janet cfun_GetDC(int32_t argc, Janet *argv)
     return jw32_wrap_handle(hRet);
 }
 
+static Janet cfun_GetWindowDC(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    HDC hRet;
+
+    janet_fixarity(argc, 1);
+
+    hwnd = jw32_get_handle(argv, 0);
+    hRet = GetWindowDC(hwnd);
+    return jw32_wrap_handle(hRet);
+}
+
 static Janet cfun_ReleaseDC(int32_t argc, Janet *argv)
 {
     HWND hwnd;
@@ -5942,6 +5954,12 @@ static const JanetReg cfuns[] = {
         cfun_GetDC,
         "(" MOD_NAME "/GetDC hwnd)\n\n"
         "Retrieves a device context for the client area of a specified window.",
+    },
+    {
+        "GetWindowDC",
+        cfun_GetWindowDC,
+        "(" MOD_NAME "/GetWindowDC hwnd)\n\n"
+        "Retrieves a device context for an entire window.",
     },
     {
         "ReleaseDC",
