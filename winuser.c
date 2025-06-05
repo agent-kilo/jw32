@@ -2588,6 +2588,67 @@ static const JanetAbstractType jw32_at_PKBDLLHOOKSTRUCT = {
     JANET_ATEND_GET
 };
 
+static int PMSLLHOOKSTRUCT_get(void *p, Janet key, Janet *out)
+{
+    PMSLLHOOKSTRUCT *ppHookStruct = (PMSLLHOOKSTRUCT *)p;
+    PMSLLHOOKSTRUCT pHookStruct = *ppHookStruct;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type)              \
+    if (!janet_cstrcmp(kw, #member)) {          \
+        *out = jw32_wrap_##type(pHookStruct->member);   \
+        return 1;                               \
+    }
+
+    if (!janet_cstrcmp(kw, "pt")) {
+        Janet ret_tuple[2];
+        ret_tuple[0] = jw32_wrap_long(pHookStruct->pt.x);
+        ret_tuple[1] = jw32_wrap_long(pHookStruct->pt.y);
+        *out = janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+        return 1;
+    }
+    __get_member(pt.x, long)
+    __get_member(pt.y, long)
+    __get_member(mouseData, dword)
+    if (!janet_cstrcmp(kw, "mouseData.wheel_delta") || !janet_cstrcmp(kw, "mouseData.xbutton")) {
+        INT16 data = (INT16)(((pHookStruct->mouseData) >> 16) & 0xffff);
+        *out = jw32_wrap_int(data);
+        return 1;
+    }
+    __get_member(flags, dword)
+    if (!janet_cstrcmp(kw, "flags.injected")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLMHF_INJECTED);
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "flags.lower_il_injected")) {
+        *out = janet_wrap_boolean(pHookStruct->flags & LLMHF_LOWER_IL_INJECTED);
+        return 1;
+    }
+    __get_member(time, dword)
+    __get_member(dwExtraInfo, ulong_ptr)
+    if (!janet_cstrcmp(kw, "address")) {
+        *out = jw32_wrap_lparam(pHookStruct);
+        return 1;
+    }
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_PMSLLHOOKSTRUCT = {
+    .name = MOD_NAME "/PMSLLHOOKSTRUCT",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = PMSLLHOOKSTRUCT_get,
+    JANET_ATEND_GET
+};
+
 static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM lParam)
 {
     Janet hook = jw32_wrap_int(idHook);
@@ -2607,14 +2668,22 @@ static LRESULT call_win_hook_proc(int idHook, int nCode, WPARAM wParam, LPARAM l
     };
 
     switch (idHook) {
-    case WH_KEYBOARD_LL:
+    case WH_KEYBOARD_LL: {
         PKBDLLHOOKSTRUCT *ppHookStruct = janet_abstract(&jw32_at_PKBDLLHOOKSTRUCT, sizeof(PKBDLLHOOKSTRUCT));
         *ppHookStruct = (PKBDLLHOOKSTRUCT)lParam;
         argv[2] = janet_wrap_abstract(ppHookStruct);
         break;
-    default:
+    }
+    case WH_MOUSE_LL: {
+        PMSLLHOOKSTRUCT *ppHookStruct = janet_abstract(&jw32_at_PMSLLHOOKSTRUCT, sizeof(PMSLLHOOKSTRUCT));
+        *ppHookStruct = (PMSLLHOOKSTRUCT)lParam;
+        argv[2] = janet_wrap_abstract(ppHookStruct);
+        break;
+    }
+    default: {
         argv[2] = jw32_wrap_lparam(lParam);
         break;
+    }
     }
 
     Janet ret;
@@ -2758,11 +2827,14 @@ LRESULT CALLBACK jw32_win_hook_keyboard_ll_proc(int nCode, WPARAM wParam, LPARAM
 
 LRESULT CALLBACK jw32_win_hook_mouse_ll_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    /* TODO */
-    (void)nCode;
-    (void)wParam;
-    (void)lParam;
-    return 0;
+#ifdef JW32_CALLBACK_DEBUG
+    jw32_dbg_msg("============= jw32_win_hook_mouse_ll_proc ===============");
+    jw32_dbg_val(nCode, "%d");
+    jw32_dbg_val(wParam, "0x%" PRIx64);
+    jw32_dbg_val(lParam, "%lld");
+#endif
+
+    return call_win_hook_proc(WH_MOUSE_LL, nCode, wParam, lParam);
 }
 
 /* the hook types start from -1, thus the "+1" */
@@ -6302,6 +6374,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     janet_register_abstract_type(&jw32_at_INPUT);
     janet_register_abstract_type(&jw32_at_MONITORINFOEX);
     janet_register_abstract_type(&jw32_at_PKBDLLHOOKSTRUCT);
+    janet_register_abstract_type(&jw32_at_PMSLLHOOKSTRUCT);
     janet_register_abstract_type(&jw32_at_PAINTSTRUCT);
     janet_register_abstract_type(&jw32_at_NONCLIENTMETRICS);
     janet_register_abstract_type(&jw32_at_LOGFONT);
