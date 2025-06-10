@@ -575,6 +575,39 @@ static Janet cfun_GetStretchBltMode(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CreateRectRgn(int32_t argc, Janet *argv)
+{
+    int x1, y1, x2, y2;
+
+    HRGN hRet;
+
+    janet_fixarity(argc, 4);
+
+    x1 = jw32_get_int(argv, 0);
+    y1 = jw32_get_int(argv, 1);
+    x2 = jw32_get_int(argv, 2);
+    y2 = jw32_get_int(argv, 3);
+
+    hRet = CreateRectRgn(x1, y1, x2, y2);
+    return jw32_wrap_handle(hRet);
+}
+
+
+static Janet cfun_CreateRectRgnIndirect(int32_t argc, Janet *argv)
+{
+    RECT rect;
+
+    HRGN hRet;
+
+    janet_fixarity(argc, 1);
+
+    rect = jw32_get_rect(argv, 0);
+
+    hRet = CreateRectRgnIndirect(&rect);
+    return jw32_wrap_handle(hRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -713,6 +746,18 @@ static const JanetReg cfuns[] = {
         cfun_GetStretchBltMode,
         "(" MOD_NAME "/GetStretchBltMode hdc)\n\n"
         "Retrieves the DC bitmap stretching mode.",
+    },
+    {
+        "CreateRectRgn",
+        cfun_CreateRectRgn,
+        "(" MOD_NAME "/CreateRectRgn x1 y1 x2 y2)\n\n"
+        "Creates a rectangular region.",
+    },
+    {
+        "CreateRectRgnIndirect",
+        cfun_CreateRectRgnIndirect,
+        "(" MOD_NAME "/CreateRectRgnIndirect lprect)\n\n"
+        "Creates a rectangular region.",
     },
 
     {NULL, NULL, NULL},
