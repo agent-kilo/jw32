@@ -139,6 +139,20 @@ static void define_consts_raster_operation_code(JanetTable *env)
 }
 
 
+static void define_consts_polyfill_mode(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constant for PolyFill modes.")
+
+    __def(ALTERNATE);
+    __def(WINDING);
+    __def(POLYFILL_LAST);
+
+#undef __def
+}
+
+
 static Janet cfun_CreateCompatibleDC(int32_t argc, Janet *argv)
 {
     HDC hdc;
@@ -608,6 +622,108 @@ static Janet cfun_CreateRectRgnIndirect(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CreateRoundRectRgn(int32_t argc, Janet *argv)
+{
+    int x1, y1, x2, y2, w, h;
+
+    HRGN hRet;
+
+    janet_fixarity(argc, 6);
+
+    x1 = jw32_get_int(argv, 0);
+    y1 = jw32_get_int(argv, 1);
+    x2 = jw32_get_int(argv, 2);
+    y2 = jw32_get_int(argv, 3);
+    w  = jw32_get_int(argv, 4);
+    h  = jw32_get_int(argv, 5);
+
+    hRet = CreateRoundRectRgn(x1, y1, x2, y2, w, h);
+    return jw32_wrap_handle(hRet);
+}
+
+
+static Janet cfun_CreateEllipticRgn(int32_t argc, Janet *argv)
+{
+    int x1, y1, x2, y2;
+
+    HRGN hRet;
+
+    janet_fixarity(argc, 4);
+
+    x1 = jw32_get_int(argv, 0);
+    y1 = jw32_get_int(argv, 1);
+    x2 = jw32_get_int(argv, 2);
+    y2 = jw32_get_int(argv, 3);
+
+    hRet = CreateEllipticRgn(x1, y1, x2, y2);
+    return jw32_wrap_handle(hRet);
+}
+
+
+static Janet cfun_CreateEllipticRgnIndirect(int32_t argc, Janet *argv)
+{
+    RECT rect;
+
+    HRGN hRet;
+
+    janet_fixarity(argc, 1);
+
+    rect = jw32_get_rect(argv, 0);
+
+    hRet = CreateEllipticRgnIndirect(&rect);
+    return jw32_wrap_handle(hRet);
+}
+
+
+static Janet cfun_CreatePolygonRgn(int32_t argc, Janet *argv)
+{
+    JanetView points;
+    int iMode;
+
+    HRGN hRet;
+
+    POINT *pptl = NULL;
+
+    janet_fixarity(argc, 2);
+
+    points = janet_getindexed(argv, 0);
+    iMode  = jw32_get_int(argv, 1);
+
+    pptl = janet_malloc(sizeof(*pptl) * points.len);
+    if (!pptl) {
+        janet_panic("failed to allocate memory for points");
+    }
+
+    for (int32_t i = 0; i < points.len; i++) {
+        Janet item = points.items[i];
+        JanetView view;
+
+        if (!janet_indexed_view(item, &view.items, &view.len)) {
+            janet_free(pptl);
+            janet_panicf("invalid point: %v", item);
+        }
+        if (2 != view.len) {
+            janet_free(pptl);
+            janet_panicf("bad point #%d: expected tuple or array of length 2, got %d", i, view.len);
+        }
+        if (!janet_checkint(view.items[0]) || !janet_checkint(view.items[1])) {
+            janet_free(pptl);
+            janet_panicf("bad coordinates for point #%d: expected 32 bit signed integers, got %v and %v",
+                         i, view.items[0], view.items[1]);
+        }
+
+        pptl[i].x = jw32_unwrap_long(view.items[0]);
+        pptl[i].y = jw32_unwrap_long(view.items[1]);
+    }
+
+    hRet = CreatePolygonRgn(pptl, points.len, iMode);
+
+    janet_free(pptl);
+
+    return jw32_wrap_handle(hRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -759,6 +875,30 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/CreateRectRgnIndirect lprect)\n\n"
         "Creates a rectangular region.",
     },
+    {
+        "CreateRoundRectRgn",
+        cfun_CreateRoundRectRgn,
+        "(" MOD_NAME "/CreateRoundRectRgn x1 y1 x2 y2 w h)\n\n"
+        "Creates a rectangular region with rounded corners.",
+    },
+    {
+        "CreateEllipticRgn",
+        cfun_CreateEllipticRgn,
+        "(" MOD_NAME "/CreateEllipticRgn x1 y1 x2 y2)\n\n"
+        "Creates an elliptical region.",
+    },
+    {
+        "CreateEllipticRgnIndirect",
+        cfun_CreateEllipticRgnIndirect,
+        "(" MOD_NAME "/CreateEllipticRgnIndirect lprect)\n\n"
+        "Creates an elliptical region.",
+    },
+    {
+        "CreatePolygonRgn",
+        cfun_CreatePolygonRgn,
+        "(" MOD_NAME "/CreatePolygonRgn points iMode)\n\n"
+        "Creates a polygonal region.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -771,6 +911,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_bk_mode(env);
     define_consts_stretch_blt_mode(env);
     define_consts_raster_operation_code(env);
+    define_consts_polyfill_mode(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
