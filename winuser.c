@@ -2094,6 +2094,25 @@ static void define_consts_dt(JanetTable *env)
 }
 
 
+static void define_consts_region(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constants for GetWindowRgn return value.")
+
+    /* XXX: This name is too generic, skip it to avoid confusion.
+     *      Use RGN_ERROR instead.
+     */
+//    __def(ERROR);
+    __def(NULLREGION);
+    __def(SIMPLEREGION);
+    __def(COMPLEXREGION);
+    __def(RGN_ERROR);
+
+#undef __def
+}
+
+
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -4178,6 +4197,42 @@ static Janet cfun_GetLayeredWindowAttributes(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_SetWindowRgn(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    HRGN hRgn;
+    BOOL bRedraw;
+
+    int iRet;
+
+    janet_fixarity(argc, 3);
+
+    hwnd = jw32_get_handle(argv, 0);
+    hRgn = jw32_get_handle(argv, 1);
+    bRedraw = jw32_get_bool(argv, 2);
+    iRet = SetWindowRgn(hwnd, hRgn, bRedraw);
+
+    return jw32_wrap_int(iRet);
+}
+
+
+static Janet cfun_GetWindowRgn(int32_t argc, Janet *argv)
+{
+    HWND hwnd;
+    HRGN hRgn;
+
+    int iRet;
+
+    janet_fixarity(argc, 2);
+
+    hwnd = jw32_get_handle(argv, 0);
+    hRgn = jw32_get_handle(argv, 1);
+    iRet = GetWindowRgn(hwnd, hRgn);
+
+    return jw32_wrap_int(iRet);
+}
+
+
 /*******************************************************************
  *
  * GDI
@@ -6019,6 +6074,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/GetLayeredWindowAttributes hwnd)\n\n"
         "Retrieves the opacity and transparency color key of a layered window.",
     },
+    {
+        "SetWindowRgn",
+        cfun_SetWindowRgn,
+        "(" MOD_NAME "/SetWindowRgn hWnd hRgn bRedraw)\n\n"
+        "Sets the window region of a window.",
+    },
+    {
+        "GetWindowRgn",
+        cfun_GetWindowRgn,
+        "(" MOD_NAME "/GetWindowRgn hWnd hRgn)\n\n"
+        "Retrieves the window region of a window.",
+    },
 
     /*********************** GDI ************************/
     {
@@ -6366,6 +6433,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_swp(env);
     define_consts_dpi_awareness(env);
     define_consts_dt(env);
+    define_consts_region(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
