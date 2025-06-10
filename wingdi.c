@@ -700,7 +700,7 @@ static Janet cfun_CreatePolygonRgn(int32_t argc, Janet *argv)
 
         if (!janet_indexed_view(item, &view.items, &view.len)) {
             janet_free(pptl);
-            janet_panicf("invalid point: %v", item);
+            janet_panicf("invalid point #%d: %v", i, item);
         }
         if (2 != view.len) {
             janet_free(pptl);
@@ -719,6 +719,102 @@ static Janet cfun_CreatePolygonRgn(int32_t argc, Janet *argv)
     hRet = CreatePolygonRgn(pptl, points.len, iMode);
 
     janet_free(pptl);
+
+    return jw32_wrap_handle(hRet);
+}
+
+
+static Janet cfun_CreatePolyPolygonRgn(int32_t argc, Janet *argv)
+{
+    JanetView polygons;
+    int iMode;
+
+    HRGN hRet;
+
+    POINT *pptl = NULL;
+    int *pc = NULL;
+    int cPoly = 0;
+    int cPoint = 0;
+    JanetView *p_views = NULL;
+
+    janet_fixarity(argc, 2);
+
+    polygons = janet_getindexed(argv, 0);
+    iMode  = jw32_get_int(argv, 1);
+
+    p_views = janet_malloc(sizeof(*p_views) * polygons.len);
+    if (!p_views) {
+        janet_panic("failed to allocate memory for polygon views");
+    }
+
+#define __cleanup()                             \
+    do {                                        \
+        if (pptl)    { janet_free(pptl); }      \
+        if (pc)      { janet_free(pc); }        \
+        if (p_views) { janet_free(p_views); }   \
+    } while (0)
+
+    for (int32_t i = 0; i < polygons.len; i++) {
+        Janet poly = polygons.items[i];
+
+        if (!janet_indexed_view(poly, &(p_views[i].items), &(p_views[i].len))) {
+            __cleanup();
+            janet_panicf("bad polygon #%d: expected a tuple or array, got %v", i, poly);
+        }
+
+        cPoly++;
+        cPoint += p_views[i].len;
+    }
+
+    pptl = janet_malloc(sizeof(*pptl) * cPoint);
+    if (!pptl) {
+        __cleanup();
+        janet_panic("failed to allocate memory for points");
+    }
+
+    pc = janet_malloc(sizeof(*pc) * cPoly);
+    if (!pc) {
+        __cleanup();
+        janet_panic("failed to allocate memory for point counts");
+    }
+
+    POINT *cur_pt = pptl;
+
+    for (int32_t i = 0; i < polygons.len; i++) {
+        JanetView *pv = &(p_views[i]);
+
+        for (int32_t j = 0; j < pv->len; j++) {
+            Janet item = pv->items[j];
+            JanetView view;
+
+            if (!janet_indexed_view(item, &view.items, &view.len)) {
+                __cleanup();
+                janet_panicf("invalid point #%d,%d: %v", i, j, item);
+            }
+            if (2 != view.len) {
+                __cleanup();
+                janet_panicf("bad point #%d,%d: expected tuple or array of length 2, got %d",
+                             i, j, view.len);
+            }
+            if (!janet_checkint(view.items[0]) || !janet_checkint(view.items[1])) {
+                __cleanup();
+                janet_panicf("bad coordinates for point #%d,%d: expected 32 bit signed integers, got %v and %v",
+                             i, j, view.items[0], view.items[1]);
+            }
+
+            cur_pt->x = jw32_unwrap_long(view.items[0]);
+            cur_pt->y = jw32_unwrap_long(view.items[1]);
+            cur_pt++;
+        }
+
+        pc[i] = pv->len;
+    }
+
+    hRet = CreatePolyPolygonRgn(pptl, pc, cPoly, iMode);
+
+    __cleanup();
+
+#undef __cleanup
 
     return jw32_wrap_handle(hRet);
 }
@@ -898,6 +994,12 @@ static const JanetReg cfuns[] = {
         cfun_CreatePolygonRgn,
         "(" MOD_NAME "/CreatePolygonRgn points iMode)\n\n"
         "Creates a polygonal region.",
+    },
+    {
+        "CreatePolyPolygonRgn",
+        cfun_CreatePolyPolygonRgn,
+        "(" MOD_NAME "/CreatePolyPolygonRgn polygons iMode)\n\n"
+        "Creates a region consisting of a series of polygons.",
     },
 
     {NULL, NULL, NULL},
