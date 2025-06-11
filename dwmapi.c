@@ -65,6 +65,19 @@ static void define_consts_dwmwcp(JanetTable *env)
 }
 
 
+static void define_consts_dwmncrp(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),    \
+              "Constant for DWM non-client area rendering policy.")
+    __def(DWMNCRP_USEWINDOWSTYLE);
+    __def(DWMNCRP_DISABLED);
+    __def(DWMNCRP_ENABLED);
+    __def(DWMNCRP_LAST);
+#undef __def
+}
+
+
 static Janet cfun_DwmGetWindowAttribute(int32_t argc, Janet *argv)
 {
     HWND hwnd;
@@ -107,6 +120,11 @@ static Janet cfun_DwmSetWindowAttribute(int32_t argc, Janet *argv)
     dwAttribute = jw32_get_dword(argv, 1);
 
     switch (dwAttribute) {
+    case DWMWA_NCRENDERING_POLICY: {
+        enum DWMNCRENDERINGPOLICY policy = (enum DWMNCRENDERINGPOLICY)jw32_get_int(argv, 2);
+        hRes = DwmSetWindowAttribute(hwnd, dwAttribute, &policy, sizeof(policy));
+        JW32_HR_RETURN_OR_PANIC(hRes, janet_wrap_nil());
+    }
     case DWMWA_CLOAK: {
         BOOL cloak = jw32_get_bool(argv, 2);
         hRes = DwmSetWindowAttribute(hwnd, dwAttribute, &cloak, sizeof(cloak));
@@ -145,6 +163,7 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_dwmwa(env);
     define_consts_dwm_cloaked(env);
     define_consts_dwmwcp(env);
+    define_consts_dwmncrp(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
