@@ -192,6 +192,13 @@ static void define_consts_rgn(JanetTable *env)
 }
 
 
+static void define_consts_rdh(JanetTable *env)
+{
+    janet_def(env, "RDH_RECTANGLES", jw32_wrap_dword(RDH_RECTANGLES),
+              "Constant for region data header type.");
+}
+
+
 static Janet cfun_CreateCompatibleDC(int32_t argc, Janet *argv)
 {
     HDC hdc;
@@ -878,6 +885,102 @@ static Janet cfun_CombineRgn(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_EqualRgn(int32_t argc, Janet *argv)
+{
+    HRGN hrgn1, hrgn2;
+
+    BOOL bRet;
+
+    janet_fixarity(argc, 2);
+
+    hrgn1 = jw32_get_handle(argv, 0);
+    hrgn2 = jw32_get_handle(argv, 1);
+
+    bRet = EqualRgn(hrgn1, hrgn2);
+    return jw32_wrap_bool(bRet);
+}
+
+
+static int RGNDATA_get(void *p, Janet key, Janet *out)
+{
+    LPRGNDATA lpRgnData = (LPRGNDATA)p;
+
+    if (!janet_checktype(key, JANET_KEYWORD)) {
+        janet_panicf("expected keyword, got %v", key);
+    }
+
+    const uint8_t *kw = janet_unwrap_keyword(key);
+
+#define __get_member(member, type) do {                 \
+        if (!janet_cstrcmp(kw, #member)) {              \
+            *out = jw32_wrap_##type(lpRgnData->member);       \
+            return 1;                                   \
+        }                                               \
+    } while (0)
+
+    __get_member(rdh.dwSize, dword);
+    __get_member(rdh.iType, dword);
+    __get_member(rdh.nCount, dword);
+    __get_member(rdh.nRgnSize, dword);
+    if (!janet_cstrcmp(kw, "rdh.rcBound")) {
+        *out = janet_wrap_struct(jw32_rect_to_struct(&(lpRgnData->rdh.rcBound)));
+        return 1;
+    }
+    if (!janet_cstrcmp(kw, "Buffer")) {
+        DWORD nCount = lpRgnData->rdh.nCount;
+        JanetArray *buf_arr = janet_array(nCount);
+        RECT *aRect = (RECT *)&(lpRgnData->Buffer);
+        for (DWORD i = 0; i < nCount; i++) {
+            janet_array_push(buf_arr, janet_wrap_struct(jw32_rect_to_struct(&aRect[i])));
+        }
+        *out = janet_wrap_array(buf_arr);
+        return 1;
+    }
+
+#undef __get_member
+
+    return 0;
+}
+
+static const JanetAbstractType jw32_at_RGNDATA = {
+    .name = MOD_NAME "/RGNDATA",
+    .gc = NULL,
+    .gcmark = NULL,
+    .get = RGNDATA_get,
+    JANET_ATEND_GET
+};
+
+
+static Janet cfun_GetRegionData(int32_t argc, Janet *argv)
+{
+    HRGN hrgn;
+
+    LPRGNDATA lpRgnData = NULL;
+
+    DWORD nCount = 0;
+    DWORD nRetCount = 0;
+
+    janet_fixarity(argc, 1);
+
+    hrgn = jw32_get_handle(argv, 0);
+
+    nCount = GetRegionData(hrgn, 0, NULL);
+    if (!nCount) {
+        /* hrgn may be invalid, don't bother retrying */
+        return janet_wrap_nil();
+    }
+
+    lpRgnData = janet_abstract(&jw32_at_RGNDATA, nCount);
+    nRetCount = GetRegionData(hrgn, nCount, lpRgnData);
+    if (!nRetCount) {
+        /* lpRgnData will be freed by GC */
+        return janet_wrap_nil();
+    } else {
+        return janet_wrap_abstract(lpRgnData);
+    }
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -1065,6 +1168,18 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/CombineRgn hrgnDst hrgnSrc1 hrgnSrc2 iMode)\n\n"
         "Combines two regions.",
     },
+    {
+        "EqualRgn",
+        cfun_EqualRgn,
+        "(" MOD_NAME "/EqualRgn hrgn1 hrgn2)\n\n"
+        "Checks if two regions are equal in size and shape.",
+    },
+    {
+        "GetRegionData",
+        cfun_GetRegionData,
+        "(" MOD_NAME "/GetRegionData hrgn)\n\n"
+        "Retrieves data describing a region.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -1080,6 +1195,9 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_polyfill_mode(env);
     define_consts_region(env);
     define_consts_rgn(env);
+    define_consts_rdh(env);
+
+    janet_register_abstract_type(&jw32_at_RGNDATA);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }
