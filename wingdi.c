@@ -153,6 +153,45 @@ static void define_consts_polyfill_mode(JanetTable *env)
 }
 
 
+static void define_consts_region(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constant for region types.")
+
+    /* XXX: This name is too generic, skip it to avoid confusion.
+     *      Use RGN_ERROR instead.
+     */
+//    __def(ERROR);
+    __def(NULLREGION);
+    __def(SIMPLEREGION);
+    __def(COMPLEXREGION);
+    __def(RGN_ERROR);
+
+#undef __def
+}
+
+
+static void define_consts_rgn(JanetTable *env)
+{
+#define __def(const_name)                                    \
+    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
+              "Constant for CombineRgn modes.")
+
+    __def(RGN_AND);
+    __def(RGN_OR);
+    __def(RGN_XOR);
+    __def(RGN_DIFF);
+    __def(RGN_COPY);
+    __def(RGN_MIN);
+    __def(RGN_MAX);
+
+    /* See define_consts_region() for RGN_ERROR */
+
+#undef __def
+}
+
+
 static Janet cfun_CreateCompatibleDC(int32_t argc, Janet *argv)
 {
     HDC hdc;
@@ -820,6 +859,25 @@ static Janet cfun_CreatePolyPolygonRgn(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_CombineRgn(int32_t argc, Janet *argv)
+{
+    HRGN hrgnDst, hrgnSrc1, hrgnSrc2;
+    int iMode;
+
+    int iRet;
+
+    janet_fixarity(argc, 4);
+
+    hrgnDst = jw32_get_handle(argv, 0);
+    hrgnSrc1 = jw32_get_handle(argv, 1);
+    hrgnSrc2 = jw32_get_handle(argv, 2);
+    iMode = jw32_get_int(argv, 3);
+
+    iRet = CombineRgn(hrgnDst, hrgnSrc1, hrgnSrc2, iMode);
+    return jw32_wrap_int(iRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "CreateCompatibleDC",
@@ -1001,6 +1059,12 @@ static const JanetReg cfuns[] = {
         "(" MOD_NAME "/CreatePolyPolygonRgn polygons iMode)\n\n"
         "Creates a region consisting of a series of polygons.",
     },
+    {
+        "CombineRgn",
+        cfun_CombineRgn,
+        "(" MOD_NAME "/CombineRgn hrgnDst hrgnSrc1 hrgnSrc2 iMode)\n\n"
+        "Combines two regions.",
+    },
 
     {NULL, NULL, NULL},
 };
@@ -1014,6 +1078,8 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_stretch_blt_mode(env);
     define_consts_raster_operation_code(env);
     define_consts_polyfill_mode(env);
+    define_consts_region(env);
+    define_consts_rgn(env);
 
     janet_cfuns(env, MOD_NAME, cfuns);
 }

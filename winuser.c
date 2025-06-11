@@ -2094,25 +2094,6 @@ static void define_consts_dt(JanetTable *env)
 }
 
 
-static void define_consts_region(JanetTable *env)
-{
-#define __def(const_name)                                    \
-    janet_def(env, #const_name, jw32_wrap_int(const_name),   \
-              "Constants for GetWindowRgn return value.")
-
-    /* XXX: This name is too generic, skip it to avoid confusion.
-     *      Use RGN_ERROR instead.
-     */
-//    __def(ERROR);
-    __def(NULLREGION);
-    __def(SIMPLEREGION);
-    __def(COMPLEXREGION);
-    __def(RGN_ERROR);
-
-#undef __def
-}
-
-
 /*******************************************************************
  *
  * HELPER FUNCTIONS
@@ -6433,7 +6414,6 @@ JANET_MODULE_ENTRY(JanetTable *env)
     define_consts_swp(env);
     define_consts_dpi_awareness(env);
     define_consts_dt(env);
-    define_consts_region(env);
 
     janet_register_abstract_type(&jw32_at_MSG);
     janet_register_abstract_type(&jw32_at_WNDCLASSEX);
