@@ -3448,6 +3448,18 @@ static Janet cfun_GetParent(int32_t argc, Janet *argv)
     return jw32_wrap_handle(GetParent(hwnd));
 }
 
+static Janet cfun_SetParent(int32_t argc, Janet *argv)
+{
+    HWND hWndChild, hWndNewParent;
+
+    janet_fixarity(argc, 2);
+
+    hWndChild = jw32_get_handle(argv, 0);
+    hWndNewParent = jw32_get_handle(argv, 1);
+
+    return jw32_wrap_handle(SetParent(hWndChild, hWndNewParent));
+}
+
 static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
 {
     DWORD dwExStyle;
@@ -5874,6 +5886,12 @@ static const JanetReg cfuns[] = {
         cfun_GetParent,
         "(" MOD_NAME "/GetParent hwnd)\n\n"
         "Retrieves the handle to the specified window's parent or owner.",
+    },
+    {
+        "SetParent",
+        cfun_SetParent,
+        "(" MOD_NAME "/SetParent hWndChild hWndNewParent)\n\n"
+        "Changes the parent window of the specified child window.",
     },
     {
         "CreateWindowEx",
