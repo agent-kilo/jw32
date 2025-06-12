@@ -27,6 +27,16 @@ static Janet cfun_GetTokenInformation(int32_t argc, Janet *argv)
         }
         return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
     }
+    case TokenUIAccess: {
+        DWORD ua = 0;
+        BOOL bRet = GetTokenInformation(tokenHandle, tokenInformationClass, &ua, sizeof(ua), &retLen);
+        ret_tuple[0] = jw32_wrap_bool(bRet);
+        ret_tuple[1] = janet_wrap_boolean(0);
+        if (bRet) {
+            ret_tuple[1] = janet_wrap_boolean(ua != 0);
+        }
+        return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+    }
     default:
         janet_panicf("unsupported token information class: %d", tokenInformationClass);
     }
