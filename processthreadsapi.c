@@ -153,6 +153,28 @@ static Janet cfun_OpenThreadToken(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_ProcessIdToSessionId(int32_t argc, Janet *argv)
+{
+    DWORD dwProcessId;
+
+    BOOL bRet;
+
+    DWORD dwSessionId = 0;
+    Janet ret_tuple[2];
+
+    janet_fixarity(argc, 1);
+
+    dwProcessId = jw32_get_dword(argv, 0);
+
+    bRet = ProcessIdToSessionId(dwProcessId, &dwSessionId);
+
+    ret_tuple[0] = jw32_wrap_bool(bRet);
+    ret_tuple[1] = jw32_wrap_dword(dwSessionId);
+
+    return janet_wrap_tuple(janet_tuple_n(ret_tuple, 2));
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "GetCurrentProcess",
@@ -189,6 +211,12 @@ static const JanetReg cfuns[] = {
         cfun_OpenThreadToken,
         "(" MOD_NAME "/OpenThreadToken ThreadHandle DesiredAccess OpenAsSelf)\n\n"
         "Opens the access token associated with a thread.",
+    },
+    {
+        "ProcessIdToSessionId",
+        cfun_ProcessIdToSessionId,
+        "(" MOD_NAME "/ProcessIdToSessionId dwProcessId)\n\n"
+        "Retrieves the Remote Desktop Services session associated with a process.",
     },
     {NULL, NULL, NULL},
 };
