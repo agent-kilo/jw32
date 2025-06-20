@@ -162,6 +162,12 @@
    :ldflags [;ldflags "kernel32.lib"])
 
   (declare-native
+   :name (project-module "_winreg")
+   :source ["winreg.c"]
+   :headers ["debug.h" ;common-headers]
+   :ldflags [;ldflags "advapi32.lib"])
+
+  (declare-native
    :name (project-module "_util")
    :source ["util.c"]
    :headers [;common-headers]

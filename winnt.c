@@ -63,7 +63,79 @@ static void define_consts_token_information_class(JanetTable *env)
 }
 
 
+static void define_consts_key(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for registry key access rights.")
+
+    __def(KEY_QUERY_VALUE);
+    __def(KEY_SET_VALUE);
+    __def(KEY_CREATE_SUB_KEY);
+    __def(KEY_ENUMERATE_SUB_KEYS);
+    __def(KEY_NOTIFY);
+    __def(KEY_CREATE_LINK);
+    __def(KEY_WOW64_32KEY);
+    __def(KEY_WOW64_64KEY);
+    __def(KEY_WOW64_RES);
+    __def(KEY_READ);
+    __def(KEY_WRITE);
+    __def(KEY_EXECUTE);
+    __def(KEY_ALL_ACCESS);
+
+#undef __def
+}
+
+
+static void define_consts_reg_option(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for registry key open/create options.")
+
+    __def(REG_OPTION_RESERVED);
+    __def(REG_OPTION_NON_VOLATILE);
+    __def(REG_OPTION_VOLATILE);
+    __def(REG_OPTION_CREATE_LINK);
+    __def(REG_OPTION_BACKUP_RESTORE);
+    __def(REG_OPTION_OPEN_LINK);
+    __def(REG_OPTION_DONT_VIRTUALIZE);
+    __def(REG_LEGAL_OPTION);
+    __def(REG_OPEN_LEGAL_OPTION);
+
+#undef __def
+}
+
+
+static void define_consts_reg(JanetTable *env)
+{
+#define __def(const_name)                                     \
+    janet_def(env, #const_name, jw32_wrap_dword(const_name),    \
+              "Constant for registry value types.")
+
+    __def(REG_NONE);
+    __def(REG_SZ);
+    __def(REG_EXPAND_SZ);
+    __def(REG_BINARY);
+    __def(REG_DWORD);
+    __def(REG_DWORD_LITTLE_ENDIAN);
+    __def(REG_DWORD_BIG_ENDIAN);
+    __def(REG_LINK);
+    __def(REG_MULTI_SZ);
+    __def(REG_RESOURCE_LIST);
+    __def(REG_FULL_RESOURCE_DESCRIPTOR);
+    __def(REG_RESOURCE_REQUIREMENTS_LIST);
+    __def(REG_QWORD);
+    __def(REG_QWORD_LITTLE_ENDIAN);
+
+#undef __def
+}
+
+
 JANET_MODULE_ENTRY(JanetTable *env)
 {
     define_consts_token_information_class(env);
+    define_consts_key(env);
+    define_consts_reg_option(env);
+    define_consts_reg(env);
 }
