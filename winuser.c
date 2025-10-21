@@ -4226,6 +4226,17 @@ static Janet cfun_GetWindowRgn(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_RegisterWindowMessage(int32_t argc, Janet *argv)
+{
+    LPCSTR lpString;
+
+    janet_fixarity(argc, 1);
+
+    lpString = jw32_get_lpcstr(argv, 0);
+    return jw32_wrap_uint(RegisterWindowMessage(lpString));
+}
+
+
 /*******************************************************************
  *
  * GDI
@@ -6084,6 +6095,12 @@ static const JanetReg cfuns[] = {
         cfun_GetWindowRgn,
         "(" MOD_NAME "/GetWindowRgn hWnd hRgn)\n\n"
         "Retrieves the window region of a window.",
+    },
+    {
+        "RegisterWindowMessage",
+        cfun_RegisterWindowMessage,
+        "(" MOD_NAME "/RegisterWindowMessage lpString)\n\n"
+        "Defines a new window message that's unique throughout the system.",
     },
 
     /*********************** GDI ************************/
