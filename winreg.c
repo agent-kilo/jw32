@@ -154,6 +154,22 @@ static Janet cfun_RegGetValue(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_RegCloseKey(int32_t argc, Janet *argv)
+{
+    HKEY hKey;
+
+    LSTATUS lRet;
+
+    janet_fixarity(argc, 1);
+
+    hKey = jw32_get_handle(argv, 0);
+
+    lRet = RegCloseKey(hKey);
+
+    return jw32_wrap_long(lRet);
+}
+
+
 static const JanetReg cfuns[] = {
     {
         "RegOpenCurrentUser",
@@ -172,6 +188,12 @@ static const JanetReg cfuns[] = {
         cfun_RegGetValue,
         "(" MOD_NAME "/RegGetValue hkey lpSubKey lpValue dwFlags)\n\n"
         "Retrieves the type and data for the specified registry value.",
+    },
+    {
+        "RegCloseKey",
+        cfun_RegCloseKey,
+        "(" MOD_NAME "/RegCloseKey hkey)\n\n"
+        "Closes a handle to a registry key.",
     },
     {NULL, NULL, NULL},
 };
