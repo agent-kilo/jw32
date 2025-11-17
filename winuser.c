@@ -4237,6 +4237,29 @@ static Janet cfun_RegisterWindowMessage(int32_t argc, Janet *argv)
 }
 
 
+static Janet cfun_FindWindowEx(int32_t argc, Janet *argv)
+{
+    HWND hWndParent;
+    HWND hWndChildAfter;
+    LPCSTR lpszClass;
+    LPCSTR lpszWindow;
+
+    janet_fixarity(argc, 4);
+
+    hWndParent = jw32_get_handle(argv, 0);
+    hWndChildAfter = jw32_get_handle(argv, 1);
+    lpszClass = jw32_get_lpcstr(argv, 2);
+    lpszWindow = jw32_get_lpcstr(argv, 3);
+
+    HWND hRet = FindWindowEx(hWndParent, hWndChildAfter, lpszClass, lpszWindow);
+    if (hRet) {
+        return jw32_wrap_handle(hRet);
+    } else {
+        return janet_wrap_nil();
+    }
+}
+
+
 /*******************************************************************
  *
  * GDI
@@ -6101,6 +6124,12 @@ static const JanetReg cfuns[] = {
         cfun_RegisterWindowMessage,
         "(" MOD_NAME "/RegisterWindowMessage lpString)\n\n"
         "Defines a new window message that's unique throughout the system.",
+    },
+    {
+        "FindWindowEx",
+        cfun_FindWindowEx,
+        "(" MOD_NAME "/FindWindowEx hWndParent hWndChildAfter lpszClass lpszWindow)\n\n"
+        "Retrieves a handle to a child window with matching class name and window name.",
     },
 
     /*********************** GDI ************************/
