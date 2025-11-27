@@ -242,6 +242,9 @@ static Janet IDesktopWallpaper_GetMonitorDevicePathAt(int32_t argc, Janet *argv)
     hrRet = self->lpVtbl->GetMonitorDevicePathAt(self, monitorIndex, &monitorID);
     if (S_OK == hrRet) {
         monitor_id_str = jw32_bstr_to_string((BSTR)monitorID);
+        /* Docs for GetMonitorDevicePathAt method doesn't mention handling
+           of monitorID, but generic COM memory management rules apply.
+           See https://learn.microsoft.com/en-us/windows/win32/com/memory-management-rules */
         CoTaskMemFree(monitorID);
         if (!monitor_id_str) {
             hrRet = E_UNEXPECTED;
