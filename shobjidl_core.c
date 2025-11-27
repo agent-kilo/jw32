@@ -242,6 +242,7 @@ static Janet IDesktopWallpaper_GetMonitorDevicePathAt(int32_t argc, Janet *argv)
     hrRet = self->lpVtbl->GetMonitorDevicePathAt(self, monitorIndex, &monitorID);
     if (S_OK == hrRet) {
         monitor_id_str = jw32_bstr_to_string((BSTR)monitorID);
+        CoTaskMemFree(monitorID);
         if (!monitor_id_str) {
             hrRet = E_UNEXPECTED;
         }
@@ -392,6 +393,7 @@ static Janet IDesktopWallpaper_GetWallpaper(int32_t argc, Janet *argv)
     if (S_OK == hrRet) {
         /* XXX: jw32_bstr_to_string does not care about the BSTR header, so this works */
         wallpaper_str = jw32_bstr_to_string((BSTR)wallpaper);
+        CoTaskMemFree(wallpaper);
         if (!wallpaper_str) {
             hrRet = E_UNEXPECTED;
         }
