@@ -3344,8 +3344,12 @@ static Janet cfun_DialogBox(int32_t argc, Janet *argv)
         param_tuple[0] = janet_wrap_function(dlg_proc_fn);
         param_tuple[1] = jw32_wrap_lparam((LPARAM)NULL);
         dlgParam = (LPARAM)janet_tuple_n(param_tuple, 2);
+        /* See cfun_CreateWindowEx for detailed reason */
+        janet_gcroot(janet_wrap_tuple((JanetTuple)dlgParam));
 
         nRet = DialogBoxParam(hInstance, lpTemplate, hWndParent, jw32_dlg_proc, dlgParam);
+
+        janet_gcunroot(janet_wrap_tuple((JanetTuple)dlgParam));
     } else {
         nRet = DialogBox(hInstance, lpTemplate, hWndParent, NULL);
     }
@@ -3377,8 +3381,12 @@ static Janet cfun_CreateDialog(int32_t argc, Janet *argv)
         param_tuple[0] = janet_wrap_function(dlg_proc_fn);
         param_tuple[1] = jw32_wrap_lparam((LPARAM)NULL);
         dlgParam = (LPARAM)janet_tuple_n(param_tuple, 2);
+        /* See cfun_CreateWindowEx for detailed reason */
+        janet_gcroot(janet_wrap_tuple((JanetTuple)dlgParam));
 
         hRet = CreateDialogParam(hInstance, lpName, hWndParent, jw32_dlg_proc, dlgParam);
+
+        janet_gcunroot(janet_wrap_tuple((JanetTuple)dlgParam));
     } else {
         hRet = CreateDialog(hInstance, lpName, hWndParent, NULL);
     }
@@ -3474,6 +3482,7 @@ static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
     HWND hWnd;
 
     Janet class_name;
+    JanetTuple lpparam_tuple = NULL;
 
     janet_fixarity(argc, 12);
 
@@ -3516,7 +3525,12 @@ static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
             lpParam = jw32_get_lpvoid(argv, 11);
             param_tuple[0] = wnd_proc;
             param_tuple[1] = jw32_wrap_lpvoid(lpParam);
-            lpParam = (LPVOID)janet_tuple_n(param_tuple, 2);
+            lpparam_tuple = janet_tuple_n(param_tuple, 2);
+            /* CreateWindowEx normally won't call back into the Janet VM, but it's
+               possible if we introduced window message hooks (e.g. WH_CALLWNDPROC)
+               written in Janet. Better safe than sorry. */
+            janet_gcroot(janet_wrap_tuple(lpparam_tuple));
+            lpParam = (LPVOID)lpparam_tuple;
         } else {
             lpParam = jw32_get_lpvoid(argv, 11);
         }
@@ -3530,6 +3544,10 @@ static Janet cfun_CreateWindowEx(int32_t argc, Janet *argv)
                           x, y, nWidth, nHeight,
                           hWndParent, hMenu, hInstance,
                           lpParam);
+
+    if (lpparam_tuple) {
+        janet_gcunroot(janet_wrap_tuple(lpparam_tuple));
+    }
 
     return jw32_wrap_handle(hWnd);
 }
